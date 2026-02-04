@@ -1,6 +1,8 @@
 package com.jay.auth.controller;
 
+import com.jay.auth.dto.request.EmailLoginRequest;
 import com.jay.auth.dto.request.EmailSignUpRequest;
+import com.jay.auth.dto.response.LoginResponse;
 import com.jay.auth.dto.response.SignUpResponse;
 import com.jay.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +29,16 @@ public class AuthController {
             @Valid @RequestBody EmailSignUpRequest request) {
 
         SignUpResponse response = authService.signUpWithEmail(request);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "이메일 로그인", description = "이메일과 비밀번호로 로그인합니다")
+    @PostMapping("/email/login")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody EmailLoginRequest request) {
+
+        LoginResponse response = authService.loginWithEmail(request);
 
         return ResponseEntity.ok(response);
     }

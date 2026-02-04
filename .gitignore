@@ -35,3 +35,19 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables ###
+.env
+.env.*
+!.env.example
+
+### Logs ###
+logs/
+*.log
+
+### Application Secrets ###
+**/application-local.yml
+**/application-prod.yml
+
+### Claude Code ###
+.claude/

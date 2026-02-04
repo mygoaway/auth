@@ -94,12 +94,36 @@ public class EmailVerificationService {
     }
 
     /**
+     * tokenId와 이메일로 인증 완료 여부 확인
+     */
+    @Transactional(readOnly = true)
+    public boolean isVerifiedByTokenId(String tokenId, String email, VerificationType type) {
+        String emailLowerEnc = encryptionService.encryptForSearch(email);
+
+        return emailVerificationRepository.findByTokenId(tokenId)
+                .filter(v -> v.getEmailLowerEnc().equals(emailLowerEnc))
+                .filter(v -> v.getVerificationType() == type)
+                .filter(v -> v.getIsVerified())
+                .filter(v -> !v.isExpired())
+                .isPresent();
+    }
+
+    /**
      * 인증 완료된 레코드 삭제 (회원가입 완료 후)
      */
     @Transactional
     public void deleteVerification(String email, VerificationType type) {
         String emailLowerEnc = encryptionService.encryptForSearch(email);
         emailVerificationRepository.deleteByEmailAndType(emailLowerEnc, type);
+    }
+
+    /**
+     * tokenId로 인증 레코드 삭제
+     */
+    @Transactional
+    public void deleteVerificationByTokenId(String tokenId) {
+        emailVerificationRepository.findByTokenId(tokenId)
+                .ifPresent(emailVerificationRepository::delete);
     }
 
     private String generateCode() {

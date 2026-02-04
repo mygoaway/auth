@@ -38,6 +38,7 @@ public class AuthService {
      */
     @Transactional
     public SignUpResponse signUpWithEmail(EmailSignUpRequest request) {
+        String tokenId = request.getTokenId();
         String email = request.getEmail();
         String password = request.getPassword();
         String nickname = request.getNickname();
@@ -47,8 +48,8 @@ public class AuthService {
             throw new InvalidPasswordException();
         }
 
-        // 2. 이메일 인증 완료 여부 확인
-        if (!emailVerificationService.isVerified(email, VerificationType.SIGNUP)) {
+        // 2. tokenId + 이메일로 인증 완료 여부 확인
+        if (!emailVerificationService.isVerifiedByTokenId(tokenId, email, VerificationType.SIGNUP)) {
             throw InvalidVerificationException.notVerified();
         }
 
@@ -89,7 +90,7 @@ public class AuthService {
         userChannelRepository.save(channel);
 
         // 7. 인증 기록 삭제
-        emailVerificationService.deleteVerification(email, VerificationType.SIGNUP);
+        emailVerificationService.deleteVerificationByTokenId(tokenId);
 
         // 8. 토큰 발급
         TokenResponse tokenResponse = tokenService.issueTokens(

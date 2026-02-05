@@ -1,14 +1,12 @@
 package com.jay.auth.controller;
 
-import com.jay.auth.dto.request.EmailLoginRequest;
-import com.jay.auth.dto.request.EmailSignUpRequest;
-import com.jay.auth.dto.request.LogoutRequest;
-import com.jay.auth.dto.request.RefreshTokenRequest;
+import com.jay.auth.dto.request.*;
 import com.jay.auth.dto.response.LoginResponse;
 import com.jay.auth.dto.response.SignUpResponse;
 import com.jay.auth.dto.response.TokenResponse;
 import com.jay.auth.security.UserPrincipal;
 import com.jay.auth.service.AuthService;
+import com.jay.auth.service.PasswordService;
 import com.jay.auth.service.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +28,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final TokenService tokenService;
+    private final PasswordService passwordService;
 
     @Operation(summary = "이메일 회원가입", description = "이메일 인증 완료 후 회원가입을 진행합니다")
     @PostMapping("/email/signup")
@@ -93,6 +92,27 @@ public class AuthController {
         }
 
         tokenService.logoutAll(userPrincipal.getUserId(), accessToken);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "비밀번호 변경", description = "현재 비밀번호를 확인 후 새 비밀번호로 변경합니다")
+    @PostMapping("/password/change")
+    public ResponseEntity<Void> changePassword(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @Valid @RequestBody ChangePasswordRequest request) {
+
+        passwordService.changePassword(userPrincipal.getUserId(), request);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "비밀번호 재설정", description = "이메일 인증 후 비밀번호를 재설정합니다")
+    @PostMapping("/password/reset")
+    public ResponseEntity<Void> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+
+        passwordService.resetPassword(request);
 
         return ResponseEntity.ok().build();
     }

@@ -54,17 +54,19 @@ class EncryptionUtilTest {
     }
 
     @Test
-    @DisplayName("소문자 변환 후 암호화가 정상 동작해야 한다")
+    @DisplayName("소문자 변환 후 검색용 암호화는 결정적이어야 한다")
     void encryptLower() {
         // given
         String email = "Test@Example.COM";
 
         // when
-        String encryptedLower = encryptionUtil.encryptLower(email);
-        String decrypted = encryptionUtil.decrypt(encryptedLower);
+        String encrypted1 = encryptionUtil.encryptLower(email);
+        String encrypted2 = encryptionUtil.encryptLower(email);
+        String encrypted3 = encryptionUtil.encryptLower("test@example.com");
 
-        // then
-        assertThat(decrypted).isEqualTo("test@example.com");
+        // then - 같은 입력이면 같은 결과 (대소문자 무관)
+        assertThat(encrypted1).isEqualTo(encrypted2);
+        assertThat(encrypted1).isEqualTo(encrypted3);
     }
 
     @Test

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
+import javax.crypto.Mac;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -92,14 +93,22 @@ public class EncryptionUtil {
     }
 
     /**
-     * 소문자 변환 후 암호화 (이메일 검색용)
+     * 소문자 변환 후 결정적 암호화 (검색용)
+     * HMAC-SHA256을 사용하여 동일 입력에 동일 출력을 보장
      * @param plainText 평문
-     * @return 소문자 변환 후 암호화된 값
+     * @return 소문자 변환 후 HMAC-SHA256 해시값 (Base64)
      */
     public String encryptLower(String plainText) {
         if (plainText == null || plainText.isEmpty()) {
             return null;
         }
-        return encrypt(plainText.toLowerCase());
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(secretKey);
+            byte[] hash = mac.doFinal(plainText.toLowerCase().getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hash);
+        } catch (Exception e) {
+            throw new RuntimeException("HMAC encryption failed", e);
+        }
     }
 }

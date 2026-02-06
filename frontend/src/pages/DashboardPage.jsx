@@ -19,6 +19,7 @@ export default function DashboardPage() {
 
   const [activeTab, setActiveTab] = useState('home');
   const [channelsStatus, setChannelsStatus] = useState(null);
+  const [loginHistory, setLoginHistory] = useState([]);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -48,6 +49,9 @@ export default function DashboardPage() {
     if (activeTab === 'channels') {
       loadChannelsStatus();
     }
+    if (activeTab === 'security') {
+      loadLoginHistory();
+    }
   }, [activeTab]);
 
   const loadChannelsStatus = async () => {
@@ -56,6 +60,15 @@ export default function DashboardPage() {
       setChannelsStatus(response.data);
     } catch (err) {
       console.error('Failed to load channels status', err);
+    }
+  };
+
+  const loadLoginHistory = async () => {
+    try {
+      const response = await userApi.getLoginHistory(10);
+      setLoginHistory(response.data);
+    } catch (err) {
+      console.error('Failed to load login history', err);
     }
   };
 
@@ -510,6 +523,42 @@ export default function DashboardPage() {
                 <button className="delete-btn" onClick={() => openModal('delete')}>
                   탈퇴
                 </button>
+              </div>
+            </div>
+
+            <div className="info-card">
+              <h3>최근 로그인 기록</h3>
+              <div className="login-history-list">
+                {loginHistory.length === 0 ? (
+                  <p className="info-description">로그인 기록이 없습니다.</p>
+                ) : (
+                  loginHistory.map((history) => (
+                    <div key={history.id} className="login-history-item">
+                      <div className="login-history-icon">
+                        {history.deviceType === 'Mobile' ? '📱' : history.deviceType === 'Tablet' ? '📲' : '💻'}
+                      </div>
+                      <div className="login-history-info">
+                        <div className="login-history-device">
+                          {history.browser} / {history.os}
+                          <span className={`login-history-status ${history.isSuccess ? 'success' : 'failed'}`}>
+                            {history.isSuccess ? '성공' : '실패'}
+                          </span>
+                        </div>
+                        <div className="login-history-detail">
+                          {CHANNEL_INFO[history.channelCode]?.name || history.channelCode} · {history.ipAddress}
+                        </div>
+                      </div>
+                      <div className="login-history-time">
+                        {new Date(history.createdAt).toLocaleString('ko-KR', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

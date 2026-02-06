@@ -1,224 +1,850 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { userApi, authApi } from '../api/auth';
+import { userApi, authApi, phoneApi, emailApi } from '../api/auth';
+
+const OAUTH2_BASE_URL = 'http://localhost:8080';
+
+const CHANNEL_INFO = {
+  EMAIL: { name: 'Email', icon: '✉', color: '#6c757d' },
+  GOOGLE: { name: 'Google', icon: 'G', color: '#DB4437' },
+  KAKAO: { name: '카카오', icon: '💬', color: '#FEE500', textColor: '#000' },
+  NAVER: { name: '네이버', icon: 'N', color: '#03C75A' },
+  FACEBOOK: { name: 'Facebook', icon: 'f', color: '#1877F2' },
+};
 
 export default function DashboardPage() {
   const { user, logout, loadProfile } = useAuth();
   const navigate = useNavigate();
 
-  const [editModal, setEditModal] = useState(null); // 'nickname' | 'phone' | 'recoveryEmail' | 'password'
-  const [editValue, setEditValue] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [activeTab, setActiveTab] = useState('home');
+  const [channelsStatus, setChannelsStatus] = useState(null);
+  const [modal, setModal] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  // Form states
+  const [nickname, setNickname] = useState('');
+  const [phone, setPhone] = useState('');
+  const [phoneCode, setPhoneCode] = useState('');
+  const [phoneTokenId, setPhoneTokenId] = useState('');
+  const [phoneStep, setPhoneStep] = useState(1);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [emailCode, setEmailCode] = useState('');
+  const [emailTokenId, setEmailTokenId] = useState('');
+  const [emailStep, setEmailStep] = useState(1);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState('');
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+
+  useEffect(() => {
+    if (activeTab === 'channels') {
+      loadChannelsStatus();
+    }
+  }, [activeTab]);
+
+  const loadChannelsStatus = async () => {
+    try {
+      const response = await userApi.getChannelsStatus();
+      setChannelsStatus(response.data);
+    } catch (err) {
+      console.error('Failed to load channels status', err);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
-  const openEdit = (type, currentValue) => {
-    setEditModal(type);
-    setEditValue(currentValue || '');
-    setCurrentPassword('');
-    setNewPassword('');
+  const resetModal = () => {
+    setModal(null);
     setError('');
     setSuccess('');
+    setNickname('');
+    setPhone('');
+    setPhoneCode('');
+    setPhoneTokenId('');
+    setPhoneStep(1);
+    setRecoveryEmail('');
+    setEmailCode('');
+    setEmailTokenId('');
+    setEmailStep(1);
+    setCurrentPassword('');
+    setNewPassword('');
+    setNewPasswordConfirm('');
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setRegisterPassword('');
+    setRegisterPasswordConfirm('');
+    setShowRegisterPassword(false);
+    setDeleteConfirm('');
   };
 
-  const handleEdit = async () => {
+  const openModal = (type, initialValue = '') => {
+    resetModal();
+    setModal(type);
+    if (type === 'nickname') setNickname(initialValue || '');
+    if (type === 'phone') setPhone(initialValue || '');
+    if (type === 'recoveryEmail') setRecoveryEmail(initialValue || '');
+  };
+
+  // Nickname update
+  const handleUpdateNickname = async () => {
     setError('');
     setLoading(true);
-
     try {
-      switch (editModal) {
-        case 'nickname':
-          await userApi.updateNickname(editValue);
-          break;
-        case 'phone':
-          await userApi.updatePhone(editValue);
-          break;
-        case 'recoveryEmail':
-          await userApi.updateRecoveryEmail(editValue);
-          break;
-        case 'password':
-          await authApi.changePassword(currentPassword, newPassword);
-          break;
-      }
-
-      setSuccess('변경되었습니다');
+      await userApi.updateNickname(nickname);
+      setSuccess('닉네임이 변경되었습니다');
       await loadProfile();
-      setTimeout(() => {
-        setEditModal(null);
-        setSuccess('');
-      }, 1000);
+      setTimeout(resetModal, 1500);
     } catch (err) {
-      const message = err.response?.data?.error?.message
-        || err.response?.data?.message
-        || '변경에 실패했습니다';
-      setError(message);
+      setError(err.response?.data?.error?.message || '닉네임 변경에 실패했습니다');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  // Phone verification
+  const handleSendPhoneCode = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const response = await phoneApi.sendVerification(phone, 'PHONE_CHANGE');
+      setPhoneTokenId(response.data.tokenId);
+      setPhoneStep(2);
+      setSuccess('인증번호가 전송되었습니다');
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '인증번호 전송에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyPhoneCode = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await phoneApi.verifyCode(phone, phoneCode);
+      setPhoneStep(3);
+      setSuccess('인증이 완료되었습니다');
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '인증번호가 올바르지 않습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePhone = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await userApi.updatePhone(phone, phoneTokenId);
+      setSuccess('핸드폰 번호가 변경되었습니다');
+      await loadProfile();
+      setTimeout(resetModal, 1500);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '핸드폰 번호 변경에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Recovery email verification
+  const handleSendEmailCode = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const response = await emailApi.sendVerification(recoveryEmail, 'EMAIL_CHANGE');
+      setEmailTokenId(response.data.tokenId);
+      setEmailStep(2);
+      setSuccess('인증 코드가 전송되었습니다');
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '인증 코드 전송에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyEmailCode = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await emailApi.verifyCode(recoveryEmail, emailCode);
+      setEmailStep(3);
+      setSuccess('인증이 완료되었습니다');
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '인증 코드가 올바르지 않습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateRecoveryEmail = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await userApi.updateRecoveryEmail(recoveryEmail, emailTokenId);
+      setSuccess('복구 이메일이 변경되었습니다');
+      await loadProfile();
+      setTimeout(resetModal, 1500);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '복구 이메일 변경에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Password change
+  const handleChangePassword = async () => {
+    setError('');
+    if (newPassword !== newPasswordConfirm) {
+      setError('새 비밀번호가 일치하지 않습니다');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('비밀번호는 8자 이상이어야 합니다');
+      return;
+    }
+    setLoading(true);
+    try {
+      await authApi.changePassword(currentPassword, newPassword);
+      setSuccess('비밀번호가 변경되었습니다. 다시 로그인해주세요.');
+      setTimeout(() => {
+        logout();
+        navigate('/login');
+      }, 2000);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '비밀번호 변경에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Register password (for social users)
+  const handleRegisterPassword = async () => {
+    setError('');
+    if (registerPassword !== registerPasswordConfirm) {
+      setError('비밀번호가 일치하지 않습니다');
+      return;
+    }
+    if (registerPassword.length < 8) {
+      setError('비밀번호는 8자 이상이어야 합니다');
+      return;
+    }
+    setLoading(true);
+    try {
+      await userApi.registerPassword(registerPassword);
+      setSuccess('비밀번호가 등록되었습니다');
+      await loadChannelsStatus();
+      setTimeout(resetModal, 1500);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '비밀번호 등록에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Account linking
+  const handleLinkChannel = (provider) => {
+    // Set a flag to indicate link mode
+    sessionStorage.setItem('linkMode', 'true');
+    window.location.href = `${OAUTH2_BASE_URL}/oauth2/authorization/${provider}?mode=link`;
+  };
+
+  const handleUnlinkChannel = async (channelCode) => {
+    setError('');
+    setLoading(true);
+    try {
+      await userApi.unlinkChannel(channelCode);
+      setSuccess(`${CHANNEL_INFO[channelCode]?.name || channelCode} 연결이 해제되었습니다`);
+      await loadChannelsStatus();
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '연결 해제에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Account deletion
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== '회원탈퇴') {
+      setError('확인 문구를 정확히 입력해주세요');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await userApi.deleteAccount();
+      await logout();
+      navigate('/login');
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '회원 탈퇴에 실패했습니다');
       setLoading(false);
     }
   };
 
   if (!user) return null;
 
+  const hasEmailChannel = user.channels?.some(c => c.channelCode === 'EMAIL');
+
   return (
-    <div>
-      <nav className="navbar">
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="navbar-brand">Auth Service</span>
-          <button className="btn btn-secondary btn-small" onClick={handleLogout}>
+    <div className="dashboard-container">
+      {/* Navbar */}
+      <nav className="dashboard-navbar">
+        <div className="navbar-content">
+          <div className="navbar-brand">authservice</div>
+          <button className="logout-btn" onClick={handleLogout}>
             로그아웃
           </button>
         </div>
       </nav>
 
-      <div className="dashboard">
-        <div className="dashboard-header">
-          <h1>마이페이지</h1>
-        </div>
-
-        <div className="profile-card">
-          <h2>기본 정보</h2>
-
-          <div className="profile-row">
-            <span className="profile-label">UUID</span>
-            <span className="profile-value" style={{ fontSize: '12px', color: '#999' }}>
-              {user.userUuid}
-            </span>
-          </div>
-
-          <div className="profile-row">
-            <span className="profile-label">이메일</span>
-            <span className="profile-value">{user.email || '-'}</span>
-          </div>
-
-          <div className="profile-row">
-            <span className="profile-label">닉네임</span>
-            <span className="profile-value">
-              {user.nickname || '-'}
-              <button className="edit-btn" onClick={() => openEdit('nickname', user.nickname)}>
-                변경
-              </button>
-            </span>
-          </div>
-
-          <div className="profile-row">
-            <span className="profile-label">핸드폰 번호</span>
-            <span className="profile-value">
-              {user.phone || '미등록'}
-              <button className="edit-btn" onClick={() => openEdit('phone', user.phone)}>
-                {user.phone ? '변경' : '등록'}
-              </button>
-            </span>
-          </div>
-
-          <div className="profile-row">
-            <span className="profile-label">복구 이메일</span>
-            <span className="profile-value">
-              {user.recoveryEmail || '미등록'}
-              <button className="edit-btn" onClick={() => openEdit('recoveryEmail', user.recoveryEmail)}>
-                {user.recoveryEmail ? '변경' : '등록'}
-              </button>
-            </span>
-          </div>
-
-          <div className="profile-row">
-            <span className="profile-label">상태</span>
-            <span className="profile-value">{user.status}</span>
-          </div>
-        </div>
-
-        <div className="profile-card">
-          <h2>연결된 계정</h2>
-          <div className="channel-list" style={{ padding: '8px 0' }}>
-            {user.channels?.map((channel, index) => (
-              <span key={index} className={`channel-badge ${channel.channelCode}`}>
-                {channel.channelCode}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="profile-card">
-          <h2>보안</h2>
-          <div className="profile-row">
-            <span className="profile-label">비밀번호</span>
-            <span className="profile-value">
-              <button className="edit-btn" onClick={() => openEdit('password')}>
-                변경
-              </button>
-            </span>
-          </div>
-        </div>
+      {/* Tabs */}
+      <div className="dashboard-tabs">
+        <button
+          className={`tab-btn ${activeTab === 'home' ? 'active' : ''}`}
+          onClick={() => setActiveTab('home')}
+        >
+          홈
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+          onClick={() => setActiveTab('profile')}
+        >
+          내 정보
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'channels' ? 'active' : ''}`}
+          onClick={() => setActiveTab('channels')}
+        >
+          연동 계정
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'security' ? 'active' : ''}`}
+          onClick={() => setActiveTab('security')}
+        >
+          보안
+        </button>
       </div>
 
-      {/* Edit Modal */}
-      {editModal && (
-        <div className="modal-overlay" onClick={() => setEditModal(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>
-              {editModal === 'nickname' && '닉네임 변경'}
-              {editModal === 'phone' && '핸드폰 번호 변경'}
-              {editModal === 'recoveryEmail' && '복구 이메일 변경'}
-              {editModal === 'password' && '비밀번호 변경'}
-            </h2>
+      {/* Content */}
+      <div className="dashboard-content">
+        {activeTab === 'home' && (
+          <div className="tab-content">
+            <div className="welcome-section">
+              <h2>안녕하세요, {user.nickname || '회원'}님!</h2>
+              <p className="uuid-display">UUID: {user.userUuid}</p>
+            </div>
 
+            <div className="info-card">
+              <h3>회원 정보</h3>
+              <div className="info-row">
+                <span className="info-label">이메일</span>
+                <span className="info-value">{user.email || '-'}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">닉네임</span>
+                <span className="info-value">{user.nickname || '-'}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">상태</span>
+                <span className={`status-badge ${user.status?.toLowerCase()}`}>
+                  {user.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="info-card">
+              <h3>연결된 계정</h3>
+              <div className="channel-badges">
+                {user.channels?.map((channel, index) => (
+                  <span
+                    key={index}
+                    className="channel-badge"
+                    style={{
+                      backgroundColor: CHANNEL_INFO[channel.channelCode]?.color || '#6c757d',
+                      color: CHANNEL_INFO[channel.channelCode]?.textColor || '#fff'
+                    }}
+                  >
+                    <span className="channel-icon">{CHANNEL_INFO[channel.channelCode]?.icon}</span>
+                    {CHANNEL_INFO[channel.channelCode]?.name || channel.channelCode}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
+          <div className="tab-content">
+            <div className="info-card">
+              <h3>프로필 관리</h3>
+
+              <div className="profile-item">
+                <div className="profile-item-info">
+                  <span className="profile-item-label">닉네임</span>
+                  <span className="profile-item-value">{user.nickname || '미설정'}</span>
+                </div>
+                <button className="edit-btn" onClick={() => openModal('nickname', user.nickname)}>
+                  변경
+                </button>
+              </div>
+
+              <div className="profile-item">
+                <div className="profile-item-info">
+                  <span className="profile-item-label">핸드폰 번호</span>
+                  <span className="profile-item-value">{user.phone || '미등록'}</span>
+                </div>
+                <button className="edit-btn" onClick={() => openModal('phone', user.phone)}>
+                  {user.phone ? '변경' : '등록'}
+                </button>
+              </div>
+
+              <div className="profile-item">
+                <div className="profile-item-info">
+                  <span className="profile-item-label">복구 이메일</span>
+                  <span className="profile-item-value">{user.recoveryEmail || '미등록'}</span>
+                </div>
+                <button className="edit-btn" onClick={() => openModal('recoveryEmail', user.recoveryEmail)}>
+                  {user.recoveryEmail ? '변경' : '등록'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'channels' && (
+          <div className="tab-content">
             {error && <div className="error-message">{error}</div>}
             {success && <div className="success-message">{success}</div>}
 
-            {editModal === 'password' ? (
-              <>
+            <div className="info-card">
+              <h3>연동 계정 관리</h3>
+              <p className="info-description">
+                소셜 계정을 연결하면 해당 계정으로도 로그인할 수 있습니다.
+              </p>
+
+              {!hasEmailChannel && (
+                <div className="channel-item email-register">
+                  <div className="channel-item-info">
+                    <span className="channel-icon" style={{ backgroundColor: CHANNEL_INFO.EMAIL.color }}>
+                      {CHANNEL_INFO.EMAIL.icon}
+                    </span>
+                    <span className="channel-name">Email 비밀번호</span>
+                    <span className="channel-status unlinked">미등록</span>
+                  </div>
+                  <button className="link-btn" onClick={() => openModal('registerPassword')}>
+                    등록
+                  </button>
+                </div>
+              )}
+
+              {['GOOGLE', 'KAKAO', 'NAVER', 'FACEBOOK'].map((code) => {
+                const isLinked = channelsStatus?.linkedChannels?.includes(code);
+                const info = CHANNEL_INFO[code];
+                return (
+                  <div key={code} className="channel-item">
+                    <div className="channel-item-info">
+                      <span className="channel-icon" style={{ backgroundColor: info.color, color: info.textColor || '#fff' }}>
+                        {info.icon}
+                      </span>
+                      <span className="channel-name">{info.name}</span>
+                      <span className={`channel-status ${isLinked ? 'linked' : 'unlinked'}`}>
+                        {isLinked ? '연동됨' : '미연동'}
+                      </span>
+                    </div>
+                    {isLinked ? (
+                      <button
+                        className="unlink-btn"
+                        onClick={() => handleUnlinkChannel(code)}
+                        disabled={loading || (channelsStatus?.linkedChannels?.length === 1 && !hasEmailChannel)}
+                      >
+                        해제
+                      </button>
+                    ) : (
+                      <button
+                        className="link-btn"
+                        onClick={() => handleLinkChannel(code.toLowerCase())}
+                        disabled={loading}
+                      >
+                        연동
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'security' && (
+          <div className="tab-content">
+            <div className="info-card">
+              <h3>보안 설정</h3>
+
+              {hasEmailChannel && (
+                <div className="profile-item">
+                  <div className="profile-item-info">
+                    <span className="profile-item-label">비밀번호</span>
+                    <span className="profile-item-value">********</span>
+                  </div>
+                  <button className="edit-btn" onClick={() => openModal('password')}>
+                    변경
+                  </button>
+                </div>
+              )}
+
+              <div className="profile-item danger">
+                <div className="profile-item-info">
+                  <span className="profile-item-label">회원 탈퇴</span>
+                  <span className="profile-item-value warning">모든 데이터가 삭제됩니다</span>
+                </div>
+                <button className="delete-btn" onClick={() => openModal('delete')}>
+                  탈퇴
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Nickname Modal */}
+      {modal === 'nickname' && (
+        <div className="modal-overlay" onClick={resetModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>닉네임 변경</h2>
+              <button className="modal-close" onClick={resetModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="error-message">{error}</div>}
+              {success && <div className="success-message">{success}</div>}
+              <div className="form-group">
+                <label>새 닉네임</label>
+                <input
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="2~20자 닉네임"
+                  minLength={2}
+                  maxLength={20}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={resetModal}>취소</button>
+              <button className="btn btn-primary" onClick={handleUpdateNickname} disabled={loading}>
+                {loading ? '변경 중...' : '변경'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phone Modal */}
+      {modal === 'phone' && (
+        <div className="modal-overlay" onClick={resetModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>핸드폰 번호 {user.phone ? '변경' : '등록'}</h2>
+              <button className="modal-close" onClick={resetModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="error-message">{error}</div>}
+              {success && <div className="success-message">{success}</div>}
+
+              {phoneStep === 1 && (
                 <div className="form-group">
-                  <label>현재 비밀번호</label>
+                  <label>핸드폰 번호</label>
+                  <div className="input-with-button">
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="010-1234-5678"
+                    />
+                    <button className="btn btn-small" onClick={handleSendPhoneCode} disabled={loading}>
+                      {loading ? '전송 중...' : '인증번호 전송'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {phoneStep === 2 && (
+                <>
+                  <div className="form-group">
+                    <label>핸드폰 번호</label>
+                    <input type="tel" value={phone} disabled />
+                  </div>
+                  <div className="form-group">
+                    <label>인증번호</label>
+                    <div className="input-with-button">
+                      <input
+                        type="text"
+                        value={phoneCode}
+                        onChange={(e) => setPhoneCode(e.target.value)}
+                        placeholder="6자리 인증번호"
+                        maxLength={6}
+                      />
+                      <button className="btn btn-small" onClick={handleVerifyPhoneCode} disabled={loading}>
+                        {loading ? '확인 중...' : '확인'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {phoneStep === 3 && (
+                <div className="verification-complete">
+                  <span className="check-icon">✓</span>
+                  <p>인증이 완료되었습니다</p>
+                  <p className="phone-display">{phone}</p>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={resetModal}>취소</button>
+              {phoneStep === 3 && (
+                <button className="btn btn-primary" onClick={handleUpdatePhone} disabled={loading}>
+                  {loading ? '저장 중...' : '저장'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recovery Email Modal */}
+      {modal === 'recoveryEmail' && (
+        <div className="modal-overlay" onClick={resetModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>복구 이메일 {user.recoveryEmail ? '변경' : '등록'}</h2>
+              <button className="modal-close" onClick={resetModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="error-message">{error}</div>}
+              {success && <div className="success-message">{success}</div>}
+
+              {emailStep === 1 && (
+                <div className="form-group">
+                  <label>복구 이메일</label>
+                  <div className="input-with-button">
+                    <input
+                      type="email"
+                      value={recoveryEmail}
+                      onChange={(e) => setRecoveryEmail(e.target.value)}
+                      placeholder="recovery@email.com"
+                    />
+                    <button className="btn btn-small" onClick={handleSendEmailCode} disabled={loading}>
+                      {loading ? '전송 중...' : '인증 코드 전송'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {emailStep === 2 && (
+                <>
+                  <div className="form-group">
+                    <label>복구 이메일</label>
+                    <input type="email" value={recoveryEmail} disabled />
+                  </div>
+                  <div className="form-group">
+                    <label>인증 코드</label>
+                    <div className="input-with-button">
+                      <input
+                        type="text"
+                        value={emailCode}
+                        onChange={(e) => setEmailCode(e.target.value)}
+                        placeholder="6자리 인증 코드"
+                        maxLength={6}
+                      />
+                      <button className="btn btn-small" onClick={handleVerifyEmailCode} disabled={loading}>
+                        {loading ? '확인 중...' : '확인'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {emailStep === 3 && (
+                <div className="verification-complete">
+                  <span className="check-icon">✓</span>
+                  <p>인증이 완료되었습니다</p>
+                  <p className="email-display">{recoveryEmail}</p>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={resetModal}>취소</button>
+              {emailStep === 3 && (
+                <button className="btn btn-primary" onClick={handleUpdateRecoveryEmail} disabled={loading}>
+                  {loading ? '저장 중...' : '저장'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Modal */}
+      {modal === 'password' && (
+        <div className="modal-overlay" onClick={resetModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>비밀번호 변경</h2>
+              <button className="modal-close" onClick={resetModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="error-message">{error}</div>}
+              {success && <div className="success-message">{success}</div>}
+              <div className="form-group">
+                <label>현재 비밀번호</label>
+                <div className="input-wrapper">
                   <input
-                    type="password"
+                    type={showCurrentPassword ? 'text' : 'password'}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="현재 비밀번호"
                   />
+                  <span className="input-icon" onClick={() => setShowCurrentPassword(!showCurrentPassword)}>
+                    {showCurrentPassword ? '🙈' : '👁'}
+                  </span>
                 </div>
-                <div className="form-group">
-                  <label>새 비밀번호</label>
+              </div>
+              <div className="form-group">
+                <label>새 비밀번호</label>
+                <div className="input-wrapper">
                   <input
-                    type="password"
+                    type={showNewPassword ? 'text' : 'password'}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="영문, 숫자, 특수문자 포함 8자 이상"
                   />
+                  <span className="input-icon" onClick={() => setShowNewPassword(!showNewPassword)}>
+                    {showNewPassword ? '🙈' : '👁'}
+                  </span>
                 </div>
-              </>
-            ) : (
+              </div>
               <div className="form-group">
-                <label>
-                  {editModal === 'nickname' && '새 닉네임'}
-                  {editModal === 'phone' && '핸드폰 번호'}
-                  {editModal === 'recoveryEmail' && '복구 이메일'}
-                </label>
+                <label>새 비밀번호 확인</label>
                 <input
-                  type={editModal === 'recoveryEmail' ? 'email' : 'text'}
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  placeholder={
-                    editModal === 'nickname' ? '새 닉네임 (2~20자)' :
-                    editModal === 'phone' ? '010-1234-5678' :
-                    '복구 이메일 주소'
-                  }
+                  type="password"
+                  value={newPasswordConfirm}
+                  onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                  placeholder="새 비밀번호 확인"
                 />
               </div>
-            )}
-
-            <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setEditModal(null)}>
-                취소
-              </button>
-              <button className="btn btn-primary" onClick={handleEdit} disabled={loading}>
+              <p className="info-text">
+                비밀번호 변경 시 모든 기기에서 로그아웃됩니다.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={resetModal}>취소</button>
+              <button className="btn btn-primary" onClick={handleChangePassword} disabled={loading}>
                 {loading ? '변경 중...' : '변경'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Register Password Modal (for social users) */}
+      {modal === 'registerPassword' && (
+        <div className="modal-overlay" onClick={resetModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>이메일 비밀번호 등록</h2>
+              <button className="modal-close" onClick={resetModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="error-message">{error}</div>}
+              {success && <div className="success-message">{success}</div>}
+              <p className="info-text">
+                비밀번호를 등록하면 이메일로도 로그인할 수 있습니다.
+              </p>
+              <div className="form-group">
+                <label>비밀번호</label>
+                <div className="input-wrapper">
+                  <input
+                    type={showRegisterPassword ? 'text' : 'password'}
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    placeholder="영문, 숫자, 특수문자 포함 8자 이상"
+                  />
+                  <span className="input-icon" onClick={() => setShowRegisterPassword(!showRegisterPassword)}>
+                    {showRegisterPassword ? '🙈' : '👁'}
+                  </span>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>비밀번호 확인</label>
+                <input
+                  type="password"
+                  value={registerPasswordConfirm}
+                  onChange={(e) => setRegisterPasswordConfirm(e.target.value)}
+                  placeholder="비밀번호 확인"
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={resetModal}>취소</button>
+              <button className="btn btn-primary" onClick={handleRegisterPassword} disabled={loading}>
+                {loading ? '등록 중...' : '등록'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Modal */}
+      {modal === 'delete' && (
+        <div className="modal-overlay" onClick={resetModal}>
+          <div className="modal delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>회원 탈퇴</h2>
+              <button className="modal-close" onClick={resetModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="error-message">{error}</div>}
+              <div className="warning-box">
+                <span className="warning-icon">⚠️</span>
+                <div>
+                  <p><strong>주의: 이 작업은 되돌릴 수 없습니다.</strong></p>
+                  <ul>
+                    <li>모든 계정 데이터가 삭제됩니다</li>
+                    <li>연결된 모든 소셜 계정이 해제됩니다</li>
+                    <li>동일 이메일로 재가입이 불가능할 수 있습니다</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>확인을 위해 <strong>"회원탈퇴"</strong>를 입력해주세요</label>
+                <input
+                  type="text"
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder="회원탈퇴"
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={resetModal}>취소</button>
+              <button
+                className="btn btn-danger"
+                onClick={handleDeleteAccount}
+                disabled={loading || deleteConfirm !== '회원탈퇴'}
+              >
+                {loading ? '처리 중...' : '탈퇴하기'}
               </button>
             </div>
           </div>

@@ -9,6 +9,8 @@ export default function ForgotPasswordPage() {
   const [tokenId, setTokenId] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,7 @@ export default function ForgotPasswordPage() {
 
     try {
       await authApi.verifyCode(email, code);
-      setSuccess('인증 완료! 새 비밀번호를 입력해주세요');
+      setSuccess('인증이 완료되었습니다');
       setStep(3);
     } catch (err) {
       const message = err.response?.data?.error?.message
@@ -62,11 +64,16 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    if (newPassword.length < 8) {
+      setError('비밀번호는 8자 이상이어야 합니다');
+      return;
+    }
+
     setLoading(true);
 
     try {
       await authApi.resetPassword(tokenId, email, newPassword);
-      setSuccess('비밀번호가 재설정되었습니다. 로그인 페이지로 이동합니다.');
+      setSuccess('비밀번호가 재설정되었습니다');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       const message = err.response?.data?.error?.message
@@ -78,80 +85,164 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h1>비밀번호 재설정</h1>
+  // 이메일 입력 화면
+  if (step === 1) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-logo">
+            <h1>authservice</h1>
+          </div>
+          <p className="auth-subtitle">비밀번호 재설정</p>
+          <p className="auth-description">
+            가입하신 이메일로 인증 코드를 전송합니다
+          </p>
 
-        {error && <div className="error-message">{error}</div>}
-        {success && <div className="success-message">{success}</div>}
+          {error && <div className="error-message">{error}</div>}
 
-        {step === 1 && (
           <form onSubmit={handleSendVerification}>
             <div className="form-group">
-              <label>가입한 이메일</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="이메일을 입력하세요"
-                required
-              />
+              <div className="input-wrapper">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="가입한 이메일을 입력하세요"
+                  required
+                />
+                {email && (
+                  <span className="input-icon" onClick={() => setEmail('')}>✕</span>
+                )}
+              </div>
             </div>
+
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? '전송 중...' : '인증 코드 전송'}
             </button>
           </form>
-        )}
 
-        {step === 2 && (
+          <div className="auth-links">
+            <Link to="/login">로그인으로 돌아가기</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 인증 코드 입력 화면
+  if (step === 2) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-logo">
+            <h1>authservice</h1>
+          </div>
+          <p className="auth-subtitle">인증 코드 입력</p>
+
+          {error && <div className="error-message">{error}</div>}
+          {success && <div className="success-message">{success}</div>}
+
           <form onSubmit={handleVerifyCode}>
             <div className="form-group">
-              <label>인증 코드 (6자리)</label>
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="인증 코드를 입력하세요"
-                maxLength={6}
-                required
-              />
+              <label>이메일</label>
+              <input type="email" value={email} disabled className="disabled-input" />
             </div>
+
+            <div className="form-group">
+              <label>인증 코드 (6자리)</label>
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="인증 코드를 입력하세요"
+                  maxLength={6}
+                  required
+                />
+                {code && (
+                  <span className="input-icon" onClick={() => setCode('')}>✕</span>
+                )}
+              </div>
+            </div>
+
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? '확인 중...' : '인증 확인'}
             </button>
           </form>
-        )}
 
-        {step === 3 && (
-          <form onSubmit={handleResetPassword}>
-            <div className="form-group">
-              <label>새 비밀번호</label>
+          <div className="back-link">
+            <a href="#" onClick={(e) => { e.preventDefault(); setStep(1); setError(''); setSuccess(''); }}>
+              이메일 다시 입력
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 새 비밀번호 입력 화면
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <h1>authservice</h1>
+        </div>
+        <p className="auth-subtitle">새 비밀번호 설정</p>
+
+        {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message">{success}</div>}
+
+        <form onSubmit={handleResetPassword}>
+          <div className="form-group">
+            <label>이메일</label>
+            <input type="email" value={email} disabled className="disabled-input" />
+            <span className="verified-badge">✓ 인증완료</span>
+          </div>
+
+          <div className="form-group">
+            <label>새 비밀번호</label>
+            <div className="input-wrapper">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="영문, 숫자, 특수문자 포함 8자 이상"
                 required
               />
+              <span
+                className="input-icon"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? '🙈' : '👁'}
+              </span>
             </div>
-            <div className="form-group">
-              <label>비밀번호 확인</label>
+          </div>
+
+          <div className="form-group">
+            <label>비밀번호 확인</label>
+            <div className="input-wrapper">
               <input
-                type="password"
+                type={showPasswordConfirm ? 'text' : 'password'}
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
                 placeholder="비밀번호를 다시 입력하세요"
                 required
               />
+              <span
+                className="input-icon"
+                onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+              >
+                {showPasswordConfirm ? '🙈' : '👁'}
+              </span>
             </div>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? '변경 중...' : '비밀번호 변경'}
-            </button>
-          </form>
-        )}
+          </div>
 
-        <div className="auth-link">
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? '변경 중...' : '비밀번호 변경'}
+          </button>
+        </form>
+
+        <div className="auth-links">
           <Link to="/login">로그인으로 돌아가기</Link>
         </div>
       </div>

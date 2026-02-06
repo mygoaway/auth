@@ -4,6 +4,12 @@ export const authApi = {
   sendVerification: (email) =>
     client.post('/auth/email/send-verification', { email }),
 
+  sendPasswordResetVerification: (email) =>
+    client.post('/auth/email/send-verification', { email, type: 'PASSWORD_RESET' }),
+
+  sendEmailChangeVerification: (email) =>
+    client.post('/auth/email/send-verification', { email, type: 'EMAIL_CHANGE' }),
+
   verifyCode: (email, code) =>
     client.post('/auth/email/verify', { email, code }),
 
@@ -27,9 +33,6 @@ export const authApi = {
 
   resetPassword: (tokenId, email, newPassword) =>
     client.post('/auth/password/reset', { tokenId, email, newPassword }),
-
-  sendPasswordResetVerification: (email) =>
-    client.post('/auth/email/send-verification', { email }),
 };
 
 export const userApi = {
@@ -39,9 +42,37 @@ export const userApi = {
   updateNickname: (nickname) =>
     client.patch('/users/profile/nickname', { nickname }),
 
-  updatePhone: (phone) =>
-    client.patch('/users/profile/phone', { phone }),
+  updatePhone: (phone, tokenId) =>
+    client.patch('/users/profile/phone', { phone, tokenId }),
 
-  updateRecoveryEmail: (recoveryEmail) =>
-    client.patch('/users/profile/recovery-email', { recoveryEmail }),
+  updateRecoveryEmail: (recoveryEmail, tokenId) =>
+    client.patch('/users/profile/recovery-email', { recoveryEmail, tokenId }),
+
+  deleteAccount: () =>
+    client.delete('/users/me'),
+
+  getChannelsStatus: () =>
+    client.get('/users/channels'),
+
+  registerPassword: (password) =>
+    client.post('/users/register-password', { password }),
+
+  unlinkChannel: (channelCode) =>
+    client.delete(`/users/channels/${channelCode}`),
+};
+
+export const phoneApi = {
+  sendVerification: (phone, type = 'SIGNUP') =>
+    client.post('/phone/send-verification', { phone, type }),
+
+  verifyCode: (phone, code) =>
+    client.post('/phone/verify', { phone, code }),
+};
+
+export const emailApi = {
+  sendVerification: (email, type = 'SIGNUP') =>
+    client.post('/auth/email/send-verification', { email, type }),
+
+  verifyCode: (email, code) =>
+    client.post('/auth/email/verify', { email, code }),
 };

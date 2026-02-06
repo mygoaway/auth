@@ -62,8 +62,8 @@ export const userApi = {
 };
 
 export const phoneApi = {
-  sendVerification: (phone, type = 'SIGNUP') =>
-    client.post('/phone/send-verification', { phone, type }),
+  sendVerification: (phone) =>
+    client.post('/phone/send-verification', { phone }),
 
   verifyCode: (phone, code) =>
     client.post('/phone/verify', { phone, code }),

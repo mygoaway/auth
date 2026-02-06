@@ -117,7 +117,7 @@ export default function DashboardPage() {
     setError('');
     setLoading(true);
     try {
-      const response = await phoneApi.sendVerification(phone, 'PHONE_CHANGE');
+      const response = await phoneApi.sendVerification(phone);
       setPhoneTokenId(response.data.tokenId);
       setPhoneStep(2);
       setSuccess('인증번호가 전송되었습니다');

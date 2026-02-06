@@ -159,11 +159,23 @@ public class AuthService {
         log.info("User logged in with email: {}, userId: {}", email, user.getId());
 
         return LoginResponse.of(
+                user.getId(),
                 user.getUserUuid(),
                 email,
                 nickname,
                 tokenResponse
         );
+    }
+
+    /**
+     * 이메일로 사용자 ID 조회 (로그인 실패 이력 기록용)
+     */
+    @Transactional(readOnly = true)
+    public Long findUserIdByEmail(String email) {
+        String emailLowerEnc = encryptionService.encryptForSearch(email);
+        return userSignInInfoRepository.findByLoginEmailLowerEncWithUser(emailLowerEnc)
+                .map(signInInfo -> signInInfo.getUser().getId())
+                .orElse(null);
     }
 
     /**

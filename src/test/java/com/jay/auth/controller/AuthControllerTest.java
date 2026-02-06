@@ -12,6 +12,8 @@ import com.jay.auth.exception.DuplicateEmailException;
 import com.jay.auth.exception.GlobalExceptionHandler;
 import com.jay.auth.security.JwtAuthenticationFilter;
 import com.jay.auth.service.AuthService;
+import com.jay.auth.service.LoginHistoryService;
+import com.jay.auth.service.LoginRateLimitService;
 import com.jay.auth.service.PasswordService;
 import com.jay.auth.service.TokenService;
 import org.junit.jupiter.api.DisplayName;
@@ -54,6 +56,12 @@ class AuthControllerTest {
 
     @MockitoBean
     private PasswordService passwordService;
+
+    @MockitoBean
+    private LoginRateLimitService loginRateLimitService;
+
+    @MockitoBean
+    private LoginHistoryService loginHistoryService;
 
     @Test
     @DisplayName("POST /api/v1/auth/email/signup - 회원가입 성공")
@@ -130,9 +138,10 @@ class AuthControllerTest {
     void loginSuccess() throws Exception {
         // given
         TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800);
-        LoginResponse loginResponse = LoginResponse.of("uuid-1234", "test@email.com", "테스트", tokenResponse);
+        LoginResponse loginResponse = LoginResponse.of(1L, "uuid-1234", "test@email.com", "테스트", tokenResponse);
 
         given(authService.loginWithEmail(any(EmailLoginRequest.class))).willReturn(loginResponse);
+        given(loginRateLimitService.isLoginAllowed(any(), any())).willReturn(true);
 
         String requestBody = """
                 {
@@ -155,6 +164,7 @@ class AuthControllerTest {
     @DisplayName("POST /api/v1/auth/email/login - 로그인 실패 시 401")
     void loginFails() throws Exception {
         // given
+        given(loginRateLimitService.isLoginAllowed(any(), any())).willReturn(true);
         given(authService.loginWithEmail(any(EmailLoginRequest.class)))
                 .willThrow(AuthenticationException.invalidCredentials());
 
@@ -170,6 +180,28 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/email/login - Rate Limit 초과 시 429")
+    void loginRateLimited() throws Exception {
+        // given
+        given(loginRateLimitService.isLoginAllowed(any(), any())).willReturn(false);
+        given(loginRateLimitService.getRetryAfterSeconds(any())).willReturn(300L);
+
+        String requestBody = """
+                {
+                    "email": "test@email.com",
+                    "password": "Test@1234"
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(post("/api/v1/auth/email/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "300"));
     }
 
     @Test

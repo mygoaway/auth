@@ -1,12 +1,16 @@
 package com.jay.auth.controller;
 
+import com.jay.auth.domain.enums.ChannelCode;
 import com.jay.auth.dto.request.*;
 import com.jay.auth.dto.response.ChangePasswordResponse;
 import com.jay.auth.dto.response.LoginResponse;
 import com.jay.auth.dto.response.SignUpResponse;
 import com.jay.auth.dto.response.TokenResponse;
+import com.jay.auth.exception.RateLimitException;
 import com.jay.auth.security.UserPrincipal;
 import com.jay.auth.service.AuthService;
+import com.jay.auth.service.LoginHistoryService;
+import com.jay.auth.service.LoginRateLimitService;
 import com.jay.auth.service.PasswordService;
 import com.jay.auth.service.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +34,8 @@ public class AuthController {
     private final AuthService authService;
     private final TokenService tokenService;
     private final PasswordService passwordService;
+    private final LoginRateLimitService loginRateLimitService;
+    private final LoginHistoryService loginHistoryService;
 
     @Operation(summary = "이메일 회원가입", description = "이메일 인증 완료 후 회원가입을 진행합니다")
     @PostMapping("/email/signup")
@@ -44,11 +50,54 @@ public class AuthController {
     @Operation(summary = "이메일 로그인", description = "이메일과 비밀번호로 로그인합니다")
     @PostMapping("/email/login")
     public ResponseEntity<LoginResponse> login(
-            @Valid @RequestBody EmailLoginRequest request) {
+            @Valid @RequestBody EmailLoginRequest request,
+            HttpServletRequest httpRequest) {
 
-        LoginResponse response = authService.loginWithEmail(request);
+        String email = request.getEmail();
+        String ipAddress = getClientIp(httpRequest);
 
-        return ResponseEntity.ok(response);
+        // Rate limit check
+        if (!loginRateLimitService.isLoginAllowed(email, ipAddress)) {
+            long retryAfter = loginRateLimitService.getRetryAfterSeconds(email);
+            throw new RateLimitException(retryAfter);
+        }
+
+        try {
+            LoginResponse response = authService.loginWithEmail(request);
+
+            // Clear failed attempts on success
+            loginRateLimitService.clearFailedAttempts(email, ipAddress);
+
+            // Record login history (async)
+            loginHistoryService.recordLoginSuccess(response.getUserId(), ChannelCode.EMAIL, httpRequest);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            // Record failed attempt
+            loginRateLimitService.recordFailedAttempt(email, ipAddress);
+
+            // Try to get user ID for history (if user exists)
+            Long userId = authService.findUserIdByEmail(email);
+            if (userId != null) {
+                loginHistoryService.recordLoginFailure(userId, ChannelCode.EMAIL, e.getMessage(), httpRequest);
+            }
+
+            throw e;
+        }
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 
     @Operation(summary = "토큰 갱신", description = "리프레시 토큰으로 새 액세스 토큰을 발급합니다")

@@ -23,10 +23,17 @@ public class CustomOidcUser implements OidcUser {
     private final Map<String, Object> attributes;
     private final Collection<? extends GrantedAuthority> authorities;
     private final String nameAttributeKey;
+    private final boolean linkMode;
 
     public CustomOidcUser(Long userId, String userUuid, ChannelCode channelCode,
                           OidcIdToken idToken, OidcUserInfo userInfo,
                           Map<String, Object> attributes, String nameAttributeKey) {
+        this(userId, userUuid, channelCode, idToken, userInfo, attributes, nameAttributeKey, false);
+    }
+
+    public CustomOidcUser(Long userId, String userUuid, ChannelCode channelCode,
+                          OidcIdToken idToken, OidcUserInfo userInfo,
+                          Map<String, Object> attributes, String nameAttributeKey, boolean linkMode) {
         this.userId = userId;
         this.userUuid = userUuid;
         this.channelCode = channelCode;
@@ -35,6 +42,7 @@ public class CustomOidcUser implements OidcUser {
         this.attributes = attributes;
         this.nameAttributeKey = nameAttributeKey;
         this.authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        this.linkMode = linkMode;
     }
 
     @Override

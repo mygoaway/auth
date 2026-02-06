@@ -1,6 +1,7 @@
 package com.jay.auth.controller;
 
 import com.jay.auth.dto.request.*;
+import com.jay.auth.dto.response.ChangePasswordResponse;
 import com.jay.auth.dto.response.LoginResponse;
 import com.jay.auth.dto.response.SignUpResponse;
 import com.jay.auth.dto.response.TokenResponse;
@@ -96,15 +97,15 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "비밀번호 변경", description = "현재 비밀번호를 확인 후 새 비밀번호로 변경합니다")
+    @Operation(summary = "비밀번호 변경", description = "현재 비밀번호를 확인 후 새 비밀번호로 변경합니다. 변경 성공 시 모든 세션이 로그아웃됩니다.")
     @PostMapping("/password/change")
-    public ResponseEntity<Void> changePassword(
+    public ResponseEntity<ChangePasswordResponse> changePassword(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody ChangePasswordRequest request) {
 
         passwordService.changePassword(userPrincipal.getUserId(), request);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ChangePasswordResponse.of(true));
     }
 
     @Operation(summary = "비밀번호 재설정", description = "이메일 인증 후 비밀번호를 재설정합니다")

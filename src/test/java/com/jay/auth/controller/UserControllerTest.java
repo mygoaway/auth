@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -49,6 +50,9 @@ class UserControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private com.jay.auth.service.AccountLinkingService accountLinkingService;
 
     @BeforeEach
     void setUp() {
@@ -114,7 +118,8 @@ class UserControllerTest {
         // given
         String requestBody = """
                 {
-                    "phone": "010-1234-5678"
+                    "phone": "010-1234-5678",
+                    "tokenId": "token-123"
                 }
                 """;
 
@@ -133,7 +138,8 @@ class UserControllerTest {
         // given
         String requestBody = """
                 {
-                    "recoveryEmail": "recovery@email.com"
+                    "recoveryEmail": "recovery@email.com",
+                    "tokenId": "token-123"
                 }
                 """;
 
@@ -144,5 +150,15 @@ class UserControllerTest {
                 .andExpect(status().isOk());
 
         verify(userService).updateRecoveryEmail(eq(1L), any());
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/users/me - 회원 탈퇴 성공")
+    void deleteAccountSuccess() throws Exception {
+        // when & then
+        mockMvc.perform(delete("/api/v1/users/me"))
+                .andExpect(status().isNoContent());
+
+        verify(userService).deleteAccount(1L);
     }
 }

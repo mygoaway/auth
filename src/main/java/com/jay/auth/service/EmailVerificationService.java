@@ -58,9 +58,10 @@ public class EmailVerificationService {
 
     /**
      * 인증 코드 확인
+     * @return tokenId 인증 완료된 토큰 ID
      */
     @Transactional
-    public void verifyCode(String email, String code, VerificationType type) {
+    public String verifyCode(String email, String code, VerificationType type) {
         String emailLowerEnc = encryptionService.encryptForSearch(email);
 
         EmailVerification verification = emailVerificationRepository
@@ -78,6 +79,8 @@ public class EmailVerificationService {
         emailVerificationRepository.save(verification);
 
         log.info("Email verified: {}, type: {}", email, type);
+
+        return verification.getTokenId();
     }
 
     /**

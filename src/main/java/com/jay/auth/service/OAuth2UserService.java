@@ -4,6 +4,8 @@ import com.jay.auth.domain.entity.User;
 import com.jay.auth.domain.entity.UserChannel;
 import com.jay.auth.domain.enums.ChannelCode;
 import com.jay.auth.domain.enums.UserStatus;
+import com.jay.auth.exception.AccountLinkingException;
+import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.security.oauth2.OAuth2UserInfo;
@@ -12,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -46,6 +49,65 @@ public class OAuth2UserService {
 
         // 신규 사용자 생성
         return createNewUser(channelCode, channelKey, email, name);
+    }
+
+    /**
+     * Process OAuth2 user for account linking mode.
+     * Links the social account to an existing user instead of creating a new one.
+     */
+    @Transactional
+    public User processOAuth2UserForLinking(Long userId, ChannelCode channelCode, OAuth2UserInfo oAuth2UserInfo) {
+        String channelKey = oAuth2UserInfo.getId();
+        String email = oAuth2UserInfo.getEmail();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new IllegalStateException("User account is not active");
+        }
+
+        // Check if this social account is already linked to another user
+        Optional<UserChannel> existingChannel = userChannelRepository
+                .findByChannelCodeAndChannelKeyWithUser(channelCode, channelKey);
+
+        if (existingChannel.isPresent()) {
+            UserChannel channel = existingChannel.get();
+            if (!channel.getUser().getId().equals(userId)) {
+                throw AccountLinkingException.alreadyLinkedToAnotherUser();
+            } else {
+                // Already linked to current user, just update email
+                updateChannelEmail(channel, email);
+                log.info("Social account already linked to user: userId={}, channelCode={}", userId, channelCode);
+                return user;
+            }
+        }
+
+        // Check if user already has this channel type
+        List<UserChannel> userChannels = userChannelRepository.findByUserIdAndChannelCode(userId, channelCode);
+        if (!userChannels.isEmpty()) {
+            throw AccountLinkingException.alreadyLinkedToCurrentUser();
+        }
+
+        // Create new channel for linking
+        EncryptionService.EncryptedEmail encryptedEmail = null;
+        if (email != null) {
+            encryptedEmail = encryptionService.encryptEmail(email);
+        }
+
+        UserChannel newChannel = UserChannel.builder()
+                .user(user)
+                .channelCode(channelCode)
+                .channelKey(channelKey)
+                .channelEmailEnc(encryptedEmail != null ? encryptedEmail.encrypted() : null)
+                .channelEmailLowerEnc(encryptedEmail != null ? encryptedEmail.encryptedLower() : null)
+                .build();
+
+        userChannelRepository.save(newChannel);
+
+        log.info("Social account linked to user: userId={}, channelCode={}, channelKey={}", userId, channelCode, channelKey);
+
+        return user;
     }
 
     private User createNewUser(ChannelCode channelCode, String channelKey, String email, String name) {

@@ -20,4 +20,7 @@ public interface UserSignInInfoRepository extends JpaRepository<UserSignInInfo, 
 
     @Query("SELECT s FROM UserSignInInfo s JOIN FETCH s.user u WHERE s.loginEmailLowerEnc = :loginEmailLowerEnc AND u.status = 'ACTIVE'")
     Optional<UserSignInInfo> findActiveByLoginEmailLowerEnc(@Param("loginEmailLowerEnc") String loginEmailLowerEnc);
+
+    @Query("SELECT s FROM UserSignInInfo s JOIN FETCH s.user u WHERE u.recoveryEmailLowerEnc = :recoveryEmailLowerEnc")
+    Optional<UserSignInInfo> findByRecoveryEmailLowerEncWithUser(@Param("recoveryEmailLowerEnc") String recoveryEmailLowerEnc);
 }

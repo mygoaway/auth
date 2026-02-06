@@ -19,15 +19,22 @@ public class CustomOAuth2User implements OAuth2User {
     private final Map<String, Object> attributes;
     private final Collection<? extends GrantedAuthority> authorities;
     private final String nameAttributeKey;
+    private final boolean linkMode;
 
     public CustomOAuth2User(Long userId, String userUuid, ChannelCode channelCode,
                             Map<String, Object> attributes, String nameAttributeKey) {
+        this(userId, userUuid, channelCode, attributes, nameAttributeKey, false);
+    }
+
+    public CustomOAuth2User(Long userId, String userUuid, ChannelCode channelCode,
+                            Map<String, Object> attributes, String nameAttributeKey, boolean linkMode) {
         this.userId = userId;
         this.userUuid = userUuid;
         this.channelCode = channelCode;
         this.attributes = attributes;
         this.nameAttributeKey = nameAttributeKey;
         this.authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        this.linkMode = linkMode;
     }
 
     @Override

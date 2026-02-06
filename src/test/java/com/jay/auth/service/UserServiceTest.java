@@ -4,10 +4,12 @@ import com.jay.auth.domain.entity.User;
 import com.jay.auth.domain.entity.UserChannel;
 import com.jay.auth.domain.enums.ChannelCode;
 import com.jay.auth.domain.enums.UserStatus;
+import com.jay.auth.domain.enums.VerificationType;
 import com.jay.auth.dto.request.UpdatePhoneRequest;
 import com.jay.auth.dto.request.UpdateProfileRequest;
 import com.jay.auth.dto.request.UpdateRecoveryEmailRequest;
 import com.jay.auth.dto.response.UserProfileResponse;
+import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +37,12 @@ class UserServiceTest {
     private UserRepository userRepository;
     @Mock
     private EncryptionService encryptionService;
+    @Mock
+    private TokenService tokenService;
+    @Mock
+    private PhoneVerificationService phoneVerificationService;
+    @Mock
+    private EmailVerificationService emailVerificationService;
 
     @Nested
     @DisplayName("프로필 조회")
@@ -103,22 +111,41 @@ class UserServiceTest {
     class UpdatePhone {
 
         @Test
-        @DisplayName("핸드폰 번호 변경이 성공해야 한다")
+        @DisplayName("유효한 tokenId로 핸드폰 번호 변경이 성공해야 한다")
         void updatePhoneSuccess() {
             // given
             User user = createUser(1L);
+            given(phoneVerificationService.isValidTokenId("token-123")).willReturn(true);
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
             given(encryptionService.encryptPhone("010-1234-5678")).willReturn("enc_phone");
 
             UpdatePhoneRequest request = new UpdatePhoneRequest();
             setField(request, "phone", "010-1234-5678");
+            setField(request, "tokenId", "token-123");
 
             // when
             userService.updatePhone(1L, request);
 
             // then
+            verify(phoneVerificationService).isValidTokenId("token-123");
             verify(encryptionService).encryptPhone("010-1234-5678");
+            verify(phoneVerificationService).deleteVerificationByTokenId("token-123");
             assertThat(user.getPhoneEnc()).isEqualTo("enc_phone");
+        }
+
+        @Test
+        @DisplayName("유효하지 않은 tokenId로 핸드폰 번호 변경 시 실패해야 한다")
+        void updatePhoneFailsWithInvalidTokenId() {
+            // given
+            given(phoneVerificationService.isValidTokenId("invalid-token")).willReturn(false);
+
+            UpdatePhoneRequest request = new UpdatePhoneRequest();
+            setField(request, "phone", "010-1234-5678");
+            setField(request, "tokenId", "invalid-token");
+
+            // when & then
+            assertThatThrownBy(() -> userService.updatePhone(1L, request))
+                    .isInstanceOf(InvalidVerificationException.class);
         }
     }
 
@@ -127,24 +154,76 @@ class UserServiceTest {
     class UpdateRecoveryEmail {
 
         @Test
-        @DisplayName("복구 이메일 변경이 성공해야 한다")
+        @DisplayName("유효한 tokenId로 복구 이메일 변경이 성공해야 한다")
         void updateRecoveryEmailSuccess() {
             // given
             User user = createUser(1L);
+            given(emailVerificationService.isVerifiedByTokenId("token-123", "recovery@email.com", VerificationType.EMAIL_CHANGE))
+                    .willReturn(true);
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
             given(encryptionService.encryptEmail("recovery@email.com"))
                     .willReturn(new EncryptionService.EncryptedEmail("enc_recovery", "enc_recovery_lower"));
 
             UpdateRecoveryEmailRequest request = new UpdateRecoveryEmailRequest();
+            setField(request, "tokenId", "token-123");
             setField(request, "recoveryEmail", "recovery@email.com");
 
             // when
             userService.updateRecoveryEmail(1L, request);
 
             // then
+            verify(emailVerificationService).isVerifiedByTokenId("token-123", "recovery@email.com", VerificationType.EMAIL_CHANGE);
             verify(encryptionService).encryptEmail("recovery@email.com");
+            verify(emailVerificationService).deleteVerificationByTokenId("token-123");
             assertThat(user.getRecoveryEmailEnc()).isEqualTo("enc_recovery");
             assertThat(user.getRecoveryEmailLowerEnc()).isEqualTo("enc_recovery_lower");
+        }
+
+        @Test
+        @DisplayName("유효하지 않은 tokenId로 복구 이메일 변경 시 실패해야 한다")
+        void updateRecoveryEmailFailsWithInvalidTokenId() {
+            // given
+            given(emailVerificationService.isVerifiedByTokenId("invalid-token", "recovery@email.com", VerificationType.EMAIL_CHANGE))
+                    .willReturn(false);
+
+            UpdateRecoveryEmailRequest request = new UpdateRecoveryEmailRequest();
+            setField(request, "tokenId", "invalid-token");
+            setField(request, "recoveryEmail", "recovery@email.com");
+
+            // when & then
+            assertThatThrownBy(() -> userService.updateRecoveryEmail(1L, request))
+                    .isInstanceOf(InvalidVerificationException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("회원 탈퇴")
+    class DeleteAccount {
+
+        @Test
+        @DisplayName("회원 탈퇴가 성공해야 한다")
+        void deleteAccountSuccess() {
+            // given
+            User user = createUser(1L);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+
+            // when
+            userService.deleteAccount(1L);
+
+            // then
+            assertThat(user.getStatus()).isEqualTo(UserStatus.DELETED);
+            verify(tokenService).logoutAll(1L, null);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 사용자 탈퇴 시 실패해야 한다")
+        void deleteAccountFailsWithUserNotFound() {
+            // given
+            given(userRepository.findById(999L)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> userService.deleteAccount(999L))
+                    .isInstanceOf(UserNotFoundException.class);
         }
     }
 

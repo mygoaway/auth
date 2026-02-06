@@ -19,6 +19,13 @@ public class VerificationResponse {
                 .build();
     }
 
+    public static VerificationResponse verified(String tokenId) {
+        return VerificationResponse.builder()
+                .tokenId(tokenId)
+                .message("이메일 인증이 완료되었습니다")
+                .build();
+    }
+
     public static VerificationResponse verified() {
         return VerificationResponse.builder()
                 .message("이메일 인증이 완료되었습니다")

@@ -2,6 +2,7 @@ package com.jay.auth.security.oauth2;
 
 import com.jay.auth.domain.entity.User;
 import com.jay.auth.domain.enums.ChannelCode;
+import com.jay.auth.service.OAuth2LinkStateService;
 import com.jay.auth.service.OAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import java.util.Map;
 public class CustomOidcUserService extends OidcUserService {
 
     private final OAuth2UserService oAuth2UserService;
+    private final OAuth2LinkStateService oAuth2LinkStateService;
 
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
@@ -40,9 +42,23 @@ public class CustomOidcUserService extends OidcUserService {
         OAuth2UserInfo oAuth2UserInfo = OAuth2UserInfoFactory.getOAuth2UserInfo(registrationId, attributes);
         ChannelCode channelCode = OAuth2UserInfoFactory.getChannelCode(registrationId);
 
-        User user = oAuth2UserService.processOAuth2User(channelCode, oAuth2UserInfo);
+        // Check if this is a link mode request
+        String state = userRequest.getAdditionalParameters().get("state") != null
+                ? userRequest.getAdditionalParameters().get("state").toString()
+                : null;
+        Long linkUserId = oAuth2LinkStateService.getLinkUserId(state);
+        boolean isLinkMode = linkUserId != null;
 
-        log.info("OIDC user loaded: registrationId={}, userId={}", registrationId, user.getId());
+        User user;
+        if (isLinkMode) {
+            // Link mode: link social account to existing user
+            user = oAuth2UserService.processOAuth2UserForLinking(linkUserId, channelCode, oAuth2UserInfo);
+            log.info("OIDC user linked: registrationId={}, userId={}", registrationId, user.getId());
+        } else {
+            // Normal mode: login or create new user
+            user = oAuth2UserService.processOAuth2User(channelCode, oAuth2UserInfo);
+            log.info("OIDC user loaded: registrationId={}, userId={}", registrationId, user.getId());
+        }
 
         return new CustomOidcUser(
                 user.getId(),
@@ -51,7 +67,8 @@ public class CustomOidcUserService extends OidcUserService {
                 oidcUser.getIdToken(),
                 oidcUser.getUserInfo(),
                 attributes,
-                userNameAttributeName
+                userNameAttributeName,
+                isLinkMode
         );
     }
 }

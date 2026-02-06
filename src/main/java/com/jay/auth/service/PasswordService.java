@@ -43,14 +43,17 @@ public class PasswordService {
 
         signInInfo.updatePassword(passwordUtil.encode(request.getNewPassword()));
 
-        log.info("User {} changed password", userId);
+        // 모든 세션 무효화 (비밀번호 변경 후 전체 로그아웃)
+        tokenService.logoutAll(userId, null);
+
+        log.info("User {} changed password and logged out from all sessions", userId);
     }
 
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
-        // 이메일 인증 확인
+        // 복구 이메일 인증 확인
         if (!emailVerificationService.isVerifiedByTokenId(
-                request.getTokenId(), request.getEmail(), VerificationType.PASSWORD_RESET)) {
+                request.getTokenId(), request.getRecoveryEmail(), VerificationType.PASSWORD_RESET)) {
             throw InvalidVerificationException.notVerified();
         }
 
@@ -59,10 +62,10 @@ public class PasswordService {
             throw new InvalidPasswordException();
         }
 
-        // 로그인 정보 조회
-        String emailLowerEnc = encryptionService.encryptForSearch(request.getEmail());
-        UserSignInInfo signInInfo = userSignInInfoRepository.findByLoginEmailLowerEncWithUser(emailLowerEnc)
-                .orElseThrow(UserNotFoundException::new);
+        // 복구 이메일로 로그인 정보 조회
+        String recoveryEmailLowerEnc = encryptionService.encryptForSearch(request.getRecoveryEmail());
+        UserSignInInfo signInInfo = userSignInInfoRepository.findByRecoveryEmailLowerEncWithUser(recoveryEmailLowerEnc)
+                .orElseThrow(UserNotFoundException::recoveryEmailNotFound);
 
         // 비밀번호 변경
         signInInfo.updatePassword(passwordUtil.encode(request.getNewPassword()));
@@ -78,6 +81,6 @@ public class PasswordService {
         // 모든 세션 무효화
         tokenService.logoutAll(signInInfo.getUser().getId(), null);
 
-        log.info("User {} reset password", signInInfo.getUser().getId());
+        log.info("User {} reset password via recovery email", signInInfo.getUser().getId());
     }
 }

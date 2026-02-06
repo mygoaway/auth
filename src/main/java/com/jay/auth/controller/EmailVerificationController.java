@@ -5,8 +5,10 @@ import com.jay.auth.dto.request.SendVerificationRequest;
 import com.jay.auth.dto.request.VerifyEmailRequest;
 import com.jay.auth.dto.response.VerificationResponse;
 import com.jay.auth.exception.DuplicateEmailException;
+import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.service.AuthService;
 import com.jay.auth.service.EmailVerificationService;
+import com.jay.auth.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,20 +27,37 @@ public class EmailVerificationController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final UserService userService;
 
-    @Operation(summary = "이메일 인증 코드 발송", description = "회원가입을 위한 이메일 인증 코드를 발송합니다")
+    @Operation(summary = "이메일 인증 코드 발송", description = "회원가입, 복구이메일 등록, 비밀번호 재설정을 위한 이메일 인증 코드를 발송합니다")
     @PostMapping("/send-verification")
     public ResponseEntity<VerificationResponse> sendVerification(
             @Valid @RequestBody SendVerificationRequest request) {
 
-        // 이메일 중복 체크
-        if (authService.isEmailExists(request.getEmail())) {
-            throw new DuplicateEmailException();
+        VerificationType type = request.getType();
+
+        // 타입별 검증 로직
+        switch (type) {
+            case SIGNUP -> {
+                // 회원가입: 이메일 중복 체크
+                if (authService.isEmailExists(request.getEmail())) {
+                    throw new DuplicateEmailException();
+                }
+            }
+            case PASSWORD_RESET -> {
+                // 비밀번호 재설정: 복구 이메일로 등록된 사용자가 있는지 확인
+                if (!userService.existsByRecoveryEmail(request.getEmail())) {
+                    throw UserNotFoundException.recoveryEmailNotFound();
+                }
+            }
+            case EMAIL_CHANGE -> {
+                // 이메일 변경: 특별한 사전 검증 없음 (본인 소유 이메일 인증만)
+            }
         }
 
         String tokenId = emailVerificationService.sendVerificationCode(
                 request.getEmail(),
-                VerificationType.SIGNUP
+                type
         );
 
         return ResponseEntity.ok(VerificationResponse.sent(
@@ -52,12 +71,12 @@ public class EmailVerificationController {
     public ResponseEntity<VerificationResponse> verifyEmail(
             @Valid @RequestBody VerifyEmailRequest request) {
 
-        emailVerificationService.verifyCode(
+        String tokenId = emailVerificationService.verifyCode(
                 request.getEmail(),
                 request.getCode(),
-                VerificationType.SIGNUP
+                request.getType()
         );
 
-        return ResponseEntity.ok(VerificationResponse.verified());
+        return ResponseEntity.ok(VerificationResponse.verified(tokenId));
     }
 }

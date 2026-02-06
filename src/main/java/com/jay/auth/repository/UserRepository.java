@@ -31,4 +31,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "LEFT JOIN FETCH u.channels " +
             "WHERE u.userUuid = :userUuid")
     Optional<User> findByUserUuidWithDetails(@Param("userUuid") String userUuid);
+
+    boolean existsByRecoveryEmailLowerEnc(String recoveryEmailLowerEnc);
+
+    Optional<User> findByRecoveryEmailLowerEnc(String recoveryEmailLowerEnc);
 }

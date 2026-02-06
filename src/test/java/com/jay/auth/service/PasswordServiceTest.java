@@ -67,6 +67,8 @@ class PasswordServiceTest {
             // then
             // verify password was updated (through entity method)
             verify(passwordUtil).encode("NewPass@1234");
+            // verify all sessions were logged out
+            verify(tokenService).logoutAll(1L, null);
         }
 
         @Test
@@ -123,21 +125,21 @@ class PasswordServiceTest {
     class ResetPassword {
 
         @Test
-        @DisplayName("비밀번호 재설정이 성공해야 한다")
+        @DisplayName("복구 이메일로 비밀번호 재설정이 성공해야 한다")
         void resetPasswordSuccess() {
             // given
             User user = createUser(1L, "uuid-1234");
             UserSignInInfo signInInfo = createSignInInfo(user, "hashed_old");
 
-            given(emailVerificationService.isVerifiedByTokenId("token-123", "test@email.com", VerificationType.PASSWORD_RESET))
+            given(emailVerificationService.isVerifiedByTokenId("token-123", "recovery@email.com", VerificationType.PASSWORD_RESET))
                     .willReturn(true);
             given(passwordUtil.isValidPassword("NewPass@1234")).willReturn(true);
-            given(encryptionService.encryptForSearch("test@email.com")).willReturn("enc_email_lower");
-            given(userSignInInfoRepository.findByLoginEmailLowerEncWithUser("enc_email_lower"))
+            given(encryptionService.encryptForSearch("recovery@email.com")).willReturn("enc_recovery_email_lower");
+            given(userSignInInfoRepository.findByRecoveryEmailLowerEncWithUser("enc_recovery_email_lower"))
                     .willReturn(Optional.of(signInInfo));
             given(passwordUtil.encode("NewPass@1234")).willReturn("hashed_new");
 
-            ResetPasswordRequest request = createResetPasswordRequest("token-123", "test@email.com", "NewPass@1234");
+            ResetPasswordRequest request = createResetPasswordRequest("token-123", "recovery@email.com", "NewPass@1234");
 
             // when
             passwordService.resetPassword(request);
@@ -148,17 +150,35 @@ class PasswordServiceTest {
         }
 
         @Test
-        @DisplayName("이메일 인증이 안 된 경우 실패해야 한다")
+        @DisplayName("복구 이메일 인증이 안 된 경우 실패해야 한다")
         void resetPasswordFailsWithoutVerification() {
             // given
-            given(emailVerificationService.isVerifiedByTokenId("token-123", "test@email.com", VerificationType.PASSWORD_RESET))
+            given(emailVerificationService.isVerifiedByTokenId("token-123", "recovery@email.com", VerificationType.PASSWORD_RESET))
                     .willReturn(false);
 
-            ResetPasswordRequest request = createResetPasswordRequest("token-123", "test@email.com", "NewPass@1234");
+            ResetPasswordRequest request = createResetPasswordRequest("token-123", "recovery@email.com", "NewPass@1234");
 
             // when & then
             assertThatThrownBy(() -> passwordService.resetPassword(request))
                     .isInstanceOf(InvalidVerificationException.class);
+        }
+
+        @Test
+        @DisplayName("복구 이메일로 등록된 사용자가 없으면 실패해야 한다")
+        void resetPasswordFailsWithUserNotFound() {
+            // given
+            given(emailVerificationService.isVerifiedByTokenId("token-123", "unknown@email.com", VerificationType.PASSWORD_RESET))
+                    .willReturn(true);
+            given(passwordUtil.isValidPassword("NewPass@1234")).willReturn(true);
+            given(encryptionService.encryptForSearch("unknown@email.com")).willReturn("enc_unknown_email");
+            given(userSignInInfoRepository.findByRecoveryEmailLowerEncWithUser("enc_unknown_email"))
+                    .willReturn(Optional.empty());
+
+            ResetPasswordRequest request = createResetPasswordRequest("token-123", "unknown@email.com", "NewPass@1234");
+
+            // when & then
+            assertThatThrownBy(() -> passwordService.resetPassword(request))
+                    .isInstanceOf(UserNotFoundException.class);
         }
     }
 
@@ -186,10 +206,10 @@ class PasswordServiceTest {
         return request;
     }
 
-    private ResetPasswordRequest createResetPasswordRequest(String tokenId, String email, String newPassword) {
+    private ResetPasswordRequest createResetPasswordRequest(String tokenId, String recoveryEmail, String newPassword) {
         ResetPasswordRequest request = new ResetPasswordRequest();
         setField(request, "tokenId", tokenId);
-        setField(request, "email", email);
+        setField(request, "recoveryEmail", recoveryEmail);
         setField(request, "newPassword", newPassword);
         return request;
     }

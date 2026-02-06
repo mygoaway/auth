@@ -1,6 +1,7 @@
 package com.jay.auth.config;
 
 import com.jay.auth.security.JwtAuthenticationFilter;
+import com.jay.auth.security.oauth2.CustomOAuth2AuthorizationRequestResolver;
 import com.jay.auth.security.oauth2.CustomOAuth2UserService;
 import com.jay.auth.security.oauth2.CustomOidcUserService;
 import com.jay.auth.security.oauth2.OAuth2AuthenticationFailureHandler;
@@ -14,6 +15,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -29,6 +31,7 @@ public class SecurityConfig {
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final ClientRegistrationRepository clientRegistrationRepository;
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/v1/auth/**",
@@ -55,6 +58,11 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth
+                                .authorizationRequestResolver(
+                                        new CustomOAuth2AuthorizationRequestResolver(
+                                                clientRegistrationRepository,
+                                                "/oauth2/authorization")))
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService)
                                 .oidcUserService(customOidcUserService))

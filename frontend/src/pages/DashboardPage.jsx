@@ -254,9 +254,8 @@ export default function DashboardPage() {
 
   // Account linking
   const handleLinkChannel = (provider) => {
-    // Set a flag to indicate link mode
-    sessionStorage.setItem('linkMode', 'true');
-    window.location.href = `${OAUTH2_BASE_URL}/oauth2/authorization/${provider}?mode=link`;
+    // Use the backend API to start link mode (which sets up proper OAuth2 state)
+    window.location.href = `${OAUTH2_BASE_URL}/api/v1/oauth2/link/start/${provider}`;
   };
 
   const handleUnlinkChannel = async (channelCode) => {

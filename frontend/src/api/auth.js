@@ -59,6 +59,9 @@ export const userApi = {
 
   unlinkChannel: (channelCode) =>
     client.delete(`/users/channels/${channelCode}`),
+
+  getLoginHistory: (limit = 10) =>
+    client.get(`/users/login-history?limit=${limit}`),
 };
 
 export const phoneApi = {

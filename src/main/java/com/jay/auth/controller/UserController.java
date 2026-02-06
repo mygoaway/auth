@@ -6,10 +6,14 @@ import com.jay.auth.dto.request.UpdatePhoneRequest;
 import com.jay.auth.dto.request.UpdateProfileRequest;
 import com.jay.auth.dto.request.UpdateRecoveryEmailRequest;
 import com.jay.auth.dto.response.ChannelStatusResponse;
+import com.jay.auth.dto.response.LoginHistoryResponse;
 import com.jay.auth.dto.response.UserProfileResponse;
 import com.jay.auth.security.UserPrincipal;
 import com.jay.auth.service.AccountLinkingService;
+import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.UserService;
+
+import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,6 +30,7 @@ public class UserController {
 
     private final UserService userService;
     private final AccountLinkingService accountLinkingService;
+    private final LoginHistoryService loginHistoryService;
 
     @Operation(summary = "프로필 조회", description = "현재 사용자의 프로필을 조회합니다")
     @GetMapping("/profile")
@@ -110,5 +115,17 @@ public class UserController {
         accountLinkingService.unlinkChannel(userPrincipal.getUserId(), channelCode);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "로그인 기록 조회", description = "최근 로그인 기록을 조회합니다")
+    @GetMapping("/login-history")
+    public ResponseEntity<List<LoginHistoryResponse>> getLoginHistory(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam(defaultValue = "10") int limit) {
+
+        List<LoginHistoryResponse> histories = loginHistoryService.getRecentLoginHistory(
+                userPrincipal.getUserId(), Math.min(limit, 50));
+
+        return ResponseEntity.ok(histories);
     }
 }

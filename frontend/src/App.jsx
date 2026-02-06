@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import OAuth2CallbackPage from './pages/OAuth2CallbackPage';
+import OAuth2LinkCallbackPage from './pages/OAuth2LinkCallbackPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import './styles/global.css';
 
@@ -46,6 +47,7 @@ function AppRoutes() {
       <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
       <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
+      <Route path="/oauth2/link/success" element={<PrivateRoute><OAuth2LinkCallbackPage /></PrivateRoute>} />
       <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" />} />
     </Routes>

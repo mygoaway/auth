@@ -177,7 +177,7 @@ export default function DashboardPage() {
     setError('');
     setLoading(true);
     try {
-      await emailApi.verifyCode(recoveryEmail, emailCode);
+      await emailApi.verifyCode(recoveryEmail, emailCode, 'EMAIL_CHANGE');
       setEmailStep(3);
       setSuccess('인증이 완료되었습니다');
     } catch (err) {

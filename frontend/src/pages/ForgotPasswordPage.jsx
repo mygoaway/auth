@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      await authApi.verifyCode(email, code);
+      await authApi.verifyCode(email, code, 'PASSWORD_RESET');
       setSuccess('인증이 완료되었습니다');
       setStep(3);
     } catch (err) {

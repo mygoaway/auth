@@ -1,8 +1,8 @@
 import client from './client';
 
 export const authApi = {
-  sendVerification: (email) =>
-    client.post('/auth/email/send-verification', { email }),
+  sendVerification: (email, type = 'SIGNUP') =>
+    client.post('/auth/email/send-verification', { email, type }),
 
   sendPasswordResetVerification: (email) =>
     client.post('/auth/email/send-verification', { email, type: 'PASSWORD_RESET' }),
@@ -10,8 +10,8 @@ export const authApi = {
   sendEmailChangeVerification: (email) =>
     client.post('/auth/email/send-verification', { email, type: 'EMAIL_CHANGE' }),
 
-  verifyCode: (email, code) =>
-    client.post('/auth/email/verify', { email, code }),
+  verifyCode: (email, code, type = 'SIGNUP') =>
+    client.post('/auth/email/verify', { email, code, type }),
 
   signup: (data) =>
     client.post('/auth/email/signup', data),
@@ -73,6 +73,6 @@ export const emailApi = {
   sendVerification: (email, type = 'SIGNUP') =>
     client.post('/auth/email/send-verification', { email, type }),
 
-  verifyCode: (email, code) =>
-    client.post('/auth/email/verify', { email, code }),
+  verifyCode: (email, code, type = 'SIGNUP') =>
+    client.post('/auth/email/verify', { email, code, type }),
 };

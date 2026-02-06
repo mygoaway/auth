@@ -43,6 +43,15 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("BAD_REQUEST", e.getMessage()));
     }
 
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitException(RateLimitException e) {
+        log.warn("Rate limit exception: {} (retry after: {}s)", e.getMessage(), e.getRetryAfterSeconds());
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(e.getRetryAfterSeconds()))
+                .body(ApiResponse.error("RATE_LIMITED", e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         log.error("Unexpected exception", e);

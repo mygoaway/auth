@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { twoFactorApi } from '../api/auth';
 
 const OAUTH2_BASE_URL = 'http://localhost:8080';
 
@@ -9,9 +10,16 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+
+  // 2FA states
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [tempLoginData, setTempLoginData] = useState(null);
+
+  const { login, complete2FALogin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -20,12 +28,40 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const result = await login(email, password, rememberMe);
+
+      // Check if 2FA is required
+      if (result.twoFactorRequired) {
+        setRequires2FA(true);
+        setTempLoginData(result);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       const message = err.response?.data?.error?.message
         || err.response?.data?.message
         || '로그인에 실패했습니다';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handle2FASubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await twoFactorApi.verify(twoFactorCode);
+      if (complete2FALogin) {
+        await complete2FALogin(tempLoginData);
+      }
+      navigate('/dashboard');
+    } catch (err) {
+      const message = err.response?.data?.error?.message
+        || err.response?.data?.message
+        || '인증 코드가 올바르지 않습니다';
       setError(message);
     } finally {
       setLoading(false);
@@ -81,7 +117,51 @@ export default function LoginPage() {
     );
   }
 
-  // 이메일 로그인 화면 (넷마블 2번 스크린샷)
+  // 2FA 인증 화면
+  if (requires2FA) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-logo">
+            <h1>authservice</h1>
+          </div>
+          <p className="auth-subtitle">2단계 인증</p>
+          <p className="auth-description">인증 앱에서 생성된 6자리 코드를 입력하세요</p>
+
+          {error && <div className="error-message">{error}</div>}
+
+          <form onSubmit={handle2FASubmit}>
+            <div className="form-group">
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  maxLength={6}
+                  autoFocus
+                  style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '8px' }}
+                  required
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary" disabled={loading || twoFactorCode.length !== 6}>
+              {loading ? '확인 중...' : '확인'}
+            </button>
+          </form>
+
+          <div className="back-link" style={{ marginTop: '20px' }}>
+            <a href="#" onClick={(e) => { e.preventDefault(); setRequires2FA(false); setTwoFactorCode(''); setError(''); }}>
+              다른 방법으로 로그인
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 이메일 로그인 화면
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -123,6 +203,17 @@ export default function LoginPage() {
                 {showPassword ? '🙈' : '👁'}
               </span>
             </div>
+          </div>
+
+          <div className="form-group checkbox-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              <span className="checkbox-text">로그인 상태 유지</span>
+            </label>
           </div>
 
           <button type="submit" className="btn btn-primary" disabled={loading}>

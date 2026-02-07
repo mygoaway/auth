@@ -7,11 +7,28 @@ const client = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Enable cookies for cross-origin requests
 });
+
+// Helper to get the correct storage
+const getStorage = () => {
+  if (sessionStorage.getItem('accessToken')) {
+    return sessionStorage;
+  }
+  return localStorage;
+};
+
+const clearAllTokens = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  sessionStorage.removeItem('accessToken');
+  sessionStorage.removeItem('refreshToken');
+};
 
 // Request interceptor - attach access token
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
+  const storage = getStorage();
+  const token = storage.getItem('accessToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -28,7 +45,8 @@ client.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
+        const storage = getStorage();
+        const refreshToken = storage.getItem('refreshToken');
         if (!refreshToken) {
           throw new Error('No refresh token');
         }
@@ -38,14 +56,13 @@ client.interceptors.response.use(
         });
 
         const { accessToken, refreshToken: newRefreshToken } = response.data;
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
+        storage.setItem('accessToken', accessToken);
+        storage.setItem('refreshToken', newRefreshToken);
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return client(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        clearAllTokens();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }

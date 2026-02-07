@@ -1485,6 +1485,147 @@ body {
   color: #ff4d4f;
 }
 
+/* Password Strength Meter */
+.password-strength-meter {
+  margin-top: 8px;
+}
+
+.strength-bar-container {
+  height: 4px;
+  background: #f0f0f0;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.strength-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strength-label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.strength-requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.requirement {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f5f5f5;
+  color: #999;
+  transition: all 0.2s;
+}
+
+.requirement.met {
+  background: #e6f7e6;
+  color: #52c41a;
+}
+
+.requirement.unmet {
+  background: #f5f5f5;
+  color: #999;
+}
+
+/* Active Sessions */
+.session-list {
+  padding: 8px 0;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.session-item:last-child {
+  border-bottom: none;
+}
+
+.session-item.current {
+  background: #f6ffed;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.session-icon {
+  width: 40px;
+  height: 40px;
+  background: #f5f5f5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  font-size: 18px;
+}
+
+.session-info {
+  flex: 1;
+}
+
+.session-device {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-current-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: #52c41a;
+  color: #fff;
+  border-radius: 10px;
+}
+
+.session-detail {
+  font-size: 12px;
+  color: #999;
+}
+
+.session-time {
+  font-size: 12px;
+  color: #999;
+  text-align: right;
+  margin-right: 12px;
+}
+
+.session-revoke-btn {
+  padding: 6px 12px;
+  border: 1px solid #ff4d4f;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  color: #ff4d4f;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.session-revoke-btn:hover {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+.session-revoke-btn:disabled {
+  border-color: #d9d9d9;
+  color: #d9d9d9;
+  cursor: not-allowed;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .auth-card {

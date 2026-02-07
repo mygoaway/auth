@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../api/auth';
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 const OAUTH2_BASE_URL = 'http://localhost:8080';
 
@@ -286,6 +287,7 @@ export default function SignupPage() {
                 {showPassword ? '🙈' : '👁'}
               </span>
             </div>
+            <PasswordStrengthMeter password={password} />
           </div>
 
           <div className="form-group">

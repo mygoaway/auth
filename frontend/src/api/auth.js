@@ -62,6 +62,12 @@ export const userApi = {
 
   getLoginHistory: (limit = 10) =>
     client.get(`/users/login-history?limit=${limit}`),
+
+  getActiveSessions: () =>
+    client.get('/users/sessions'),
+
+  revokeSession: (sessionId) =>
+    client.delete(`/users/sessions/${sessionId}`),
 };
 
 export const phoneApi = {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi, authApi, phoneApi, emailApi } from '../api/auth';
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 const OAUTH2_BASE_URL = 'http://localhost:8080';
 
@@ -20,6 +21,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('home');
   const [channelsStatus, setChannelsStatus] = useState(null);
   const [loginHistory, setLoginHistory] = useState([]);
+  const [activeSessions, setActiveSessions] = useState([]);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +53,7 @@ export default function DashboardPage() {
     }
     if (activeTab === 'security') {
       loadLoginHistory();
+      loadActiveSessions();
     }
   }, [activeTab]);
 
@@ -69,6 +72,25 @@ export default function DashboardPage() {
       setLoginHistory(response.data);
     } catch (err) {
       console.error('Failed to load login history', err);
+    }
+  };
+
+  const loadActiveSessions = async () => {
+    try {
+      const response = await userApi.getActiveSessions();
+      setActiveSessions(response.data);
+    } catch (err) {
+      console.error('Failed to load active sessions', err);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId) => {
+    if (!window.confirm('이 세션을 종료하시겠습니까?')) return;
+    try {
+      await userApi.revokeSession(sessionId);
+      loadActiveSessions();
+    } catch (err) {
+      console.error('Failed to revoke session', err);
     }
   };
 
@@ -527,6 +549,49 @@ export default function DashboardPage() {
             </div>
 
             <div className="info-card">
+              <h3>활성 세션</h3>
+              <p className="info-description">현재 로그인되어 있는 기기 목록입니다.</p>
+              <div className="session-list">
+                {activeSessions.length === 0 ? (
+                  <p className="info-description">활성 세션이 없습니다.</p>
+                ) : (
+                  activeSessions.map((session) => (
+                    <div key={session.sessionId} className={`session-item ${session.currentSession ? 'current' : ''}`}>
+                      <div className="session-icon">
+                        {session.deviceType === 'Mobile' ? '📱' : session.deviceType === 'Tablet' ? '📲' : '💻'}
+                      </div>
+                      <div className="session-info">
+                        <div className="session-device">
+                          {session.browser} / {session.os}
+                          {session.currentSession && <span className="session-current-badge">현재 세션</span>}
+                        </div>
+                        <div className="session-detail">
+                          {session.ipAddress} · {session.deviceType}
+                        </div>
+                      </div>
+                      <div className="session-time">
+                        {session.lastActivity && new Date(session.lastActivity).toLocaleString('ko-KR', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                      {!session.currentSession && (
+                        <button
+                          className="session-revoke-btn"
+                          onClick={() => handleRevokeSession(session.sessionId)}
+                        >
+                          종료
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="info-card">
               <h3>최근 로그인 기록</h3>
               <div className="login-history-list">
                 {loginHistory.length === 0 ? (
@@ -782,6 +847,7 @@ export default function DashboardPage() {
                     {showNewPassword ? '🙈' : '👁'}
                   </span>
                 </div>
+                <PasswordStrengthMeter password={newPassword} />
               </div>
               <div className="form-group">
                 <label>새 비밀번호 확인</label>
@@ -833,6 +899,7 @@ export default function DashboardPage() {
                     {showRegisterPassword ? '🙈' : '👁'}
                   </span>
                 </div>
+                <PasswordStrengthMeter password={registerPassword} />
               </div>
               <div className="form-group">
                 <label>비밀번호 확인</label>

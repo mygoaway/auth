@@ -5,13 +5,16 @@ import com.jay.auth.dto.request.RegisterPasswordRequest;
 import com.jay.auth.dto.request.UpdatePhoneRequest;
 import com.jay.auth.dto.request.UpdateProfileRequest;
 import com.jay.auth.dto.request.UpdateRecoveryEmailRequest;
+import com.jay.auth.dto.response.ActiveSessionResponse;
 import com.jay.auth.dto.response.ChannelStatusResponse;
 import com.jay.auth.dto.response.LoginHistoryResponse;
 import com.jay.auth.dto.response.UserProfileResponse;
 import com.jay.auth.security.UserPrincipal;
 import com.jay.auth.service.AccountLinkingService;
 import com.jay.auth.service.LoginHistoryService;
+import com.jay.auth.service.TokenService;
 import com.jay.auth.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +34,7 @@ public class UserController {
     private final UserService userService;
     private final AccountLinkingService accountLinkingService;
     private final LoginHistoryService loginHistoryService;
+    private final TokenService tokenService;
 
     @Operation(summary = "프로필 조회", description = "현재 사용자의 프로필을 조회합니다")
     @GetMapping("/profile")
@@ -127,5 +131,38 @@ public class UserController {
                 userPrincipal.getUserId(), Math.min(limit, 50));
 
         return ResponseEntity.ok(histories);
+    }
+
+    @Operation(summary = "활성 세션 조회", description = "현재 로그인 중인 세션 목록을 조회합니다")
+    @GetMapping("/sessions")
+    public ResponseEntity<List<ActiveSessionResponse>> getActiveSessions(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            HttpServletRequest httpRequest) {
+
+        String currentTokenId = extractTokenId(httpRequest);
+        List<ActiveSessionResponse> sessions = tokenService.getActiveSessions(
+                userPrincipal.getUserId(), currentTokenId);
+
+        return ResponseEntity.ok(sessions);
+    }
+
+    @Operation(summary = "세션 종료", description = "특정 세션을 원격으로 종료합니다")
+    @DeleteMapping("/sessions/{sessionId}")
+    public ResponseEntity<Void> revokeSession(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable String sessionId) {
+
+        tokenService.revokeSession(userPrincipal.getUserId(), sessionId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    private String extractTokenId(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String accessToken = authHeader.substring(7);
+            return tokenService.getTokenId(accessToken);
+        }
+        return null;
     }
 }

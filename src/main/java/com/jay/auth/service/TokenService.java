@@ -1,12 +1,18 @@
 package com.jay.auth.service;
 
 import com.jay.auth.domain.enums.ChannelCode;
+import com.jay.auth.dto.response.ActiveSessionResponse;
 import com.jay.auth.dto.response.TokenResponse;
 import com.jay.auth.security.JwtTokenProvider;
 import com.jay.auth.security.TokenStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 토큰 발급/갱신/무효화 서비스
@@ -18,6 +24,8 @@ public class TokenService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenStore tokenStore;
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     /**
      * 토큰 발급 (로그인 시)
@@ -37,6 +45,28 @@ public class TokenService {
                 accessToken,
                 refreshToken,
                 jwtTokenProvider.getAccessTokenExpiration() / 1000  // seconds
+        );
+    }
+
+    /**
+     * 토큰 발급 (세션 정보 포함)
+     */
+    public TokenResponse issueTokensWithSession(Long userId, String userUuid, ChannelCode channelCode,
+            TokenStore.SessionInfo sessionInfo) {
+        String accessToken = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode);
+        String refreshToken = jwtTokenProvider.createRefreshToken(userId, userUuid, channelCode);
+
+        // Refresh Token + Session 저장
+        String tokenId = jwtTokenProvider.getTokenId(refreshToken);
+        long refreshExpiration = jwtTokenProvider.getRefreshTokenExpiration();
+        tokenStore.saveRefreshTokenWithSession(userId, tokenId, refreshToken, refreshExpiration, sessionInfo);
+
+        log.info("Issued tokens with session for user: {}, channelCode: {}", userId, channelCode);
+
+        return TokenResponse.of(
+                accessToken,
+                refreshToken,
+                jwtTokenProvider.getAccessTokenExpiration() / 1000
         );
     }
 
@@ -129,5 +159,63 @@ public class TokenService {
         }
 
         return true;
+    }
+
+    /**
+     * 활성 세션 목록 조회
+     */
+    public List<ActiveSessionResponse> getActiveSessions(Long userId, String currentTokenId) {
+        List<Map<String, String>> sessions = tokenStore.getAllSessions(userId);
+
+        return sessions.stream()
+                .map(session -> {
+                    String sessionId = session.get("sessionId");
+                    LocalDateTime lastActivity = null;
+                    String lastActivityStr = session.get("lastActivity");
+                    if (lastActivityStr != null && !lastActivityStr.isEmpty()) {
+                        try {
+                            lastActivity = LocalDateTime.parse(lastActivityStr, DATE_FORMATTER);
+                        } catch (Exception e) {
+                            log.warn("Failed to parse lastActivity: {}", lastActivityStr);
+                        }
+                    }
+
+                    return ActiveSessionResponse.of(
+                            sessionId,
+                            session.get("deviceType"),
+                            session.get("browser"),
+                            session.get("os"),
+                            session.get("ipAddress"),
+                            session.get("location"),
+                            lastActivity,
+                            sessionId != null && sessionId.equals(currentTokenId)
+                    );
+                })
+                .toList();
+    }
+
+    /**
+     * 특정 세션 종료 (원격 로그아웃)
+     */
+    public void revokeSession(Long userId, String sessionId) {
+        tokenStore.revokeSession(userId, sessionId);
+        log.info("Revoked session {} for user {}", sessionId, userId);
+    }
+
+    /**
+     * 현재 토큰의 토큰 ID 추출
+     */
+    public String getTokenId(String accessToken) {
+        if (accessToken != null && jwtTokenProvider.validateToken(accessToken)) {
+            return jwtTokenProvider.getTokenId(accessToken);
+        }
+        return null;
+    }
+
+    /**
+     * 세션 활동 시간 갱신
+     */
+    public void updateSessionActivity(Long userId, String tokenId) {
+        tokenStore.updateSessionActivity(userId, tokenId);
     }
 }

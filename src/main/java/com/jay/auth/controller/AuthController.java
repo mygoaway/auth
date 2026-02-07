@@ -63,7 +63,11 @@ public class AuthController {
         }
 
         try {
-            LoginResponse response = authService.loginWithEmail(request);
+            // Extract session info from request
+            var sessionInfo = loginHistoryService.extractSessionInfo(httpRequest);
+
+            // Login with session info
+            LoginResponse response = authService.loginWithEmail(request, sessionInfo);
 
             // Clear failed attempts on success
             loginRateLimitService.clearFailedAttempts(email, ipAddress);

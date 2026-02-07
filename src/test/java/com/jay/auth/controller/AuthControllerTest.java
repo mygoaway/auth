@@ -11,11 +11,13 @@ import com.jay.auth.exception.AuthenticationException;
 import com.jay.auth.exception.DuplicateEmailException;
 import com.jay.auth.exception.GlobalExceptionHandler;
 import com.jay.auth.security.JwtAuthenticationFilter;
+import com.jay.auth.security.TokenStore;
 import com.jay.auth.service.AuthService;
 import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.LoginRateLimitService;
 import com.jay.auth.service.PasswordService;
 import com.jay.auth.service.TokenService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +64,14 @@ class AuthControllerTest {
 
     @MockitoBean
     private LoginHistoryService loginHistoryService;
+
+    @BeforeEach
+    void setUp() {
+        // Mock session info extraction
+        TokenStore.SessionInfo mockSessionInfo = new TokenStore.SessionInfo(
+                "Desktop", "Chrome", "macOS", "127.0.0.1", null);
+        given(loginHistoryService.extractSessionInfo(any())).willReturn(mockSessionInfo);
+    }
 
     @Test
     @DisplayName("POST /api/v1/auth/email/signup - 회원가입 성공")
@@ -140,7 +150,7 @@ class AuthControllerTest {
         TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800);
         LoginResponse loginResponse = LoginResponse.of(1L, "uuid-1234", "test@email.com", "테스트", tokenResponse);
 
-        given(authService.loginWithEmail(any(EmailLoginRequest.class))).willReturn(loginResponse);
+        given(authService.loginWithEmail(any(EmailLoginRequest.class), any(TokenStore.SessionInfo.class))).willReturn(loginResponse);
         given(loginRateLimitService.isLoginAllowed(any(), any())).willReturn(true);
 
         String requestBody = """
@@ -165,7 +175,7 @@ class AuthControllerTest {
     void loginFails() throws Exception {
         // given
         given(loginRateLimitService.isLoginAllowed(any(), any())).willReturn(true);
-        given(authService.loginWithEmail(any(EmailLoginRequest.class)))
+        given(authService.loginWithEmail(any(EmailLoginRequest.class), any(TokenStore.SessionInfo.class)))
                 .willThrow(AuthenticationException.invalidCredentials());
 
         String requestBody = """

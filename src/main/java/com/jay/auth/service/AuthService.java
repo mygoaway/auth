@@ -8,8 +8,10 @@ import com.jay.auth.domain.enums.VerificationType;
 import com.jay.auth.dto.request.EmailLoginRequest;
 import com.jay.auth.dto.request.EmailSignUpRequest;
 import com.jay.auth.dto.response.LoginResponse;
+import com.jay.auth.dto.response.LoginResult;
 import com.jay.auth.dto.response.SignUpResponse;
 import com.jay.auth.dto.response.TokenResponse;
+import com.jay.auth.security.TokenStore;
 import com.jay.auth.exception.AuthenticationException;
 import com.jay.auth.exception.DuplicateEmailException;
 import com.jay.auth.exception.InvalidPasswordException;
@@ -113,10 +115,57 @@ public class AuthService {
     }
 
     /**
-     * 이메일 로그인
+     * 이메일 로그인 (세션 정보 없이)
      */
     @Transactional
     public LoginResponse loginWithEmail(EmailLoginRequest request) {
+        LoginResult result = authenticateWithEmail(request);
+
+        // 토큰 발급 (세션 정보 없음)
+        TokenResponse tokenResponse = tokenService.issueTokens(
+                result.getUserId(),
+                result.getUserUuid(),
+                ChannelCode.EMAIL
+        );
+
+        return LoginResponse.of(
+                result.getUserId(),
+                result.getUserUuid(),
+                result.getEmail(),
+                result.getNickname(),
+                tokenResponse
+        );
+    }
+
+    /**
+     * 이메일 로그인 (세션 정보 포함)
+     */
+    @Transactional
+    public LoginResponse loginWithEmail(EmailLoginRequest request, TokenStore.SessionInfo sessionInfo) {
+        LoginResult result = authenticateWithEmail(request);
+
+        // 토큰 발급 (세션 정보 포함)
+        TokenResponse tokenResponse = tokenService.issueTokensWithSession(
+                result.getUserId(),
+                result.getUserUuid(),
+                ChannelCode.EMAIL,
+                sessionInfo
+        );
+
+        return LoginResponse.of(
+                result.getUserId(),
+                result.getUserUuid(),
+                result.getEmail(),
+                result.getNickname(),
+                tokenResponse
+        );
+    }
+
+    /**
+     * 이메일 인증 (토큰 발급 없이)
+     */
+    @Transactional
+    public LoginResult authenticateWithEmail(EmailLoginRequest request) {
         String email = request.getEmail();
         String password = request.getPassword();
 
@@ -146,24 +195,17 @@ public class AuthService {
         // 5. 로그인 성공 처리
         signInInfo.recordLoginSuccess();
 
-        // 6. 토큰 발급
-        TokenResponse tokenResponse = tokenService.issueTokens(
-                user.getId(),
-                user.getUserUuid(),
-                ChannelCode.EMAIL
-        );
-
-        // 7. 닉네임 복호화
+        // 6. 닉네임 복호화
         String nickname = encryptionService.decryptNickname(user.getNicknameEnc());
 
-        log.info("User logged in with email: {}, userId: {}", email, user.getId());
+        log.info("User authenticated with email: {}, userId: {}", email, user.getId());
 
-        return LoginResponse.of(
+        return LoginResult.of(
                 user.getId(),
                 user.getUserUuid(),
                 email,
                 nickname,
-                tokenResponse
+                ChannelCode.EMAIL
         );
     }
 

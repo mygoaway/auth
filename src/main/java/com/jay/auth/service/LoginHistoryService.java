@@ -4,6 +4,7 @@ import com.jay.auth.domain.entity.LoginHistory;
 import com.jay.auth.domain.enums.ChannelCode;
 import com.jay.auth.dto.response.LoginHistoryResponse;
 import com.jay.auth.repository.LoginHistoryRepository;
+import com.jay.auth.security.TokenStore;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -85,6 +86,20 @@ public class LoginHistoryService {
     @Transactional(readOnly = true)
     public long getFailedLoginCountSince(Long userId, LocalDateTime since) {
         return loginHistoryRepository.countFailedLoginsSince(userId, since);
+    }
+
+    /**
+     * Extract session info from HTTP request
+     */
+    public TokenStore.SessionInfo extractSessionInfo(HttpServletRequest request) {
+        String userAgent = request.getHeader("User-Agent");
+        return new TokenStore.SessionInfo(
+                parseDeviceType(userAgent),
+                parseBrowser(userAgent),
+                parseOs(userAgent),
+                getClientIp(request),
+                null  // location (could be determined by IP lookup)
+        );
     }
 
     private String getClientIp(HttpServletRequest request) {

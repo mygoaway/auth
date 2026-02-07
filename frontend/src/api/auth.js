@@ -108,3 +108,8 @@ export const twoFactorApi = {
   regenerateBackupCodes: (code) =>
     client.post('/2fa/backup-codes/regenerate', { code }),
 };
+
+export const oauth2Api = {
+  prepareLink: (provider) =>
+    client.post(`/oauth2/link/prepare/${provider}`),
+};

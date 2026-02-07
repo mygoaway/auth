@@ -1,11 +1,13 @@
 package com.jay.auth.security.oauth2;
 
+import com.jay.auth.controller.OAuth2LinkController;
 import com.jay.auth.domain.enums.ChannelCode;
 import com.jay.auth.dto.response.TokenResponse;
 import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.OAuth2LinkStateService;
 import com.jay.auth.service.SecurityNotificationService;
 import com.jay.auth.service.TokenService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -66,6 +68,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String state = request.getParameter("state");
             oAuth2LinkStateService.removeLinkState(state);
 
+            // Clear link state cookie
+            clearLinkStateCookie(response);
+
             if (isLinkMode) {
                 // Link mode: don't issue new tokens, just redirect to success page
                 log.info("OAuth2 account linking success: userId={}, channelCode={}", userId, channelCode);
@@ -109,5 +114,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .queryParam("error", URLEncoder.encode(errorMessage != null ? errorMessage : "Unknown error", StandardCharsets.UTF_8))
                 .build().toUriString();
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
+    }
+
+    private void clearLinkStateCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(OAuth2LinkController.LINK_STATE_COOKIE_NAME, "");
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(0); // Delete cookie
+        response.addCookie(cookie);
     }
 }

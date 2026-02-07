@@ -4,6 +4,7 @@ import com.jay.auth.security.UserPrincipal;
 import com.jay.auth.service.OAuth2LinkStateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class OAuth2LinkController {
 
+    public static final String LINK_STATE_COOKIE_NAME = "oauth2_link_state";
+    private static final int COOKIE_MAX_AGE = 300; // 5 minutes
+
     private final OAuth2LinkStateService oAuth2LinkStateService;
 
     @Operation(summary = "OAuth2 연동 시작", description = "소셜 계정 연동을 위한 OAuth2 인증을 시작합니다")
@@ -37,6 +41,9 @@ public class OAuth2LinkController {
         // Save the link state with user ID
         oAuth2LinkStateService.saveLinkState(state, userPrincipal.getUserId());
 
+        // Set cookie with link state
+        addLinkStateCookie(response, state);
+
         // Redirect to OAuth2 authorization endpoint with link state
         String redirectUrl = String.format("/oauth2/authorization/%s?link_state=%s", provider, state);
 
@@ -50,13 +57,17 @@ public class OAuth2LinkController {
     @PostMapping("/prepare/{provider}")
     public ResponseEntity<Map<String, String>> prepareLink(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @PathVariable String provider) {
+            @PathVariable String provider,
+            HttpServletResponse response) {
 
         // Generate a unique state for this link request
         String state = UUID.randomUUID().toString();
 
         // Save the link state with user ID
         oAuth2LinkStateService.saveLinkState(state, userPrincipal.getUserId());
+
+        // Set cookie with link state
+        addLinkStateCookie(response, state);
 
         log.info("Prepared OAuth2 link: userId={}, provider={}, state={}",
                 userPrincipal.getUserId(), provider, state);
@@ -65,5 +76,14 @@ public class OAuth2LinkController {
                 "state", state,
                 "authorizationUrl", String.format("/oauth2/authorization/%s?link_state=%s", provider, state)
         ));
+    }
+
+    private void addLinkStateCookie(HttpServletResponse response, String state) {
+        Cookie cookie = new Cookie(LINK_STATE_COOKIE_NAME, state);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(COOKIE_MAX_AGE);
+        // cookie.setSecure(true); // Enable in production with HTTPS
+        response.addCookie(cookie);
     }
 }

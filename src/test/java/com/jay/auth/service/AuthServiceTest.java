@@ -18,6 +18,7 @@ import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.repository.UserSignInInfoRepository;
+import com.jay.auth.util.NicknameGenerator;
 import com.jay.auth.util.PasswordUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -56,6 +57,12 @@ class AuthServiceTest {
     private TokenService tokenService;
     @Mock
     private PasswordUtil passwordUtil;
+    @Mock
+    private PasswordPolicyService passwordPolicyService;
+    @Mock
+    private TotpService totpService;
+    @Mock
+    private NicknameGenerator nicknameGenerator;
 
     @Nested
     @DisplayName("이메일 회원가입")
@@ -65,15 +72,16 @@ class AuthServiceTest {
         @DisplayName("정상적인 회원가입이 성공해야 한다")
         void signUpSuccess() {
             // given
-            EmailSignUpRequest request = createSignUpRequest("token-123", "test@email.com", "Test@1234", "테스트");
+            EmailSignUpRequest request = createSignUpRequest("token-123", "test@email.com", "Test@1234");
 
+            given(nicknameGenerator.generate()).willReturn("행복한고양이1234");
             given(passwordUtil.isValidPassword("Test@1234")).willReturn(true);
             given(emailVerificationService.isVerifiedByTokenId("token-123", "test@email.com", VerificationType.SIGNUP))
                     .willReturn(true);
             given(encryptionService.encryptEmail("test@email.com"))
                     .willReturn(new EncryptionService.EncryptedEmail("enc_email", "enc_email_lower"));
             given(userSignInInfoRepository.existsByLoginEmailLowerEnc("enc_email_lower")).willReturn(false);
-            given(encryptionService.encryptNickname("테스트")).willReturn("enc_nickname");
+            given(encryptionService.encryptNickname("행복한고양이1234")).willReturn("enc_nickname");
             given(passwordUtil.encode("Test@1234")).willReturn("hashed_password");
 
             given(userRepository.save(any(User.class))).willAnswer(invocation -> {
@@ -93,7 +101,7 @@ class AuthServiceTest {
             // then
             assertThat(response).isNotNull();
             assertThat(response.getEmail()).isEqualTo("test@email.com");
-            assertThat(response.getNickname()).isEqualTo("테스트");
+            assertThat(response.getNickname()).isEqualTo("행복한고양이1234");
             assertThat(response.getToken().getAccessToken()).isEqualTo("access-token");
 
             verify(userRepository).save(any(User.class));
@@ -106,7 +114,8 @@ class AuthServiceTest {
         @DisplayName("비밀번호 정책 미충족 시 실패해야 한다")
         void signUpFailsWithInvalidPassword() {
             // given
-            EmailSignUpRequest request = createSignUpRequest("token-123", "test@email.com", "weak", "테스트");
+            EmailSignUpRequest request = createSignUpRequest("token-123", "test@email.com", "weak");
+            given(nicknameGenerator.generate()).willReturn("행복한고양이1234");
             given(passwordUtil.isValidPassword("weak")).willReturn(false);
 
             // when & then
@@ -118,7 +127,8 @@ class AuthServiceTest {
         @DisplayName("이메일 인증 미완료 시 실패해야 한다")
         void signUpFailsWithoutVerification() {
             // given
-            EmailSignUpRequest request = createSignUpRequest("token-123", "test@email.com", "Test@1234", "테스트");
+            EmailSignUpRequest request = createSignUpRequest("token-123", "test@email.com", "Test@1234");
+            given(nicknameGenerator.generate()).willReturn("행복한고양이1234");
             given(passwordUtil.isValidPassword("Test@1234")).willReturn(true);
             given(emailVerificationService.isVerifiedByTokenId("token-123", "test@email.com", VerificationType.SIGNUP))
                     .willReturn(false);
@@ -132,7 +142,8 @@ class AuthServiceTest {
         @DisplayName("이메일 중복 시 실패해야 한다")
         void signUpFailsWithDuplicateEmail() {
             // given
-            EmailSignUpRequest request = createSignUpRequest("token-123", "test@email.com", "Test@1234", "테스트");
+            EmailSignUpRequest request = createSignUpRequest("token-123", "test@email.com", "Test@1234");
+            given(nicknameGenerator.generate()).willReturn("행복한고양이1234");
             given(passwordUtil.isValidPassword("Test@1234")).willReturn(true);
             given(emailVerificationService.isVerifiedByTokenId("token-123", "test@email.com", VerificationType.SIGNUP))
                     .willReturn(true);
@@ -249,12 +260,11 @@ class AuthServiceTest {
     }
 
     // Helper methods
-    private EmailSignUpRequest createSignUpRequest(String tokenId, String email, String password, String nickname) {
+    private EmailSignUpRequest createSignUpRequest(String tokenId, String email, String password) {
         EmailSignUpRequest request = new EmailSignUpRequest();
         setField(request, "tokenId", tokenId);
         setField(request, "email", email);
         setField(request, "password", password);
-        setField(request, "nickname", nickname);
         return request;
     }
 

@@ -19,6 +19,7 @@ import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.repository.UserSignInInfoRepository;
+import com.jay.auth.util.NicknameGenerator;
 import com.jay.auth.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class AuthService {
     private final PasswordUtil passwordUtil;
     private final PasswordPolicyService passwordPolicyService;
     private final TotpService totpService;
+    private final NicknameGenerator nicknameGenerator;
 
     /**
      * 이메일 회원가입
@@ -48,7 +50,7 @@ public class AuthService {
         String tokenId = request.getTokenId();
         String email = request.getEmail();
         String password = request.getPassword();
-        String nickname = request.getNickname();
+        String nickname = nicknameGenerator.generate();
 
         // 1. 비밀번호 정책 검증
         if (!passwordUtil.isValidPassword(password)) {

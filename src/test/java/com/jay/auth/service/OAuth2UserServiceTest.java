@@ -8,6 +8,7 @@ import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.security.oauth2.GoogleOAuth2UserInfo;
 import com.jay.auth.security.oauth2.OAuth2UserInfo;
+import com.jay.auth.util.NicknameGenerator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,8 @@ class OAuth2UserServiceTest {
     private UserChannelRepository userChannelRepository;
     @Mock
     private EncryptionService encryptionService;
+    @Mock
+    private NicknameGenerator nicknameGenerator;
 
     @Test
     @DisplayName("신규 소셜 사용자가 생성되어야 한다")
@@ -52,7 +55,8 @@ class OAuth2UserServiceTest {
                 .willReturn(Optional.empty());
         given(encryptionService.encryptEmail("test@gmail.com"))
                 .willReturn(new EncryptionService.EncryptedEmail("enc_email", "enc_email_lower"));
-        given(encryptionService.encryptNickname("Test User")).willReturn("enc_nickname");
+        given(nicknameGenerator.generate()).willReturn("행복한고양이1234");
+        given(encryptionService.encryptNickname("행복한고양이1234")).willReturn("enc_nickname");
 
         User savedUser = createUser(1L, "uuid-1234");
         given(userRepository.save(any(User.class))).willReturn(savedUser);

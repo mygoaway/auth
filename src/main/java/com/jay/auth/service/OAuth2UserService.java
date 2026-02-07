@@ -9,6 +9,7 @@ import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.security.oauth2.OAuth2UserInfo;
+import com.jay.auth.util.NicknameGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class OAuth2UserService {
     private final UserRepository userRepository;
     private final UserChannelRepository userChannelRepository;
     private final EncryptionService encryptionService;
+    private final NicknameGenerator nicknameGenerator;
 
     @Transactional
     public User processOAuth2User(ChannelCode channelCode, OAuth2UserInfo oAuth2UserInfo) {
@@ -116,10 +118,9 @@ public class OAuth2UserService {
             encryptedEmail = encryptionService.encryptEmail(email);
         }
 
-        String encryptedNickname = null;
-        if (name != null) {
-            encryptedNickname = encryptionService.encryptNickname(name);
-        }
+        // 닉네임 자동 생성
+        String nickname = nicknameGenerator.generate();
+        String encryptedNickname = encryptionService.encryptNickname(nickname);
 
         // User 생성
         User user = User.builder()

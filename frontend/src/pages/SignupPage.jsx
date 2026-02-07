@@ -13,7 +13,6 @@ export default function SignupPage() {
   const [tokenId, setTokenId] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [nickname, setNickname] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [error, setError] = useState('');
@@ -82,7 +81,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await signup({ tokenId, email, password, nickname });
+      await signup({ tokenId, email, password });
       navigate('/dashboard');
     } catch (err) {
       const message = err.response?.data?.error?.message
@@ -250,24 +249,6 @@ export default function SignupPage() {
             <label>이메일</label>
             <input type="email" value={email} disabled className="disabled-input" />
             <span className="verified-badge">✓ 인증완료</span>
-          </div>
-
-          <div className="form-group">
-            <label>닉네임</label>
-            <div className="input-wrapper">
-              <input
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="닉네임 (2~20자)"
-                minLength={2}
-                maxLength={20}
-                required
-              />
-              {nickname && (
-                <span className="input-icon" onClick={() => setNickname('')}>✕</span>
-              )}
-            </div>
           </div>
 
           <div className="form-group">

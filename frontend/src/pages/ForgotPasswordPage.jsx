@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../api/auth';
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState(1); // 1: email, 2: verify, 3: new password
@@ -216,6 +217,7 @@ export default function ForgotPasswordPage() {
                 {showPassword ? '🙈' : '👁'}
               </span>
             </div>
+            <PasswordStrengthMeter password={newPassword} />
           </div>
 
           <div className="form-group">

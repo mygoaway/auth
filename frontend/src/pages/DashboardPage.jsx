@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { userApi, authApi, phoneApi, emailApi, twoFactorApi } from '../api/auth';
+import { userApi, authApi, phoneApi, emailApi, twoFactorApi, oauth2Api } from '../api/auth';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 const OAUTH2_BASE_URL = 'http://localhost:8080';
@@ -132,6 +132,34 @@ export default function DashboardPage() {
       loadActiveSessions();
     } catch (err) {
       console.error('Failed to revoke session', err);
+    }
+  };
+
+  const handleLogoutAll = async () => {
+    if (!window.confirm('모든 기기에서 로그아웃하시겠습니까?')) return;
+    try {
+      await authApi.logoutAll();
+      await logout();
+      navigate('/login');
+    } catch (err) {
+      console.error('Failed to logout all sessions', err);
+    }
+  };
+
+  const handleRegenerateBackupCodes = async () => {
+    if (!twoFactorCode || twoFactorCode.length !== 6) {
+      setError('6자리 인증 코드를 입력해주세요');
+      return;
+    }
+    try {
+      setLoading(true);
+      const response = await twoFactorApi.regenerateBackupCodes(twoFactorCode);
+      setBackupCodes(response.data.backupCodes);
+      setModal('2fa-backup');
+    } catch (err) {
+      setError(err.response?.data?.message || '백업 코드 재생성에 실패했습니다');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -399,9 +427,18 @@ export default function DashboardPage() {
   };
 
   // Account linking
-  const handleLinkChannel = (provider) => {
-    // Use the backend API to start link mode (which sets up proper OAuth2 state)
-    window.location.href = `${OAUTH2_BASE_URL}/api/v1/oauth2/link/start/${provider}`;
+  const handleLinkChannel = async (provider) => {
+    try {
+      setLoading(true);
+      // First call API to prepare link state (this sends JWT token)
+      const response = await oauth2Api.prepareLink(provider);
+      const { authorizationUrl } = response.data;
+      // Then redirect to OAuth2 authorization (no JWT needed, state is saved server-side)
+      window.location.href = `${OAUTH2_BASE_URL}${authorizationUrl}`;
+    } catch (err) {
+      setError(err.response?.data?.message || '계정 연동 준비에 실패했습니다');
+      setLoading(false);
+    }
   };
 
   const handleUnlinkChannel = async (channelCode) => {
@@ -765,15 +802,32 @@ export default function DashboardPage() {
                     )}
                   </span>
                 </div>
-                {twoFactorStatus?.enabled ? (
-                  <button className="unlink-btn" onClick={() => openModal('2fa-disable')}>
-                    비활성화
-                  </button>
-                ) : (
-                  <button className="edit-btn" onClick={handleSetup2FA} disabled={loading}>
-                    {loading ? '설정 중...' : '설정'}
-                  </button>
-                )}
+                <div className="profile-item-actions">
+                  {twoFactorStatus?.enabled ? (
+                    <>
+                      <button className="edit-btn" onClick={() => openModal('2fa-regenerate')}>
+                        백업코드 재발급
+                      </button>
+                      <button className="unlink-btn" onClick={() => openModal('2fa-disable')}>
+                        비활성화
+                      </button>
+                    </>
+                  ) : (
+                    <button className="edit-btn" onClick={handleSetup2FA} disabled={loading}>
+                      {loading ? '설정 중...' : '설정'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="profile-item">
+                <div className="profile-item-info">
+                  <span className="profile-item-label">모든 기기 로그아웃</span>
+                  <span className="profile-item-value">현재 세션 포함 모든 세션 종료</span>
+                </div>
+                <button className="unlink-btn" onClick={handleLogoutAll}>
+                  로그아웃
+                </button>
               </div>
 
               <div className="profile-item danger">
@@ -1329,6 +1383,51 @@ export default function DashboardPage() {
                 disabled={loading || twoFactorCode.length !== 6}
               >
                 {loading ? '처리 중...' : '비활성화'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2FA Regenerate Backup Codes Modal */}
+      {modal === '2fa-regenerate' && (
+        <div className="modal-overlay" onClick={resetModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>백업 코드 재발급</h2>
+              <button className="modal-close" onClick={resetModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="error-message">{error}</div>}
+              <div className="warning-box" style={{ marginBottom: 16 }}>
+                <span className="warning-icon">⚠️</span>
+                <div>
+                  <p><strong>주의: 기존 백업 코드는 모두 무효화됩니다.</strong></p>
+                  <p>새로운 백업 코드가 발급되면 기존 코드는 더 이상 사용할 수 없습니다.</p>
+                </div>
+              </div>
+              <p className="info-description">
+                백업 코드를 재발급하려면 현재 인증 코드를 입력하세요.
+              </p>
+              <div className="form-group">
+                <label>인증 코드 (6자리)</label>
+                <input
+                  type="text"
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  maxLength={6}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={resetModal}>취소</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleRegenerateBackupCodes}
+                disabled={loading || twoFactorCode.length !== 6}
+              >
+                {loading ? '재발급 중...' : '재발급'}
               </button>
             </div>
           </div>

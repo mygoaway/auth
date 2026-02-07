@@ -1064,6 +1064,12 @@ body {
   font-size: 12px;
 }
 
+.profile-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 /* Edit/Link/Unlink Buttons */
 .edit-btn {
   padding: 8px 20px;

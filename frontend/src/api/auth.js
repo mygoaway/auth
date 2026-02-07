@@ -85,3 +85,23 @@ export const emailApi = {
   verifyCode: (email, code, type = 'SIGNUP') =>
     client.post('/auth/email/verify', { email, code, type }),
 };
+
+export const twoFactorApi = {
+  getStatus: () =>
+    client.get('/2fa/status'),
+
+  setup: () =>
+    client.post('/2fa/setup'),
+
+  enable: (code) =>
+    client.post('/2fa/enable', { code }),
+
+  disable: (code) =>
+    client.post('/2fa/disable', { code }),
+
+  verify: (code) =>
+    client.post('/2fa/verify', { code }),
+
+  regenerateBackupCodes: (code) =>
+    client.post('/2fa/backup-codes/regenerate', { code }),
+};

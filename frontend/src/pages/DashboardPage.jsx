@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { userApi, authApi, phoneApi, emailApi } from '../api/auth';
+import { userApi, authApi, phoneApi, emailApi, twoFactorApi } from '../api/auth';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 const OAUTH2_BASE_URL = 'http://localhost:8080';
@@ -22,6 +22,10 @@ export default function DashboardPage() {
   const [channelsStatus, setChannelsStatus] = useState(null);
   const [loginHistory, setLoginHistory] = useState([]);
   const [activeSessions, setActiveSessions] = useState([]);
+  const [twoFactorStatus, setTwoFactorStatus] = useState(null);
+  const [twoFactorSetup, setTwoFactorSetup] = useState(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState([]);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -54,6 +58,7 @@ export default function DashboardPage() {
     if (activeTab === 'security') {
       loadLoginHistory();
       loadActiveSessions();
+      loadTwoFactorStatus();
     }
   }, [activeTab]);
 
@@ -94,6 +99,64 @@ export default function DashboardPage() {
     }
   };
 
+  const loadTwoFactorStatus = async () => {
+    try {
+      const response = await twoFactorApi.getStatus();
+      setTwoFactorStatus(response.data);
+    } catch (err) {
+      console.error('Failed to load 2FA status', err);
+    }
+  };
+
+  const handleSetup2FA = async () => {
+    try {
+      setLoading(true);
+      const response = await twoFactorApi.setup();
+      setTwoFactorSetup(response.data);
+      setModal('2fa-setup');
+    } catch (err) {
+      setError(err.response?.data?.message || '2FA 설정에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnable2FA = async () => {
+    if (!twoFactorCode || twoFactorCode.length !== 6) {
+      setError('6자리 인증 코드를 입력해주세요');
+      return;
+    }
+    try {
+      setLoading(true);
+      const response = await twoFactorApi.enable(twoFactorCode);
+      setBackupCodes(response.data.backupCodes);
+      setModal('2fa-backup');
+      loadTwoFactorStatus();
+    } catch (err) {
+      setError(err.response?.data?.message || '2FA 활성화에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    if (!twoFactorCode || twoFactorCode.length !== 6) {
+      setError('6자리 인증 코드를 입력해주세요');
+      return;
+    }
+    try {
+      setLoading(true);
+      await twoFactorApi.disable(twoFactorCode);
+      setSuccess('2단계 인증이 비활성화되었습니다');
+      resetModal();
+      loadTwoFactorStatus();
+    } catch (err) {
+      setError(err.response?.data?.message || '2FA 비활성화에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/login');
@@ -121,6 +184,9 @@ export default function DashboardPage() {
     setRegisterPasswordConfirm('');
     setShowRegisterPassword(false);
     setDeleteConfirm('');
+    setTwoFactorCode('');
+    setTwoFactorSetup(null);
+    setBackupCodes([]);
   };
 
   const openModal = (type, initialValue = '') => {
@@ -536,6 +602,35 @@ export default function DashboardPage() {
                   </button>
                 </div>
               )}
+
+              <div className="profile-item">
+                <div className="profile-item-info">
+                  <span className="profile-item-label">2단계 인증 (2FA)</span>
+                  <span className="profile-item-value">
+                    {twoFactorStatus?.enabled ? (
+                      <>
+                        <span style={{ color: '#52c41a' }}>활성화됨</span>
+                        {twoFactorStatus.remainingBackupCodes > 0 && (
+                          <span style={{ marginLeft: 8, color: '#999', fontSize: 12 }}>
+                            (백업 코드 {twoFactorStatus.remainingBackupCodes}개 남음)
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span style={{ color: '#999' }}>비활성화됨</span>
+                    )}
+                  </span>
+                </div>
+                {twoFactorStatus?.enabled ? (
+                  <button className="unlink-btn" onClick={() => openModal('2fa-disable')}>
+                    비활성화
+                  </button>
+                ) : (
+                  <button className="edit-btn" onClick={handleSetup2FA} disabled={loading}>
+                    {loading ? '설정 중...' : '설정'}
+                  </button>
+                )}
+              </div>
 
               <div className="profile-item danger">
                 <div className="profile-item-info">
@@ -960,6 +1055,136 @@ export default function DashboardPage() {
                 disabled={loading || deleteConfirm !== '회원탈퇴'}
               >
                 {loading ? '처리 중...' : '탈퇴하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2FA Setup Modal */}
+      {modal === '2fa-setup' && twoFactorSetup && (
+        <div className="modal-overlay" onClick={resetModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>2단계 인증 설정</h2>
+              <button className="modal-close" onClick={resetModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="error-message">{error}</div>}
+              <p className="info-description">
+                Google Authenticator 또는 유사한 앱으로 QR 코드를 스캔하세요.
+              </p>
+              <div style={{ textAlign: 'center', margin: '20px 0' }}>
+                <img
+                  src={twoFactorSetup.qrCodeDataUrl}
+                  alt="2FA QR Code"
+                  style={{ maxWidth: 200, border: '1px solid #eee', padding: 10, borderRadius: 8 }}
+                />
+              </div>
+              <p className="info-text" style={{ textAlign: 'center', marginBottom: 16 }}>
+                수동 입력: <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>
+                  {twoFactorSetup.secret}
+                </code>
+              </p>
+              <div className="form-group">
+                <label>인증 코드 (6자리)</label>
+                <input
+                  type="text"
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  maxLength={6}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={resetModal}>취소</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleEnable2FA}
+                disabled={loading || twoFactorCode.length !== 6}
+              >
+                {loading ? '확인 중...' : '활성화'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2FA Backup Codes Modal */}
+      {modal === '2fa-backup' && backupCodes.length > 0 && (
+        <div className="modal-overlay">
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>백업 코드</h2>
+            </div>
+            <div className="modal-body">
+              <div className="success-message">2단계 인증이 활성화되었습니다!</div>
+              <p className="info-description">
+                아래 백업 코드를 안전한 곳에 저장하세요. 인증 앱에 접근할 수 없을 때 사용할 수 있습니다.
+              </p>
+              <div style={{
+                background: '#f5f5f5',
+                padding: 16,
+                borderRadius: 8,
+                fontFamily: 'monospace',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: 8,
+                margin: '16px 0'
+              }}>
+                {backupCodes.map((code, index) => (
+                  <div key={index} style={{ textAlign: 'center', padding: 4 }}>
+                    {code}
+                  </div>
+                ))}
+              </div>
+              <p className="info-text" style={{ color: '#ff4d4f' }}>
+                각 백업 코드는 한 번만 사용할 수 있습니다.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-primary" onClick={resetModal}>
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2FA Disable Modal */}
+      {modal === '2fa-disable' && (
+        <div className="modal-overlay" onClick={resetModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>2단계 인증 비활성화</h2>
+              <button className="modal-close" onClick={resetModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="error-message">{error}</div>}
+              {success && <div className="success-message">{success}</div>}
+              <p className="info-description">
+                2단계 인증을 비활성화하려면 현재 인증 코드를 입력하세요.
+              </p>
+              <div className="form-group">
+                <label>인증 코드 (6자리)</label>
+                <input
+                  type="text"
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  maxLength={6}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={resetModal}>취소</button>
+              <button
+                className="btn btn-danger"
+                onClick={handleDisable2FA}
+                disabled={loading || twoFactorCode.length !== 6}
+              >
+                {loading ? '처리 중...' : '비활성화'}
               </button>
             </div>
           </div>

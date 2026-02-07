@@ -87,4 +87,22 @@ public class EncryptionService {
     public String encryptForSearch(String text) {
         return encryptionUtil.encryptLower(text);
     }
+
+    /**
+     * 범용 암호화
+     * @param plainText 평문
+     * @return 암호화된 값
+     */
+    public String encrypt(String plainText) {
+        return encryptionUtil.encrypt(plainText);
+    }
+
+    /**
+     * 범용 복호화
+     * @param encryptedText 암호화된 값
+     * @return 평문
+     */
+    public String decrypt(String encryptedText) {
+        return encryptionUtil.decrypt(encryptedText);
+    }
 }

@@ -12,6 +12,7 @@ import com.jay.auth.service.AuthService;
 import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.LoginRateLimitService;
 import com.jay.auth.service.PasswordService;
+import com.jay.auth.service.SecurityNotificationService;
 import com.jay.auth.service.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,6 +37,7 @@ public class AuthController {
     private final PasswordService passwordService;
     private final LoginRateLimitService loginRateLimitService;
     private final LoginHistoryService loginHistoryService;
+    private final SecurityNotificationService securityNotificationService;
 
     @Operation(summary = "이메일 회원가입", description = "이메일 인증 완료 후 회원가입을 진행합니다")
     @PostMapping("/email/signup")
@@ -74,6 +76,9 @@ public class AuthController {
 
             // Record login history (async)
             loginHistoryService.recordLoginSuccess(response.getUserId(), ChannelCode.EMAIL, httpRequest);
+
+            // Send new device login notification (async)
+            securityNotificationService.notifyNewDeviceLogin(response.getUserId(), sessionInfo);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {

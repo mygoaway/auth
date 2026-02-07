@@ -35,6 +35,7 @@ public class AccountLinkingService {
     private final UserSignInInfoRepository userSignInInfoRepository;
     private final EncryptionService encryptionService;
     private final PasswordUtil passwordUtil;
+    private final SecurityNotificationService securityNotificationService;
 
     /**
      * Get all channels status for a user
@@ -114,6 +115,9 @@ public class AccountLinkingService {
                 .build();
 
         userChannelRepository.save(newChannel);
+
+        // 연동 알림 발송
+        securityNotificationService.notifyAccountLinked(userId, channelCode);
 
         log.info("Social account linked: userId={}, channelCode={}, channelKey={}", userId, channelCode, channelKey);
     }
@@ -212,6 +216,9 @@ public class AccountLinkingService {
 
         // Delete the channel
         userChannelRepository.delete(channelToRemove.get());
+
+        // 연동 해제 알림 발송
+        securityNotificationService.notifyAccountUnlinked(userId, channelCode);
 
         log.info("Channel unlinked: userId={}, channelCode={}", userId, channelCode);
     }

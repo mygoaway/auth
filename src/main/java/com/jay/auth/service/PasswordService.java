@@ -25,6 +25,7 @@ public class PasswordService {
     private final EmailVerificationService emailVerificationService;
     private final TokenService tokenService;
     private final PasswordUtil passwordUtil;
+    private final SecurityNotificationService securityNotificationService;
 
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
@@ -45,6 +46,9 @@ public class PasswordService {
 
         // 모든 세션 무효화 (비밀번호 변경 후 전체 로그아웃)
         tokenService.logoutAll(userId, null);
+
+        // 비밀번호 변경 알림
+        securityNotificationService.notifyPasswordChanged(userId);
 
         log.info("User {} changed password and logged out from all sessions", userId);
     }
@@ -79,8 +83,12 @@ public class PasswordService {
         emailVerificationService.deleteVerificationByTokenId(request.getTokenId());
 
         // 모든 세션 무효화
-        tokenService.logoutAll(signInInfo.getUser().getId(), null);
+        Long userId = signInInfo.getUser().getId();
+        tokenService.logoutAll(userId, null);
 
-        log.info("User {} reset password via recovery email", signInInfo.getUser().getId());
+        // 비밀번호 변경 알림
+        securityNotificationService.notifyPasswordChanged(userId);
+
+        log.info("User {} reset password via recovery email", userId);
     }
 }

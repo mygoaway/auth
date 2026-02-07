@@ -42,6 +42,8 @@ class PasswordServiceTest {
     private TokenService tokenService;
     @Mock
     private PasswordUtil passwordUtil;
+    @Mock
+    private SecurityNotificationService securityNotificationService;
 
     @Nested
     @DisplayName("비밀번호 변경")

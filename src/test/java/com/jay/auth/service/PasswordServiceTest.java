@@ -44,6 +44,8 @@ class PasswordServiceTest {
     private PasswordUtil passwordUtil;
     @Mock
     private SecurityNotificationService securityNotificationService;
+    @Mock
+    private PasswordPolicyService passwordPolicyService;
 
     @Nested
     @DisplayName("비밀번호 변경")
@@ -59,6 +61,8 @@ class PasswordServiceTest {
             given(userSignInInfoRepository.findByUserId(1L)).willReturn(Optional.of(signInInfo));
             given(passwordUtil.matches("OldPass@1234", "hashed_old")).willReturn(true);
             given(passwordUtil.isValidPassword("NewPass@1234")).willReturn(true);
+            given(passwordPolicyService.isSameAsCurrentPassword("NewPass@1234", "hashed_old")).willReturn(false);
+            given(passwordPolicyService.isPasswordReused(1L, "NewPass@1234")).willReturn(false);
             given(passwordUtil.encode("NewPass@1234")).willReturn("hashed_new");
 
             ChangePasswordRequest request = createChangePasswordRequest("OldPass@1234", "NewPass@1234");
@@ -69,6 +73,8 @@ class PasswordServiceTest {
             // then
             // verify password was updated (through entity method)
             verify(passwordUtil).encode("NewPass@1234");
+            // verify password history was saved
+            verify(passwordPolicyService).savePasswordHistory(user, "hashed_old");
             // verify all sessions were logged out
             verify(tokenService).logoutAll(1L, null);
         }
@@ -139,6 +145,8 @@ class PasswordServiceTest {
             given(encryptionService.encryptForSearch("recovery@email.com")).willReturn("enc_recovery_email_lower");
             given(userSignInInfoRepository.findByRecoveryEmailLowerEncWithUser("enc_recovery_email_lower"))
                     .willReturn(Optional.of(signInInfo));
+            given(passwordPolicyService.isSameAsCurrentPassword("NewPass@1234", "hashed_old")).willReturn(false);
+            given(passwordPolicyService.isPasswordReused(1L, "NewPass@1234")).willReturn(false);
             given(passwordUtil.encode("NewPass@1234")).willReturn("hashed_new");
 
             ResetPasswordRequest request = createResetPasswordRequest("token-123", "recovery@email.com", "NewPass@1234");
@@ -147,6 +155,7 @@ class PasswordServiceTest {
             passwordService.resetPassword(request);
 
             // then
+            verify(passwordPolicyService).savePasswordHistory(user, "hashed_old");
             verify(emailVerificationService).deleteVerificationByTokenId("token-123");
             verify(tokenService).logoutAll(1L, null);
         }

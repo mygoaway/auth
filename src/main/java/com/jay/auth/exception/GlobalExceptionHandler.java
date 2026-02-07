@@ -52,6 +52,22 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("RATE_LIMITED", e.getMessage()));
     }
 
+    @ExceptionHandler(PasswordPolicyException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePasswordPolicyException(PasswordPolicyException e) {
+        log.warn("Password policy exception: {} - {}", e.getErrorCode(), e.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(TwoFactorException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTwoFactorException(TwoFactorException e) {
+        log.warn("Two factor exception: {} - {}", e.getErrorCode(), e.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         log.error("Unexpected exception", e);

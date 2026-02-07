@@ -7,6 +7,7 @@ import com.jay.auth.dto.request.ResetPasswordRequest;
 import com.jay.auth.exception.AuthenticationException;
 import com.jay.auth.exception.InvalidPasswordException;
 import com.jay.auth.exception.InvalidVerificationException;
+import com.jay.auth.exception.PasswordPolicyException;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserSignInInfoRepository;
 import com.jay.auth.util.PasswordUtil;
@@ -26,6 +27,7 @@ public class PasswordService {
     private final TokenService tokenService;
     private final PasswordUtil passwordUtil;
     private final SecurityNotificationService securityNotificationService;
+    private final PasswordPolicyService passwordPolicyService;
 
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
@@ -41,6 +43,19 @@ public class PasswordService {
         if (!passwordUtil.isValidPassword(request.getNewPassword())) {
             throw new InvalidPasswordException();
         }
+
+        // 현재 비밀번호와 동일한지 확인
+        if (passwordPolicyService.isSameAsCurrentPassword(request.getNewPassword(), signInInfo.getPasswordHash())) {
+            throw PasswordPolicyException.sameAsCurrent();
+        }
+
+        // 이전 비밀번호 재사용 확인
+        if (passwordPolicyService.isPasswordReused(userId, request.getNewPassword())) {
+            throw PasswordPolicyException.reused();
+        }
+
+        // 현재 비밀번호를 이력에 저장
+        passwordPolicyService.savePasswordHistory(signInInfo.getUser(), signInInfo.getPasswordHash());
 
         signInInfo.updatePassword(passwordUtil.encode(request.getNewPassword()));
 
@@ -71,6 +86,21 @@ public class PasswordService {
         UserSignInInfo signInInfo = userSignInInfoRepository.findByRecoveryEmailLowerEncWithUser(recoveryEmailLowerEnc)
                 .orElseThrow(UserNotFoundException::recoveryEmailNotFound);
 
+        Long userId = signInInfo.getUser().getId();
+
+        // 현재 비밀번호와 동일한지 확인
+        if (passwordPolicyService.isSameAsCurrentPassword(request.getNewPassword(), signInInfo.getPasswordHash())) {
+            throw PasswordPolicyException.sameAsCurrent();
+        }
+
+        // 이전 비밀번호 재사용 확인
+        if (passwordPolicyService.isPasswordReused(userId, request.getNewPassword())) {
+            throw PasswordPolicyException.reused();
+        }
+
+        // 현재 비밀번호를 이력에 저장
+        passwordPolicyService.savePasswordHistory(signInInfo.getUser(), signInInfo.getPasswordHash());
+
         // 비밀번호 변경
         signInInfo.updatePassword(passwordUtil.encode(request.getNewPassword()));
 
@@ -83,7 +113,6 @@ public class PasswordService {
         emailVerificationService.deleteVerificationByTokenId(request.getTokenId());
 
         // 모든 세션 무효화
-        Long userId = signInInfo.getUser().getId();
         tokenService.logoutAll(userId, null);
 
         // 비밀번호 변경 알림

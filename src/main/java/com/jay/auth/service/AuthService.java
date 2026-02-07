@@ -37,6 +37,8 @@ public class AuthService {
     private final EmailVerificationService emailVerificationService;
     private final TokenService tokenService;
     private final PasswordUtil passwordUtil;
+    private final PasswordPolicyService passwordPolicyService;
+    private final TotpService totpService;
 
     /**
      * 이메일 회원가입
@@ -152,12 +154,25 @@ public class AuthService {
                 sessionInfo
         );
 
+        // 비밀번호 만료 확인
+        UserSignInInfo signInInfo = userSignInInfoRepository.findByUserId(result.getUserId())
+                .orElse(null);
+        boolean passwordExpired = signInInfo != null && passwordPolicyService.isPasswordExpired(signInInfo);
+        Integer daysUntilExpiration = signInInfo != null ?
+                passwordPolicyService.getDaysUntilExpiration(signInInfo) : null;
+
+        // 2FA 필요 여부 확인
+        boolean twoFactorRequired = totpService.isTwoFactorRequired(result.getUserId());
+
         return LoginResponse.of(
                 result.getUserId(),
                 result.getUserUuid(),
                 result.getEmail(),
                 result.getNickname(),
-                tokenResponse
+                tokenResponse,
+                passwordExpired,
+                daysUntilExpiration,
+                twoFactorRequired
         );
     }
 

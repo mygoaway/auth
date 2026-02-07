@@ -28,4 +28,6 @@ public interface UserChannelRepository extends JpaRepository<UserChannel, Long> 
                                                                 @Param("channelKey") String channelKey);
 
     void deleteByUserIdAndChannelCode(Long userId, ChannelCode channelCode);
+
+    long countByUserId(Long userId);
 }

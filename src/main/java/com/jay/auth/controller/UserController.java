@@ -8,10 +8,12 @@ import com.jay.auth.dto.request.UpdateRecoveryEmailRequest;
 import com.jay.auth.dto.response.ActiveSessionResponse;
 import com.jay.auth.dto.response.ChannelStatusResponse;
 import com.jay.auth.dto.response.LoginHistoryResponse;
+import com.jay.auth.dto.response.SecurityDashboardResponse;
 import com.jay.auth.dto.response.UserProfileResponse;
 import com.jay.auth.security.UserPrincipal;
 import com.jay.auth.service.AccountLinkingService;
 import com.jay.auth.service.LoginHistoryService;
+import com.jay.auth.service.SecurityDashboardService;
 import com.jay.auth.service.TokenService;
 import com.jay.auth.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,6 +37,7 @@ public class UserController {
     private final AccountLinkingService accountLinkingService;
     private final LoginHistoryService loginHistoryService;
     private final TokenService tokenService;
+    private final SecurityDashboardService securityDashboardService;
 
     @Operation(summary = "프로필 조회", description = "현재 사용자의 프로필을 조회합니다")
     @GetMapping("/profile")
@@ -155,6 +158,17 @@ public class UserController {
         tokenService.revokeSession(userPrincipal.getUserId(), sessionId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "보안 대시보드 조회", description = "계정 보안 상태를 조회합니다")
+    @GetMapping("/security/dashboard")
+    public ResponseEntity<SecurityDashboardResponse> getSecurityDashboard(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        SecurityDashboardResponse response = securityDashboardService.getSecurityDashboard(
+                userPrincipal.getUserId());
+
+        return ResponseEntity.ok(response);
     }
 
     private String extractTokenId(HttpServletRequest request) {

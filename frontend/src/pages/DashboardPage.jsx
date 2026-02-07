@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const [twoFactorSetup, setTwoFactorSetup] = useState(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [backupCodes, setBackupCodes] = useState([]);
+  const [securityDashboard, setSecurityDashboard] = useState(null);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -59,6 +60,7 @@ export default function DashboardPage() {
       loadLoginHistory();
       loadActiveSessions();
       loadTwoFactorStatus();
+      loadSecurityDashboard();
     }
   }, [activeTab]);
 
@@ -105,6 +107,15 @@ export default function DashboardPage() {
       setTwoFactorStatus(response.data);
     } catch (err) {
       console.error('Failed to load 2FA status', err);
+    }
+  };
+
+  const loadSecurityDashboard = async () => {
+    try {
+      const response = await userApi.getSecurityDashboard();
+      setSecurityDashboard(response.data);
+    } catch (err) {
+      console.error('Failed to load security dashboard', err);
     }
   };
 
@@ -588,6 +599,51 @@ export default function DashboardPage() {
 
         {activeTab === 'security' && (
           <div className="tab-content">
+            {/* Security Dashboard */}
+            {securityDashboard && (
+              <div className="info-card security-dashboard">
+                <h3>보안 점수</h3>
+                <div className="security-score-section">
+                  <div className="security-score-circle" data-level={securityDashboard.securityLevel.toLowerCase()}>
+                    <span className="score-value">{securityDashboard.securityScore}</span>
+                    <span className="score-max">/100</span>
+                  </div>
+                  <div className="security-level-info">
+                    <span className={`security-level ${securityDashboard.securityLevel.toLowerCase()}`}>
+                      {securityDashboard.securityLevel === 'EXCELLENT' && '우수'}
+                      {securityDashboard.securityLevel === 'GOOD' && '양호'}
+                      {securityDashboard.securityLevel === 'FAIR' && '보통'}
+                      {securityDashboard.securityLevel === 'WEAK' && '취약'}
+                      {securityDashboard.securityLevel === 'CRITICAL' && '위험'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="security-factors">
+                  {securityDashboard.factors.map((factor, index) => (
+                    <div key={index} className={`security-factor ${factor.enabled ? 'enabled' : 'disabled'}`}>
+                      <div className="factor-info">
+                        <span className="factor-icon">{factor.enabled ? '✓' : '○'}</span>
+                        <span className="factor-name">{factor.description}</span>
+                      </div>
+                      <span className="factor-score">{factor.score}/{factor.maxScore}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {securityDashboard.recommendations.length > 0 && (
+                  <div className="security-recommendations">
+                    <h4>권장 사항</h4>
+                    <ul>
+                      {securityDashboard.recommendations.map((rec, index) => (
+                        <li key={index}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="info-card">
               <h3>보안 설정</h3>
 

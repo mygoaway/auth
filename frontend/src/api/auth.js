@@ -68,6 +68,9 @@ export const userApi = {
 
   revokeSession: (sessionId) =>
     client.delete(`/users/sessions/${sessionId}`),
+
+  getSecurityDashboard: () =>
+    client.get('/users/security/dashboard'),
 };
 
 export const phoneApi = {

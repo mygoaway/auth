@@ -27,6 +27,8 @@ export default function DashboardPage() {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [backupCodes, setBackupCodes] = useState([]);
   const [securityDashboard, setSecurityDashboard] = useState(null);
+  const [lastLogin, setLastLogin] = useState(null);
+  const [passwordWarning, setPasswordWarning] = useState(null);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -53,6 +55,10 @@ export default function DashboardPage() {
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
   useEffect(() => {
+    if (activeTab === 'home') {
+      loadLastLogin();
+      loadPasswordWarning();
+    }
     if (activeTab === 'channels') {
       loadChannelsStatus();
     }
@@ -63,6 +69,34 @@ export default function DashboardPage() {
       loadSecurityDashboard();
     }
   }, [activeTab]);
+
+  const loadLastLogin = async () => {
+    try {
+      const response = await userApi.getLoginHistory(1);
+      if (response.data && response.data.length > 0) {
+        setLastLogin(response.data[0]);
+      }
+    } catch (err) {
+      console.error('Failed to load last login', err);
+    }
+  };
+
+  const loadPasswordWarning = async () => {
+    try {
+      const response = await userApi.getSecurityDashboard();
+      const passwordFactor = response.data?.factors?.find(f => f.name === 'PASSWORD_HEALTH');
+      if (passwordFactor && passwordFactor.score < 20) {
+        setPasswordWarning({
+          expired: passwordFactor.score < 10,
+          message: passwordFactor.score < 10
+            ? '비밀번호가 만료되었습니다. 새 비밀번호로 변경해주세요.'
+            : '비밀번호 만료가 임박했습니다. 곧 변경이 필요합니다.'
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load password warning', err);
+    }
+  };
 
   const loadChannelsStatus = async () => {
     try {
@@ -451,10 +485,64 @@ export default function DashboardPage() {
       <div className="dashboard-content">
         {activeTab === 'home' && (
           <div className="tab-content">
+            {/* Password Warning Banner */}
+            {passwordWarning && (
+              <div className={`warning-banner ${passwordWarning.expired ? 'expired' : 'warning'}`}>
+                <span className="warning-banner-icon">{passwordWarning.expired ? '🔒' : '⚠️'}</span>
+                <span className="warning-banner-text">{passwordWarning.message}</span>
+                <button
+                  className="warning-banner-btn"
+                  onClick={() => { setActiveTab('security'); openModal('password'); }}
+                >
+                  비밀번호 변경
+                </button>
+              </div>
+            )}
+
             <div className="welcome-section">
               <h2>안녕하세요, {user.nickname || '회원'}님!</h2>
               <p className="uuid-display">UUID: {user.userUuid}</p>
             </div>
+
+            {/* Last Login Info */}
+            {lastLogin && (
+              <div className="info-card last-login-card">
+                <h3>마지막 로그인</h3>
+                <div className="last-login-info">
+                  <div className="last-login-icon">
+                    {lastLogin.deviceType === 'Mobile' ? '📱' : lastLogin.deviceType === 'Tablet' ? '📲' : '💻'}
+                  </div>
+                  <div className="last-login-details">
+                    <div className="last-login-device">
+                      {lastLogin.browser} / {lastLogin.os}
+                      <span className={`login-status-badge ${lastLogin.isSuccess ? 'success' : 'failed'}`}>
+                        {lastLogin.isSuccess ? '성공' : '실패'}
+                      </span>
+                    </div>
+                    <div className="last-login-meta">
+                      <span>{CHANNEL_INFO[lastLogin.channelCode]?.name || lastLogin.channelCode}</span>
+                      <span className="separator">·</span>
+                      <span>{lastLogin.ipAddress}</span>
+                      {lastLogin.location && (
+                        <>
+                          <span className="separator">·</span>
+                          <span>{lastLogin.location}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="last-login-time">
+                      {new Date(lastLogin.createdAt).toLocaleString('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="info-card">
               <h3>회원 정보</h3>

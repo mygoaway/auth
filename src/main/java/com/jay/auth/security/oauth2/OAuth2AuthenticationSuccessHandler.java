@@ -2,7 +2,9 @@ package com.jay.auth.security.oauth2;
 
 import com.jay.auth.domain.enums.ChannelCode;
 import com.jay.auth.dto.response.TokenResponse;
+import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.OAuth2LinkStateService;
+import com.jay.auth.service.SecurityNotificationService;
 import com.jay.auth.service.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +27,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final TokenService tokenService;
     private final OAuth2LinkStateService oAuth2LinkStateService;
+    private final LoginHistoryService loginHistoryService;
+    private final SecurityNotificationService securityNotificationService;
 
     @Value("${app.oauth2.redirect-uri:http://localhost:3000/oauth2/callback}")
     private String redirectUri;
@@ -73,8 +77,16 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
                 getRedirectStrategy().sendRedirect(request, response, targetUrl);
             } else {
-                // Normal login mode: issue tokens
-                TokenResponse tokenResponse = tokenService.issueTokens(userId, userUuid, channelCode);
+                // Normal login mode: extract session info and issue tokens
+                var sessionInfo = loginHistoryService.extractSessionInfo(request);
+                TokenResponse tokenResponse = tokenService.issueTokensWithSession(
+                        userId, userUuid, channelCode, sessionInfo);
+
+                // Record login history
+                loginHistoryService.recordLoginSuccess(userId, channelCode, request);
+
+                // Send new device login notification
+                securityNotificationService.notifyNewDeviceLogin(userId, sessionInfo);
 
                 log.info("OAuth2 authentication success: userId={}, channelCode={}", userId, channelCode);
 

@@ -150,8 +150,8 @@ public class AccountLinkingService {
                     .ifPresent(userSignInInfoRepository::delete);
         }
 
-        // Delete the channel
-        userChannelRepository.delete(channelToRemove.get());
+        // Remove from user's channel list (orphanRemoval will delete from DB)
+        user.removeChannel(channelToRemove.get());
 
         // 연동 해제 알림 발송
         securityNotificationService.notifyAccountUnlinked(userId, channelCode);

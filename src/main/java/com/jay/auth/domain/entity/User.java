@@ -65,7 +65,7 @@ public class User extends BaseEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserSignInInfo signInInfo;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<UserChannel> channels = new ArrayList<>();
 
     @PrePersist
@@ -132,5 +132,9 @@ public class User extends BaseEntity {
 
     public void addChannel(UserChannel channel) {
         this.channels.add(channel);
+    }
+
+    public void removeChannel(UserChannel channel) {
+        this.channels.remove(channel);
     }
 }

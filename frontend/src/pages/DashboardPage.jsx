@@ -420,15 +420,19 @@ export default function DashboardPage() {
   };
 
   const handleUnlinkChannel = async (channelCode) => {
+    if (!window.confirm(`${CHANNEL_INFO[channelCode]?.name || channelCode} 연동을 해제하시겠습니까?`)) {
+      return;
+    }
     setError('');
     setLoading(true);
     try {
       await userApi.unlinkChannel(channelCode);
-      setSuccess(`${CHANNEL_INFO[channelCode]?.name || channelCode} 연결이 해제되었습니다`);
+      setSuccess(`${CHANNEL_INFO[channelCode]?.name || channelCode} 연동이 해제되었습니다`);
       await loadChannelsStatus();
+      await loadProfile(); // 사용자 컨텍스트 업데이트
       setTimeout(() => setSuccess(''), 2000);
     } catch (err) {
-      setError(err.response?.data?.error?.message || '연결 해제에 실패했습니다');
+      setError(err.response?.data?.error?.message || '연동 해제에 실패했습니다');
     } finally {
       setLoading(false);
     }
@@ -662,40 +666,56 @@ export default function DashboardPage() {
                 소셜 계정을 연결하면 해당 계정으로도 로그인할 수 있습니다.
               </p>
 
-              {['GOOGLE', 'KAKAO', 'NAVER'].map((code) => {
-                const isLinked = channelsStatus?.linkedChannels?.includes(code);
-                const info = CHANNEL_INFO[code];
-                return (
-                  <div key={code} className="channel-item">
-                    <div className="channel-item-info">
-                      <span className="channel-icon" style={{ backgroundColor: info.color, color: info.textColor || '#fff' }}>
-                        {info.icon}
-                      </span>
-                      <span className="channel-name">{info.name}</span>
-                      <span className={`channel-status ${isLinked ? 'linked' : 'unlinked'}`}>
-                        {isLinked ? '연동됨' : '미연동'}
-                      </span>
+              {(() => {
+                // channels 배열에서 linked된 채널 수 계산
+                const linkedCount = channelsStatus?.channels?.filter(ch => ch.linked).length || 0;
+
+                return ['EMAIL', 'GOOGLE', 'KAKAO', 'NAVER'].map((code) => {
+                  const channelData = channelsStatus?.channels?.find(ch => ch.channelCode === code);
+                  const isLinked = channelData?.linked || false;
+                  const info = CHANNEL_INFO[code];
+
+                  // EMAIL 채널은 연동되지 않은 경우 표시하지 않음 (소셜 연동만 추가 가능)
+                  if (code === 'EMAIL' && !isLinked) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={code} className="channel-item">
+                      <div className="channel-item-info">
+                        <span className="channel-icon" style={{ backgroundColor: info.color, color: info.textColor || '#fff' }}>
+                          {info.icon}
+                        </span>
+                        <span className="channel-name">{info.name}</span>
+                        {channelData?.channelEmail && (
+                          <span className="channel-email">{channelData.channelEmail}</span>
+                        )}
+                        <span className={`channel-status ${isLinked ? 'linked' : 'unlinked'}`}>
+                          {isLinked ? '연동됨' : '미연동'}
+                        </span>
+                      </div>
+                      {isLinked ? (
+                        <button
+                          className="unlink-btn"
+                          onClick={() => handleUnlinkChannel(code)}
+                          disabled={loading || linkedCount <= 1}
+                          title={linkedCount <= 1 ? '최소 1개의 로그인 방법이 필요합니다' : ''}
+                        >
+                          연동 해제
+                        </button>
+                      ) : (
+                        <button
+                          className="link-btn"
+                          onClick={() => handleLinkChannel(code.toLowerCase())}
+                          disabled={loading}
+                        >
+                          연동
+                        </button>
+                      )}
                     </div>
-                    {isLinked ? (
-                      <button
-                        className="unlink-btn"
-                        onClick={() => handleUnlinkChannel(code)}
-                        disabled={loading || channelsStatus?.linkedChannels?.length === 1}
-                      >
-                        해제
-                      </button>
-                    ) : (
-                      <button
-                        className="link-btn"
-                        onClick={() => handleLinkChannel(code.toLowerCase())}
-                        disabled={loading}
-                      >
-                        연동
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </div>
         )}

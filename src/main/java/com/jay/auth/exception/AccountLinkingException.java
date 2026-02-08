@@ -26,7 +26,7 @@ public class AccountLinkingException extends BusinessException {
 
     public static AccountLinkingException cannotUnlinkLastChannel() {
         return new AccountLinkingException(
-                "Cannot unlink the last channel. At least one channel is required",
+                "최소 1개의 로그인 방법이 필요합니다. 마지막 채널은 해제할 수 없습니다.",
                 "CANNOT_UNLINK_LAST_CHANNEL",
                 HttpStatus.BAD_REQUEST
         );

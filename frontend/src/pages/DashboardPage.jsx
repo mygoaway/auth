@@ -336,6 +336,13 @@ export default function DashboardPage() {
   // Recovery email verification
   const handleSendEmailCode = async () => {
     setError('');
+
+    // 본인 이메일과 동일한지 검증
+    if (user.email && recoveryEmail.toLowerCase() === user.email.toLowerCase()) {
+      setError('복구 이메일은 현재 로그인 이메일과 다른 이메일을 사용해주세요.');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await emailApi.sendVerification(recoveryEmail, 'EMAIL_CHANGE');

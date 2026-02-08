@@ -55,6 +55,9 @@ public class User extends BaseEntity {
     @Column(name = "nickname_updated_at")
     private LocalDateTime nicknameUpdatedAt;
 
+    @Column(name = "deletion_requested_at")
+    private LocalDateTime deletionRequestedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private UserStatus status;
@@ -111,6 +114,16 @@ public class User extends BaseEntity {
 
     public void updateStatus(UserStatus status) {
         this.status = status;
+    }
+
+    public void requestDeletion() {
+        this.status = UserStatus.PENDING_DELETE;
+        this.deletionRequestedAt = LocalDateTime.now();
+    }
+
+    public void cancelDeletion() {
+        this.status = UserStatus.ACTIVE;
+        this.deletionRequestedAt = null;
     }
 
     public void setSignInInfo(UserSignInInfo signInInfo) {

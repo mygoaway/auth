@@ -627,8 +627,13 @@ export default function DashboardPage() {
 
               <div className="profile-item">
                 <div className="profile-item-info">
-                  <span className="profile-item-label">닉네임</span>
-                  <span className="profile-item-value">{user.nickname || '미설정'}</span>
+                  <div className="profile-item-icon blue">😊</div>
+                  <div className="profile-item-text">
+                    <span className="profile-item-label">닉네임</span>
+                    <span className="profile-item-value">
+                      {user.nickname || <span className="status-tag default">미설정</span>}
+                    </span>
+                  </div>
                 </div>
                 <button className="edit-btn" onClick={() => openModal('nickname', user.nickname)}>
                   변경
@@ -637,8 +642,13 @@ export default function DashboardPage() {
 
               <div className="profile-item">
                 <div className="profile-item-info">
-                  <span className="profile-item-label">핸드폰 번호</span>
-                  <span className="profile-item-value">{user.phone || '미등록'}</span>
+                  <div className="profile-item-icon green">📱</div>
+                  <div className="profile-item-text">
+                    <span className="profile-item-label">핸드폰 번호</span>
+                    <span className="profile-item-value">
+                      {user.phone || <span className="status-tag default">미등록</span>}
+                    </span>
+                  </div>
                 </div>
                 <button className="edit-btn" onClick={() => openModal('phone', user.phone)}>
                   {user.phone ? '변경' : '등록'}
@@ -647,8 +657,13 @@ export default function DashboardPage() {
 
               <div className="profile-item">
                 <div className="profile-item-info">
-                  <span className="profile-item-label">복구 이메일</span>
-                  <span className="profile-item-value">{user.recoveryEmail || '미등록'}</span>
+                  <div className="profile-item-icon purple">📧</div>
+                  <div className="profile-item-text">
+                    <span className="profile-item-label">복구 이메일</span>
+                    <span className="profile-item-value">
+                      {user.recoveryEmail || <span className="status-tag default">미등록</span>}
+                    </span>
+                  </div>
                 </div>
                 <button className="edit-btn" onClick={() => openModal('recoveryEmail', user.recoveryEmail)}>
                   {user.recoveryEmail ? '변경' : '등록'}
@@ -775,8 +790,11 @@ export default function DashboardPage() {
               {hasEmailChannel && (
                 <div className="profile-item">
                   <div className="profile-item-info">
-                    <span className="profile-item-label">비밀번호</span>
-                    <span className="profile-item-value">********</span>
+                    <div className="profile-item-icon orange">🔑</div>
+                    <div className="profile-item-text">
+                      <span className="profile-item-label">비밀번호</span>
+                      <span className="profile-item-value">••••••••</span>
+                    </div>
                   </div>
                   <button className="edit-btn" onClick={() => openModal('password')}>
                     변경
@@ -786,21 +804,24 @@ export default function DashboardPage() {
 
               <div className="profile-item">
                 <div className="profile-item-info">
-                  <span className="profile-item-label">2단계 인증 (2FA)</span>
-                  <span className="profile-item-value">
-                    {twoFactorStatus?.enabled ? (
-                      <>
-                        <span style={{ color: '#52c41a' }}>활성화됨</span>
-                        {twoFactorStatus.remainingBackupCodes > 0 && (
-                          <span style={{ marginLeft: 8, color: '#999', fontSize: 12 }}>
-                            (백업 코드 {twoFactorStatus.remainingBackupCodes}개 남음)
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <span style={{ color: '#999' }}>비활성화됨</span>
-                    )}
-                  </span>
+                  <div className="profile-item-icon green">🛡️</div>
+                  <div className="profile-item-text">
+                    <span className="profile-item-label">2단계 인증 (2FA)</span>
+                    <span className="profile-item-value">
+                      {twoFactorStatus?.enabled ? (
+                        <>
+                          <span className="status-tag success">활성화됨</span>
+                          {twoFactorStatus.remainingBackupCodes > 0 && (
+                            <span style={{ color: '#888', fontSize: 12 }}>
+                              백업 코드 {twoFactorStatus.remainingBackupCodes}개 남음
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="status-tag default">비활성화됨</span>
+                      )}
+                    </span>
+                  </div>
                 </div>
                 <div className="profile-item-actions">
                   {twoFactorStatus?.enabled ? (
@@ -822,8 +843,11 @@ export default function DashboardPage() {
 
               <div className="profile-item">
                 <div className="profile-item-info">
-                  <span className="profile-item-label">모든 기기 로그아웃</span>
-                  <span className="profile-item-value">현재 세션 포함 모든 세션 종료</span>
+                  <div className="profile-item-icon gray">📤</div>
+                  <div className="profile-item-text">
+                    <span className="profile-item-label">모든 기기 로그아웃</span>
+                    <span className="profile-item-value">현재 세션 포함 모든 세션 종료</span>
+                  </div>
                 </div>
                 <button className="unlink-btn" onClick={handleLogoutAll}>
                   로그아웃
@@ -832,8 +856,11 @@ export default function DashboardPage() {
 
               <div className="profile-item danger">
                 <div className="profile-item-info">
-                  <span className="profile-item-label">회원 탈퇴</span>
-                  <span className="profile-item-value warning">모든 데이터가 삭제됩니다</span>
+                  <div className="profile-item-icon red">⚠️</div>
+                  <div className="profile-item-text">
+                    <span className="profile-item-label">회원 탈퇴</span>
+                    <span className="profile-item-value warning">모든 데이터가 삭제됩니다</span>
+                  </div>
                 </div>
                 <button className="delete-btn" onClick={() => openModal('delete')}>
                   탈퇴

@@ -82,7 +82,7 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "회원 탈퇴", description = "회원 탈퇴를 처리합니다")
+    @Operation(summary = "회원 탈퇴", description = "회원 탈퇴를 처리합니다 (30일 유예 기간)")
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount(
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
@@ -90,6 +90,16 @@ public class UserController {
         userService.deleteAccount(userPrincipal.getUserId());
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "탈퇴 유예 취소", description = "탈퇴 유예 상태를 취소하고 계정을 복구합니다")
+    @PostMapping("/me/cancel-deletion")
+    public ResponseEntity<Void> cancelDeletion(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        userService.cancelDeletion(userPrincipal.getUserId());
+
+        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "연결된 채널 조회", description = "사용자의 연결된 소셜 채널 목록을 조회합니다")

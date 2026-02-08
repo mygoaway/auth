@@ -40,12 +40,13 @@ public class OAuth2UserService {
 
         if (existingChannel.isPresent()) {
             User user = existingChannel.get().getUser();
-            if (user.getStatus() != UserStatus.ACTIVE) {
+            // PENDING_DELETE는 허용 (로그인 후 유예 취소 가능), 그 외 비활성 상태는 거부
+            if (user.getStatus() != UserStatus.ACTIVE && user.getStatus() != UserStatus.PENDING_DELETE) {
                 throw new IllegalStateException("User account is not active");
             }
             // 채널 이메일 업데이트
             updateChannelEmail(existingChannel.get(), email);
-            log.info("Existing user logged in via {}: userId={}", channelCode, user.getId());
+            log.info("Existing user logged in via {}: userId={}, status={}", channelCode, user.getId(), user.getStatus());
             return user;
         }
 

@@ -51,6 +51,9 @@ export const userApi = {
   deleteAccount: () =>
     client.delete('/users/me'),
 
+  cancelDeletion: () =>
+    client.post('/users/me/cancel-deletion'),
+
   getChannelsStatus: () =>
     client.get('/users/channels'),
 

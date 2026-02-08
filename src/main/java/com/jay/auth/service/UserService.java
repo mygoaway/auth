@@ -132,20 +132,38 @@ public class UserService {
     }
 
     /**
-     * 회원 탈퇴
-     * - User status를 DELETED로 변경
+     * 회원 탈퇴 요청 (30일 유예 기간)
+     * - User status를 PENDING_DELETE로 변경
      * - 모든 토큰 무효화
+     * - 30일 후 배치에서 실제 데이터 삭제
      */
     @Transactional
     public void deleteAccount(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
 
-        user.updateStatus(UserStatus.DELETED);
+        user.requestDeletion();
 
-        // 모든 토큰 무효화 (현재 Access Token 없이 호출)
+        // 모든 토큰 무효화
         tokenService.logoutAll(userId, null);
 
-        log.info("User {} account deleted", userId);
+        log.info("User {} requested deletion (30 day grace period)", userId);
+    }
+
+    /**
+     * 탈퇴 유예 취소 (계정 복구)
+     */
+    @Transactional
+    public void cancelDeletion(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getStatus() != UserStatus.PENDING_DELETE) {
+            throw new IllegalStateException("탈퇴 유예 상태가 아닙니다");
+        }
+
+        user.cancelDeletion();
+
+        log.info("User {} cancelled deletion request", userId);
     }
 }

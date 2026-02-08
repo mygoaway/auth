@@ -174,7 +174,9 @@ public class AuthService {
                 tokenResponse,
                 passwordExpired,
                 daysUntilExpiration,
-                twoFactorRequired
+                twoFactorRequired,
+                result.isPendingDeletion(),
+                result.getDeletionRequestedAt()
         );
     }
 
@@ -193,8 +195,9 @@ public class AuthService {
 
         User user = signInInfo.getUser();
 
-        // 2. 계정 상태 확인
-        if (user.getStatus() != com.jay.auth.domain.enums.UserStatus.ACTIVE) {
+        // 2. 계정 상태 확인 (PENDING_DELETE는 허용, 로그인 후 유예 취소 가능)
+        boolean pendingDeletion = user.getStatus() == com.jay.auth.domain.enums.UserStatus.PENDING_DELETE;
+        if (user.getStatus() != com.jay.auth.domain.enums.UserStatus.ACTIVE && !pendingDeletion) {
             throw AuthenticationException.accountNotActive();
         }
 
@@ -215,14 +218,16 @@ public class AuthService {
         // 6. 닉네임 복호화
         String nickname = encryptionService.decryptNickname(user.getNicknameEnc());
 
-        log.info("User authenticated with email: {}, userId: {}", email, user.getId());
+        log.info("User authenticated with email: {}, userId: {}, pendingDeletion: {}", email, user.getId(), pendingDeletion);
 
         return LoginResult.of(
                 user.getId(),
                 user.getUserUuid(),
                 email,
                 nickname,
-                ChannelCode.EMAIL
+                ChannelCode.EMAIL,
+                pendingDeletion,
+                user.getDeletionRequestedAt()
         );
     }
 

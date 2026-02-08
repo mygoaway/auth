@@ -47,17 +47,25 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String userUuid;
             ChannelCode channelCode;
             boolean isLinkMode;
+            boolean pendingDeletion;
+            String deletionRequestedAt;
 
             if (authentication.getPrincipal() instanceof CustomOidcUser oidcUser) {
                 userId = oidcUser.getUserId();
                 userUuid = oidcUser.getUserUuid();
                 channelCode = oidcUser.getChannelCode();
                 isLinkMode = oidcUser.isLinkMode();
+                pendingDeletion = oidcUser.isPendingDeletion();
+                deletionRequestedAt = oidcUser.getDeletionRequestedAt() != null
+                        ? oidcUser.getDeletionRequestedAt().toString() : null;
             } else if (authentication.getPrincipal() instanceof CustomOAuth2User oAuth2User) {
                 userId = oAuth2User.getUserId();
                 userUuid = oAuth2User.getUserUuid();
                 channelCode = oAuth2User.getChannelCode();
                 isLinkMode = oAuth2User.isLinkMode();
+                pendingDeletion = oAuth2User.isPendingDeletion();
+                deletionRequestedAt = oAuth2User.getDeletionRequestedAt() != null
+                        ? oAuth2User.getDeletionRequestedAt().toString() : null;
             } else {
                 log.error("Unknown principal type: {}", authentication.getPrincipal().getClass());
                 redirectWithError(request, response, "Unknown authentication type");
@@ -93,13 +101,22 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 // Send new device login notification
                 securityNotificationService.notifyNewDeviceLogin(userId, sessionInfo);
 
-                log.info("OAuth2 authentication success: userId={}, channelCode={}", userId, channelCode);
+                log.info("OAuth2 authentication success: userId={}, channelCode={}, pendingDeletion={}",
+                        userId, channelCode, pendingDeletion);
 
-                String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
+                UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(redirectUri)
                         .queryParam("accessToken", tokenResponse.getAccessToken())
                         .queryParam("refreshToken", tokenResponse.getRefreshToken())
-                        .queryParam("expiresIn", tokenResponse.getExpiresIn())
-                        .build().toUriString();
+                        .queryParam("expiresIn", tokenResponse.getExpiresIn());
+
+                if (pendingDeletion) {
+                    uriBuilder.queryParam("pendingDeletion", "true");
+                    if (deletionRequestedAt != null) {
+                        uriBuilder.queryParam("deletionRequestedAt", deletionRequestedAt);
+                    }
+                }
+
+                String targetUrl = uriBuilder.build().toUriString();
 
                 getRedirectStrategy().sendRedirect(request, response, targetUrl);
             }

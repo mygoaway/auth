@@ -54,7 +54,9 @@ export function AuthProvider({ children }) {
       return {
         twoFactorRequired: true,
         token: data.token,
-        rememberMe
+        rememberMe,
+        pendingDeletion: data.pendingDeletion,
+        deletionRequestedAt: data.deletionRequestedAt
       };
     }
 
@@ -63,7 +65,13 @@ export function AuthProvider({ children }) {
     storage.setItem('accessToken', data.token.accessToken);
     storage.setItem('refreshToken', data.token.refreshToken);
     await loadProfile();
-    return data;
+
+    // Return pendingDeletion info along with data
+    return {
+      ...data,
+      pendingDeletion: data.pendingDeletion,
+      deletionRequestedAt: data.deletionRequestedAt
+    };
   };
 
   const complete2FALogin = async (loginData) => {

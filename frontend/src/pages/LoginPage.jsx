@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { twoFactorApi } from '../api/auth';
+import { twoFactorApi, userApi } from '../api/auth';
 
 const OAUTH2_BASE_URL = 'http://localhost:8080';
 
@@ -19,6 +19,11 @@ export default function LoginPage() {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [tempLoginData, setTempLoginData] = useState(null);
 
+  // Pending deletion states
+  const [showPendingDeletionDialog, setShowPendingDeletionDialog] = useState(false);
+  const [deletionRequestedAt, setDeletionRequestedAt] = useState(null);
+  const [cancellingDeletion, setCancellingDeletion] = useState(false);
+
   const { login, complete2FALogin } = useAuth();
   const navigate = useNavigate();
 
@@ -34,6 +39,14 @@ export default function LoginPage() {
       if (result.twoFactorRequired) {
         setRequires2FA(true);
         setTempLoginData(result);
+        // Also check for pending deletion in 2FA flow
+        if (result.pendingDeletion) {
+          setDeletionRequestedAt(result.deletionRequestedAt);
+        }
+      } else if (result.pendingDeletion) {
+        // Show pending deletion dialog
+        setDeletionRequestedAt(result.deletionRequestedAt);
+        setShowPendingDeletionDialog(true);
       } else {
         navigate('/dashboard');
       }
@@ -45,6 +58,38 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancelDeletion = async () => {
+    setCancellingDeletion(true);
+    try {
+      await userApi.cancelDeletion();
+      setShowPendingDeletionDialog(false);
+      navigate('/dashboard');
+    } catch (err) {
+      const message = err.response?.data?.error?.message
+        || err.response?.data?.message
+        || '탈퇴 유예 취소에 실패했습니다';
+      setError(message);
+    } finally {
+      setCancellingDeletion(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  const calculateDaysLeft = (dateString) => {
+    if (!dateString) return 30;
+    const requestedDate = new Date(dateString);
+    const deleteDate = new Date(requestedDate);
+    deleteDate.setDate(deleteDate.getDate() + 30);
+    const today = new Date();
+    const daysLeft = Math.ceil((deleteDate - today) / (1000 * 60 * 60 * 24));
+    return Math.max(0, daysLeft);
   };
 
   const handle2FASubmit = async (e) => {
@@ -71,6 +116,54 @@ export default function LoginPage() {
   const handleSocialLogin = (provider) => {
     window.location.href = `${OAUTH2_BASE_URL}/oauth2/authorization/${provider}`;
   };
+
+  // 탈퇴 유예 상태 다이얼로그
+  if (showPendingDeletionDialog) {
+    const daysLeft = calculateDaysLeft(deletionRequestedAt);
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-logo">
+            <h1>authservice</h1>
+          </div>
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+            <h2 style={{ marginBottom: '12px', color: '#e74c3c' }}>탈퇴 유예 상태</h2>
+          </div>
+
+          <div style={{
+            background: '#fff3cd',
+            border: '1px solid #ffc107',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '20px'
+          }}>
+            <p style={{ margin: 0, lineHeight: '1.6', color: '#856404' }}>
+              해당 계정은 <strong>{formatDate(deletionRequestedAt)}</strong>에 탈퇴를 요청하여
+              현재 <strong style={{ color: '#e74c3c' }}>탈퇴 유예 상태</strong>입니다.
+            </p>
+            <p style={{ margin: '12px 0 0 0', lineHeight: '1.6', color: '#856404' }}>
+              <strong>{daysLeft}일</strong> 후에 계정이 영구 삭제됩니다.
+            </p>
+          </div>
+
+          <p style={{ textAlign: 'center', color: '#666', marginBottom: '20px' }}>
+            계속 서비스를 이용하시려면 탈퇴 유예를 취소해주세요.
+          </p>
+
+          {error && <div className="error-message">{error}</div>}
+
+          <button
+            className="btn btn-primary"
+            onClick={handleCancelDeletion}
+            disabled={cancellingDeletion}
+          >
+            {cancellingDeletion ? '처리 중...' : '탈퇴 유예 취소하고 계속 사용하기'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // 로그인 방법 선택 화면 (넷마블 1번 스크린샷)
   if (!showEmailLogin) {

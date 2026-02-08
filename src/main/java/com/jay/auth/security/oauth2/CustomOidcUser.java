@@ -8,6 +8,7 @@ import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -24,16 +25,25 @@ public class CustomOidcUser implements OidcUser {
     private final Collection<? extends GrantedAuthority> authorities;
     private final String nameAttributeKey;
     private final boolean linkMode;
+    private final boolean pendingDeletion;
+    private final LocalDateTime deletionRequestedAt;
 
     public CustomOidcUser(Long userId, String userUuid, ChannelCode channelCode,
                           OidcIdToken idToken, OidcUserInfo userInfo,
                           Map<String, Object> attributes, String nameAttributeKey) {
-        this(userId, userUuid, channelCode, idToken, userInfo, attributes, nameAttributeKey, false);
+        this(userId, userUuid, channelCode, idToken, userInfo, attributes, nameAttributeKey, false, false, null);
     }
 
     public CustomOidcUser(Long userId, String userUuid, ChannelCode channelCode,
                           OidcIdToken idToken, OidcUserInfo userInfo,
                           Map<String, Object> attributes, String nameAttributeKey, boolean linkMode) {
+        this(userId, userUuid, channelCode, idToken, userInfo, attributes, nameAttributeKey, linkMode, false, null);
+    }
+
+    public CustomOidcUser(Long userId, String userUuid, ChannelCode channelCode,
+                          OidcIdToken idToken, OidcUserInfo userInfo,
+                          Map<String, Object> attributes, String nameAttributeKey, boolean linkMode,
+                          boolean pendingDeletion, LocalDateTime deletionRequestedAt) {
         this.userId = userId;
         this.userUuid = userUuid;
         this.channelCode = channelCode;
@@ -43,6 +53,8 @@ public class CustomOidcUser implements OidcUser {
         this.nameAttributeKey = nameAttributeKey;
         this.authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
         this.linkMode = linkMode;
+        this.pendingDeletion = pendingDeletion;
+        this.deletionRequestedAt = deletionRequestedAt;
     }
 
     @Override

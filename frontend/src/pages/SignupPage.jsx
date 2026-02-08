@@ -4,10 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../api/auth';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
-const OAUTH2_BASE_URL = 'http://localhost:8080';
-
 export default function SignupPage() {
-  const [step, setStep] = useState(1); // 1: method selection, 2: email input, 3: verification, 4: complete signup
+  const [step, setStep] = useState(1); // 1: email input, 2: verification, 3: complete signup
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [tokenId, setTokenId] = useState('');
@@ -21,10 +19,6 @@ export default function SignupPage() {
   const { signup } = useAuth();
   const navigate = useNavigate();
 
-  const handleSocialSignup = (provider) => {
-    window.location.href = `${OAUTH2_BASE_URL}/oauth2/authorization/${provider}`;
-  };
-
   const handleSendVerification = async (e) => {
     e.preventDefault();
     setError('');
@@ -34,7 +28,7 @@ export default function SignupPage() {
       const response = await authApi.sendVerification(email);
       setTokenId(response.data.tokenId);
       setSuccess('인증 코드가 이메일로 전송되었습니다');
-      setStep(3);
+      setStep(2);
     } catch (err) {
       const message = err.response?.data?.error?.message
         || err.response?.data?.message
@@ -53,7 +47,7 @@ export default function SignupPage() {
     try {
       await authApi.verifyCode(email, code);
       setSuccess('이메일 인증이 완료되었습니다');
-      setStep(4);
+      setStep(3);
     } catch (err) {
       const message = err.response?.data?.error?.message
         || err.response?.data?.message
@@ -93,7 +87,7 @@ export default function SignupPage() {
     }
   };
 
-  // 회원가입 방법 선택 화면
+  // 이메일 입력 화면
   if (step === 1) {
     return (
       <div className="auth-container">
@@ -101,48 +95,7 @@ export default function SignupPage() {
           <div className="auth-logo">
             <h1>Authly</h1>
           </div>
-          <p className="auth-subtitle">회원가입 방법을 선택해 주세요</p>
-
-          <div className="social-login-buttons">
-            <button className="social-btn email" onClick={() => setStep(2)}>
-              <span className="icon">✉</span>
-              Email로 회원가입
-            </button>
-            <button className="social-btn google" onClick={() => handleSocialSignup('google')}>
-              <span className="icon">G</span>
-              Google로 회원가입
-            </button>
-            <button className="social-btn kakao" onClick={() => handleSocialSignup('kakao')}>
-              <span className="icon">💬</span>
-              카카오로 회원가입
-            </button>
-            <button className="social-btn naver" onClick={() => handleSocialSignup('naver')}>
-              <span className="icon">N</span>
-              네이버로 회원가입
-            </button>
-          </div>
-
-          <div className="divider">
-            <span>또는</span>
-          </div>
-
-          <div className="auth-links">
-            <Link to="/login">이미 계정이 있으신가요? 로그인</Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 이메일 입력 화면
-  if (step === 2) {
-    return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-logo">
-            <h1>Authly</h1>
-          </div>
-          <p className="auth-subtitle">이메일을 입력해 주세요</p>
+          <p className="auth-subtitle">새로운 계정을 만들어 보세요</p>
 
           {error && <div className="error-message">{error}</div>}
 
@@ -167,10 +120,8 @@ export default function SignupPage() {
             </button>
           </form>
 
-          <div className="back-link">
-            <a href="#" onClick={(e) => { e.preventDefault(); setStep(1); setError(''); }}>
-              다른 방법으로 회원가입
-            </a>
+          <div className="auth-links">
+            <Link to="/login">이미 계정이 있으신가요? 로그인</Link>
           </div>
         </div>
       </div>
@@ -178,7 +129,7 @@ export default function SignupPage() {
   }
 
   // 인증 코드 입력 화면
-  if (step === 3) {
+  if (step === 2) {
     return (
       <div className="auth-container">
         <div className="auth-card">
@@ -219,7 +170,7 @@ export default function SignupPage() {
           </form>
 
           <div className="back-link">
-            <a href="#" onClick={(e) => { e.preventDefault(); setStep(2); setError(''); setSuccess(''); }}>
+            <a href="#" onClick={(e) => { e.preventDefault(); setStep(1); setError(''); setSuccess(''); }}>
               이메일 다시 입력
             </a>
           </div>

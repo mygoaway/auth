@@ -124,7 +124,7 @@ export default function LoginPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <h1>authservice</h1>
+            <h1>Authly</h1>
           </div>
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
@@ -171,7 +171,7 @@ export default function LoginPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <h1>authservice</h1>
+            <h1>Authly</h1>
           </div>
           <p className="auth-subtitle">로그인 방법을 선택해 주세요</p>
 
@@ -212,7 +212,7 @@ export default function LoginPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <h1>authservice</h1>
+            <h1>Authly</h1>
           </div>
           <p className="auth-subtitle">2단계 인증</p>
           <p className="auth-description">인증 앱에서 생성된 6자리 코드를 입력하세요</p>
@@ -255,7 +255,7 @@ export default function LoginPage() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-logo">
-          <h1>authservice</h1>
+          <h1>Authly</h1>
         </div>
 
         {error && <div className="error-message">{error}</div>}

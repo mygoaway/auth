@@ -472,7 +472,7 @@ export default function DashboardPage() {
       {/* Navbar */}
       <nav className="dashboard-navbar">
         <div className="navbar-content">
-          <div className="navbar-brand">authservice</div>
+          <div className="navbar-brand">Authly</div>
           <button className="logout-btn" onClick={handleLogout}>
             로그아웃
           </button>

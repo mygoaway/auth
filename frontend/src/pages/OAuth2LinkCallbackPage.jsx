@@ -54,7 +54,7 @@ export default function OAuth2LinkCallbackPage() {
     <div className="auth-container">
       <div className="auth-card" style={{ textAlign: 'center' }}>
         <div className="auth-logo">
-          <h1>authservice</h1>
+          <h1>Authly</h1>
         </div>
 
         {status === 'processing' && (

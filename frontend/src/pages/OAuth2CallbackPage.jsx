@@ -79,7 +79,7 @@ export default function OAuth2CallbackPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <h1>authservice</h1>
+            <h1>Authly</h1>
           </div>
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>

@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <h1>authservice</h1>
+            <h1>Authly</h1>
           </div>
           <p className="auth-subtitle">비밀번호 재설정</p>
           <p className="auth-description">
@@ -136,7 +136,7 @@ export default function ForgotPasswordPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <h1>authservice</h1>
+            <h1>Authly</h1>
           </div>
           <p className="auth-subtitle">인증 코드 입력</p>
 
@@ -186,7 +186,7 @@ export default function ForgotPasswordPage() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-logo">
-          <h1>authservice</h1>
+          <h1>Authly</h1>
         </div>
         <p className="auth-subtitle">새 비밀번호 설정</p>
 

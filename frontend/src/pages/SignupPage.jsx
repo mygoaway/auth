@@ -99,7 +99,7 @@ export default function SignupPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <h1>authservice</h1>
+            <h1>Authly</h1>
           </div>
           <p className="auth-subtitle">회원가입 방법을 선택해 주세요</p>
 
@@ -140,7 +140,7 @@ export default function SignupPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <h1>authservice</h1>
+            <h1>Authly</h1>
           </div>
           <p className="auth-subtitle">이메일을 입력해 주세요</p>
 
@@ -183,7 +183,7 @@ export default function SignupPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <h1>authservice</h1>
+            <h1>Authly</h1>
           </div>
           <p className="auth-subtitle">인증 코드를 입력해 주세요</p>
 
@@ -233,7 +233,7 @@ export default function SignupPage() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-logo">
-          <h1>authservice</h1>
+          <h1>Authly</h1>
         </div>
         <p className="auth-subtitle">회원 정보를 입력해 주세요</p>
 

@@ -68,7 +68,7 @@ export default function DashboardPage() {
       loadTwoFactorStatus();
       loadSecurityDashboard();
     }
-  }, [activeTab]);
+  }, [activeTab, user]);
 
   const loadLastLogin = async () => {
     try {
@@ -83,6 +83,13 @@ export default function DashboardPage() {
 
   const loadPasswordWarning = async () => {
     try {
+      // 이메일 채널(비밀번호 로그인)이 있는 경우에만 비밀번호 경고 표시
+      const hasEmail = user?.channels?.some(c => c.channelCode === 'EMAIL');
+      if (!hasEmail) {
+        setPasswordWarning(null);
+        return;
+      }
+
       const response = await userApi.getSecurityDashboard();
       const passwordFactor = response.data?.factors?.find(f => f.name === 'PASSWORD_HEALTH');
       if (passwordFactor && passwordFactor.score < 20) {
@@ -92,6 +99,8 @@ export default function DashboardPage() {
             ? '비밀번호가 만료되었습니다. 새 비밀번호로 변경해주세요.'
             : '비밀번호 만료가 임박했습니다. 곧 변경이 필요합니다.'
         });
+      } else {
+        setPasswordWarning(null);
       }
     } catch (err) {
       console.error('Failed to load password warning', err);

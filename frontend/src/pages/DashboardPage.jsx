@@ -667,36 +667,48 @@ export default function DashboardPage() {
               </p>
 
               {(() => {
-                // channels 배열에서 linked된 채널 수 계산
                 const linkedCount = channelsStatus?.channels?.filter(ch => ch.linked).length || 0;
+                const channelColors = {
+                  EMAIL: 'gray',
+                  GOOGLE: 'red',
+                  KAKAO: 'yellow',
+                  NAVER: 'green'
+                };
 
                 return ['EMAIL', 'GOOGLE', 'KAKAO', 'NAVER'].map((code) => {
                   const channelData = channelsStatus?.channels?.find(ch => ch.channelCode === code);
                   const isLinked = channelData?.linked || false;
                   const info = CHANNEL_INFO[code];
 
-                  // EMAIL 채널은 연동되지 않은 경우 표시하지 않음 (소셜 연동만 추가 가능)
                   if (code === 'EMAIL' && !isLinked) {
                     return null;
                   }
 
                   return (
-                    <div key={code} className="channel-item">
-                      <div className="channel-item-info">
-                        <span className="channel-icon" style={{ backgroundColor: info.color, color: info.textColor || '#fff' }}>
+                    <div key={code} className="profile-item">
+                      <div className="profile-item-info">
+                        <div className={`profile-item-icon ${channelColors[code]}`}>
                           {info.icon}
-                        </span>
-                        <span className="channel-name">{info.name}</span>
-                        {channelData?.channelEmail && (
-                          <span className="channel-email">{channelData.channelEmail}</span>
-                        )}
-                        <span className={`channel-status ${isLinked ? 'linked' : 'unlinked'}`}>
-                          {isLinked ? '연동됨' : '미연동'}
-                        </span>
+                        </div>
+                        <div className="profile-item-text">
+                          <span className="profile-item-label">
+                            {info.name}
+                            {isLinked && (
+                              <span className="status-tag success" style={{ marginLeft: 8 }}>연동됨</span>
+                            )}
+                          </span>
+                          <span className="profile-item-value">
+                            {isLinked ? (
+                              channelData?.channelEmail || '연결된 계정'
+                            ) : (
+                              '연결되지 않음'
+                            )}
+                          </span>
+                        </div>
                       </div>
                       {isLinked ? (
                         <button
-                          className="unlink-btn"
+                          className="channel-unlink-btn"
                           onClick={() => handleUnlinkChannel(code)}
                           disabled={loading || linkedCount <= 1}
                           title={linkedCount <= 1 ? '최소 1개의 로그인 방법이 필요합니다' : ''}
@@ -705,11 +717,11 @@ export default function DashboardPage() {
                         </button>
                       ) : (
                         <button
-                          className="link-btn"
+                          className="channel-link-btn"
                           onClick={() => handleLinkChannel(code.toLowerCase())}
                           disabled={loading}
                         >
-                          연동
+                          연동하기
                         </button>
                       )}
                     </div>

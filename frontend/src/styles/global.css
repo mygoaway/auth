@@ -1098,6 +1098,14 @@ body {
   background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
 }
 
+.profile-item-icon.yellow {
+  background: linear-gradient(135deg, #fffbe6 0%, #ffe58f 100%);
+}
+
+.profile-item-icon.red {
+  background: linear-gradient(135deg, #fff1f0 0%, #ffa39e 100%);
+}
+
 .profile-item-text {
   display: flex;
   flex-direction: column;
@@ -1237,6 +1245,74 @@ body {
   color: #999;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Channel Link/Unlink Buttons - New Style */
+.channel-link-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.channel-link-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.channel-link-btn:active {
+  transform: translateY(0);
+}
+
+.channel-link-btn:disabled {
+  background: linear-gradient(135deg, #d9d9d9 0%, #bfbfbf 100%);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.channel-unlink-btn {
+  padding: 10px 24px;
+  border: 2px solid #ff7875;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff7875;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.channel-unlink-btn:hover {
+  background: linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%);
+  color: #fff;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 77, 79, 0.3);
+}
+
+.channel-unlink-btn:active {
+  transform: translateY(0);
+}
+
+.channel-unlink-btn:disabled {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.channel-unlink-btn:disabled:hover {
+  background: #f5f5f5;
+  color: #bfbfbf;
+  box-shadow: none;
 }
 
 .delete-btn {

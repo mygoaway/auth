@@ -291,6 +291,15 @@ export default function DashboardPage() {
   // Phone verification
   const handleSendPhoneCode = async () => {
     setError('');
+
+    // 기존 핸드폰 번호와 동일한지 검증
+    const normalizedPhone = phone.replace(/[^0-9]/g, '');
+    const normalizedUserPhone = user.phone?.replace(/[^0-9]/g, '');
+    if (normalizedUserPhone && normalizedPhone === normalizedUserPhone) {
+      setError('현재 등록된 핸드폰 번호와 동일합니다.');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await phoneApi.sendVerification(phone);
@@ -340,6 +349,12 @@ export default function DashboardPage() {
     // 본인 이메일과 동일한지 검증
     if (user.email && recoveryEmail.toLowerCase() === user.email.toLowerCase()) {
       setError('복구 이메일은 현재 로그인 이메일과 다른 이메일을 사용해주세요.');
+      return;
+    }
+
+    // 기존 복구 이메일과 동일한지 검증
+    if (user.recoveryEmail && recoveryEmail.toLowerCase() === user.recoveryEmail.toLowerCase()) {
+      setError('현재 등록된 복구 이메일과 동일합니다.');
       return;
     }
 

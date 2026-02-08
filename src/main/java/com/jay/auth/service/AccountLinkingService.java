@@ -4,10 +4,8 @@ import com.jay.auth.domain.entity.User;
 import com.jay.auth.domain.entity.UserChannel;
 import com.jay.auth.domain.entity.UserSignInInfo;
 import com.jay.auth.domain.enums.ChannelCode;
-import com.jay.auth.dto.request.RegisterPasswordRequest;
 import com.jay.auth.dto.response.ChannelStatusResponse;
 import com.jay.auth.exception.AccountLinkingException;
-import com.jay.auth.exception.InvalidPasswordException;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
@@ -120,68 +118,6 @@ public class AccountLinkingService {
         securityNotificationService.notifyAccountLinked(userId, channelCode);
 
         log.info("Social account linked: userId={}, channelCode={}, channelKey={}", userId, channelCode, channelKey);
-    }
-
-    /**
-     * Register email/password for a social login user
-     */
-    @Transactional
-    public void registerEmailPassword(Long userId, RegisterPasswordRequest request) {
-        User user = userRepository.findByIdWithChannels(userId)
-                .orElseThrow(UserNotFoundException::new);
-
-        String email = request.getEmail();
-        String password = request.getPassword();
-
-        // Validate password policy
-        if (!passwordUtil.isValidPassword(password)) {
-            throw new InvalidPasswordException();
-        }
-
-        // Check if user already has email channel
-        boolean hasEmailChannel = user.getChannels().stream()
-                .anyMatch(ch -> ch.getChannelCode() == ChannelCode.EMAIL);
-        if (hasEmailChannel) {
-            throw AccountLinkingException.alreadyLinkedToCurrentUser();
-        }
-
-        // Check if email matches user's email
-        String userEmail = user.getEmailEnc() != null
-                ? encryptionService.decryptEmail(user.getEmailEnc())
-                : null;
-        if (userEmail == null || !userEmail.equalsIgnoreCase(email)) {
-            throw AccountLinkingException.emailMismatch();
-        }
-
-        // Check if email is already registered
-        String emailLowerEnc = encryptionService.encryptForSearch(email);
-        if (userSignInInfoRepository.existsByLoginEmailLowerEnc(emailLowerEnc)) {
-            throw AccountLinkingException.emailAlreadyRegistered();
-        }
-
-        // Create UserSignInInfo
-        EncryptionService.EncryptedEmail encryptedEmail = encryptionService.encryptEmail(email);
-        UserSignInInfo signInInfo = UserSignInInfo.builder()
-                .user(user)
-                .loginEmailEnc(encryptedEmail.encrypted())
-                .loginEmailLowerEnc(encryptedEmail.encryptedLower())
-                .passwordHash(passwordUtil.encode(password))
-                .build();
-
-        userSignInInfoRepository.save(signInInfo);
-
-        // Create EMAIL channel
-        UserChannel emailChannel = UserChannel.builder()
-                .user(user)
-                .channelCode(ChannelCode.EMAIL)
-                .channelKey(String.valueOf(user.getId()))
-                .channelEmailEnc(encryptedEmail.encrypted())
-                .channelEmailLowerEnc(encryptedEmail.encryptedLower())
-                .build();
-
-        userChannelRepository.save(emailChannel);
-
-        log.info("Email password registered for social user: userId={}", userId);
     }
 
     /**

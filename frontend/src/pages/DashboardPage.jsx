@@ -48,9 +48,6 @@ export default function DashboardPage() {
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [registerPassword, setRegisterPassword] = useState('');
-  const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState('');
-  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
   useEffect(() => {
@@ -261,9 +258,6 @@ export default function DashboardPage() {
     setNewPasswordConfirm('');
     setShowCurrentPassword(false);
     setShowNewPassword(false);
-    setRegisterPassword('');
-    setRegisterPasswordConfirm('');
-    setShowRegisterPassword(false);
     setDeleteConfirm('');
     setTwoFactorCode('');
     setTwoFactorSetup(null);
@@ -405,30 +399,6 @@ export default function DashboardPage() {
       }, 2000);
     } catch (err) {
       setError(err.response?.data?.error?.message || '비밀번호 변경에 실패했습니다');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Register password (for social users)
-  const handleRegisterPassword = async () => {
-    setError('');
-    if (registerPassword !== registerPasswordConfirm) {
-      setError('비밀번호가 일치하지 않습니다');
-      return;
-    }
-    if (registerPassword.length < 8) {
-      setError('비밀번호는 8자 이상이어야 합니다');
-      return;
-    }
-    setLoading(true);
-    try {
-      await userApi.registerPassword(registerPassword);
-      setSuccess('비밀번호가 등록되었습니다');
-      await loadChannelsStatus();
-      setTimeout(resetModal, 1500);
-    } catch (err) {
-      setError(err.response?.data?.error?.message || '비밀번호 등록에 실패했습니다');
     } finally {
       setLoading(false);
     }
@@ -692,21 +662,6 @@ export default function DashboardPage() {
                 소셜 계정을 연결하면 해당 계정으로도 로그인할 수 있습니다.
               </p>
 
-              {!hasEmailChannel && (
-                <div className="channel-item email-register">
-                  <div className="channel-item-info">
-                    <span className="channel-icon" style={{ backgroundColor: CHANNEL_INFO.EMAIL.color }}>
-                      {CHANNEL_INFO.EMAIL.icon}
-                    </span>
-                    <span className="channel-name">Email 비밀번호</span>
-                    <span className="channel-status unlinked">미등록</span>
-                  </div>
-                  <button className="link-btn" onClick={() => openModal('registerPassword')}>
-                    등록
-                  </button>
-                </div>
-              )}
-
               {['GOOGLE', 'KAKAO', 'NAVER'].map((code) => {
                 const isLinked = channelsStatus?.linkedChannels?.includes(code);
                 const info = CHANNEL_INFO[code];
@@ -725,7 +680,7 @@ export default function DashboardPage() {
                       <button
                         className="unlink-btn"
                         onClick={() => handleUnlinkChannel(code)}
-                        disabled={loading || (channelsStatus?.linkedChannels?.length === 1 && !hasEmailChannel)}
+                        disabled={loading || channelsStatus?.linkedChannels?.length === 1}
                       >
                         해제
                       </button>
@@ -1194,55 +1149,6 @@ export default function DashboardPage() {
               <button className="btn btn-secondary" onClick={resetModal}>취소</button>
               <button className="btn btn-primary" onClick={handleChangePassword} disabled={loading}>
                 {loading ? '변경 중...' : '변경'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Register Password Modal (for social users) */}
-      {modal === 'registerPassword' && (
-        <div className="modal-overlay" onClick={resetModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>이메일 비밀번호 등록</h2>
-              <button className="modal-close" onClick={resetModal}>×</button>
-            </div>
-            <div className="modal-body">
-              {error && <div className="error-message">{error}</div>}
-              {success && <div className="success-message">{success}</div>}
-              <p className="info-text">
-                비밀번호를 등록하면 이메일로도 로그인할 수 있습니다.
-              </p>
-              <div className="form-group">
-                <label>비밀번호</label>
-                <div className="input-wrapper">
-                  <input
-                    type={showRegisterPassword ? 'text' : 'password'}
-                    value={registerPassword}
-                    onChange={(e) => setRegisterPassword(e.target.value)}
-                    placeholder="영문, 숫자, 특수문자 포함 8자 이상"
-                  />
-                  <span className="input-icon" onClick={() => setShowRegisterPassword(!showRegisterPassword)}>
-                    {showRegisterPassword ? '🙈' : '👁'}
-                  </span>
-                </div>
-                <PasswordStrengthMeter password={registerPassword} />
-              </div>
-              <div className="form-group">
-                <label>비밀번호 확인</label>
-                <input
-                  type="password"
-                  value={registerPasswordConfirm}
-                  onChange={(e) => setRegisterPasswordConfirm(e.target.value)}
-                  placeholder="비밀번호 확인"
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={resetModal}>취소</button>
-              <button className="btn btn-primary" onClick={handleRegisterPassword} disabled={loading}>
-                {loading ? '등록 중...' : '등록'}
               </button>
             </div>
           </div>

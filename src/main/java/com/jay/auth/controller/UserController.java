@@ -1,7 +1,6 @@
 package com.jay.auth.controller;
 
 import com.jay.auth.domain.enums.ChannelCode;
-import com.jay.auth.dto.request.RegisterPasswordRequest;
 import com.jay.auth.dto.request.UpdatePhoneRequest;
 import com.jay.auth.dto.request.UpdateProfileRequest;
 import com.jay.auth.dto.request.UpdateRecoveryEmailRequest;
@@ -110,17 +109,6 @@ public class UserController {
         ChannelStatusResponse response = accountLinkingService.getChannelsStatus(userPrincipal.getUserId());
 
         return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "이메일 비밀번호 등록", description = "소셜 로그인 사용자가 이메일 비밀번호를 등록합니다")
-    @PostMapping("/register-password")
-    public ResponseEntity<Void> registerEmailPassword(
-            @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @Valid @RequestBody RegisterPasswordRequest request) {
-
-        accountLinkingService.registerEmailPassword(userPrincipal.getUserId(), request);
-
-        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "채널 연결 해제", description = "소셜 계정 연결을 해제합니다")

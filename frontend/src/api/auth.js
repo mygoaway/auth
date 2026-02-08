@@ -57,9 +57,6 @@ export const userApi = {
   getChannelsStatus: () =>
     client.get('/users/channels'),
 
-  registerPassword: (password) =>
-    client.post('/users/register-password', { password }),
-
   unlinkChannel: (channelCode) =>
     client.delete(`/users/channels/${channelCode}`),
 

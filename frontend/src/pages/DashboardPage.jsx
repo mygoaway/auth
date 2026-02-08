@@ -11,7 +11,6 @@ const CHANNEL_INFO = {
   GOOGLE: { name: 'Google', icon: 'G', color: '#DB4437' },
   KAKAO: { name: '카카오', icon: '💬', color: '#FEE500', textColor: '#000' },
   NAVER: { name: '네이버', icon: 'N', color: '#03C75A' },
-  FACEBOOK: { name: 'Facebook', icon: 'f', color: '#1877F2' },
 };
 
 export default function DashboardPage() {
@@ -708,7 +707,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {['GOOGLE', 'KAKAO', 'NAVER', 'FACEBOOK'].map((code) => {
+              {['GOOGLE', 'KAKAO', 'NAVER'].map((code) => {
                 const isLinked = channelsStatus?.linkedChannels?.includes(code);
                 const info = CHANNEL_INFO[code];
                 return (

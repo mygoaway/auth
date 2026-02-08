@@ -120,10 +120,6 @@ export default function SignupPage() {
               <span className="icon">N</span>
               네이버로 회원가입
             </button>
-            <button className="social-btn facebook" onClick={() => handleSocialSignup('facebook')}>
-              <span className="icon">f</span>
-              Facebook으로 회원가입
-            </button>
           </div>
 
           <div className="divider">

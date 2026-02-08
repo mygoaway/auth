@@ -192,10 +192,6 @@ export default function LoginPage() {
               <span className="icon">N</span>
               네이버로 로그인
             </button>
-            <button className="social-btn facebook" onClick={() => handleSocialLogin('facebook')}>
-              <span className="icon">f</span>
-              Facebook으로 로그인
-            </button>
           </div>
 
           <div className="divider">

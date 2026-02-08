@@ -13,8 +13,6 @@ public class OAuth2UserInfoFactory {
             return new KakaoOAuth2UserInfo(attributes);
         } else if (registrationId.equalsIgnoreCase(ChannelCode.NAVER.name())) {
             return new NaverOAuth2UserInfo(attributes);
-        } else if (registrationId.equalsIgnoreCase(ChannelCode.FACEBOOK.name())) {
-            return new FacebookOAuth2UserInfo(attributes);
         } else {
             throw new IllegalArgumentException("Unknown registration id: " + registrationId);
         }

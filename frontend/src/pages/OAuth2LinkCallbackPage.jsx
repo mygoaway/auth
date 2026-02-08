@@ -6,7 +6,6 @@ const CHANNEL_NAMES = {
   GOOGLE: 'Google',
   KAKAO: '카카오',
   NAVER: '네이버',
-  FACEBOOK: 'Facebook',
 };
 
 export default function OAuth2LinkCallbackPage() {

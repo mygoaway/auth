@@ -135,7 +135,6 @@ public class SecurityNotificationService {
             case GOOGLE -> "Google";
             case KAKAO -> "카카오";
             case NAVER -> "네이버";
-            case FACEBOOK -> "Facebook";
         };
     }
 }

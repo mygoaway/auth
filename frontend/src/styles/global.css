@@ -33,6 +33,7 @@ body {
   height: 200%;
   background: radial-gradient(circle, rgba(102, 126, 234, 0.03) 0%, transparent 50%);
   animation: float 20s ease-in-out infinite;
+  pointer-events: none;
 }
 
 @keyframes float {
@@ -49,6 +50,8 @@ body {
   max-width: 480px;
   border: none;
   animation: fadeInUp 0.5s ease-out;
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes fadeInUp {

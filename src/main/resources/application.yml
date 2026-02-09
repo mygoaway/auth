@@ -52,5 +52,7 @@ app:
       api-key: ${COOLSMS_API_KEY:}
       api-secret: ${COOLSMS_API_SECRET:}
       sender: ${COOLSMS_SENDER:}
+  email:
+    provider: ${EMAIL_PROVIDER:log}  # log, smtp
   oauth2:
     redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}

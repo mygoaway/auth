@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6f9;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9;padding:40px 0;">
+    <tr>
+        <td align="center">
+            <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                <tr>
+                    <td style="padding:40px 40px 20px;text-align:center;">
+                        <h1 style="margin:0;font-size:28px;color:#6C63FF;font-weight:700;">Authly</h1>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 40px 20px;text-align:center;">
+                        <h2 style="margin:0;font-size:20px;color:#333;" th:text="${alertTitle}">보안 알림</h2>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 40px 20px;text-align:center;color:#666;font-size:15px;line-height:1.6;">
+                        <p style="margin:0;" th:text="${alertMessage}">계정에 보안 관련 변경이 있었습니다.</p>
+                    </td>
+                </tr>
+                <tr th:if="${details != null and !details.isEmpty()}">
+                    <td style="padding:0 40px 30px;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fa;border-radius:8px;padding:16px;">
+                            <tr th:each="detail : ${details}">
+                                <td style="padding:6px 16px;color:#888;font-size:13px;width:100px;" th:text="${detail.key}">항목</td>
+                                <td style="padding:6px 16px;color:#333;font-size:13px;font-weight:500;" th:text="${detail.value}">값</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 40px 30px;text-align:center;color:#e74c3c;font-size:13px;line-height:1.6;">
+                        <p style="margin:0;">본인이 수행하지 않은 활동이라면 즉시 비밀번호를 변경해주세요.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:20px 40px;border-top:1px solid #eee;text-align:center;color:#aaa;font-size:12px;">
+                        <p style="margin:0;">&copy; 2026 Authly. All rights reserved.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

@@ -1,14 +1,16 @@
 package com.jay.auth.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 /**
  * 이메일 발송 구현체 (개발용 - 로그 출력만)
- * 실제 운영에서는 SMTP, AWS SES 등으로 교체
+ * 실제 운영에서는 app.email.provider=smtp 로 변경
  */
 @Slf4j
 @Service
+@ConditionalOnProperty(name = "app.email.provider", havingValue = "log", matchIfMissing = true)
 public class EmailSenderImpl implements EmailSender {
 
     @Override

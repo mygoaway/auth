@@ -1,13 +1,17 @@
 package com.jay.auth.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SecurityDashboardResponse {
 
     private int securityScore;
@@ -18,6 +22,8 @@ public class SecurityDashboardResponse {
 
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class SecurityFactor {
         private String name;
         private String description;
@@ -28,6 +34,8 @@ public class SecurityDashboardResponse {
 
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class SecurityActivity {
         private String type;
         private String description;

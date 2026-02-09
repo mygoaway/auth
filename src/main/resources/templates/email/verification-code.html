@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6f9;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9;padding:40px 0;">
+    <tr>
+        <td align="center">
+            <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                <tr>
+                    <td style="padding:40px 40px 20px;text-align:center;">
+                        <h1 style="margin:0;font-size:28px;color:#6C63FF;font-weight:700;">Authly</h1>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 40px 20px;text-align:center;">
+                        <h2 style="margin:0;font-size:20px;color:#333;" th:text="${title}">이메일 인증</h2>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 40px 30px;text-align:center;color:#666;font-size:15px;line-height:1.6;">
+                        <p style="margin:0;" th:text="${message}">아래 인증 코드를 입력해주세요.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 40px 30px;text-align:center;">
+                        <div style="display:inline-block;background:linear-gradient(135deg,#6C63FF,#5A52D5);color:#fff;font-size:32px;letter-spacing:8px;padding:16px 40px;border-radius:8px;font-weight:700;" th:text="${code}">123456</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 40px 30px;text-align:center;color:#999;font-size:13px;">
+                        <p style="margin:0;">이 코드는 <strong th:text="${expiresMinutes}">10</strong>분간 유효합니다.</p>
+                        <p style="margin:8px 0 0;">본인이 요청하지 않았다면 이 이메일을 무시해주세요.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:20px 40px;border-top:1px solid #eee;text-align:center;color:#aaa;font-size:12px;">
+                        <p style="margin:0;">&copy; 2026 Authly. All rights reserved.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

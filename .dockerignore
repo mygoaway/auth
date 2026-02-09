@@ -1,0 +1,17 @@
+.git
+.gitignore
+.idea
+*.iml
+*.iws
+*.ipr
+.gradle
+build/
+out/
+.env
+.env.*
+frontend/
+docker-compose.yml
+*.md
+.claude/
+.vscode/
+logs/

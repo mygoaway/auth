@@ -18,12 +18,13 @@ public class PhoneVerificationService {
 
     private final PhoneVerificationRepository phoneVerificationRepository;
     private final EncryptionService encryptionService;
+    private final SmsSender smsSender;
 
     private static final int CODE_LENGTH = 6;
     private static final int EXPIRATION_MINUTES = 3;
 
     /**
-     * 인증 코드 생성 및 발송 (실제 SMS는 로그로 대체)
+     * 인증 코드 생성 및 발송
      */
     @Transactional
     public String sendVerificationCode(String phone) {
@@ -47,11 +48,8 @@ public class PhoneVerificationService {
 
         phoneVerificationRepository.save(verification);
 
-        // 실제 SMS 발송 대신 로그로 대체
-        log.info("========================================");
-        log.info("SMS Verification Code for {}: {}", phone, code);
-        log.info("========================================");
-
+        // SMS 발송
+        smsSender.sendVerificationCode(phone, code);
         log.info("Verification code sent to phone: {}", phone);
 
         return verification.getTokenId();

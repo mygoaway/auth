@@ -44,5 +44,11 @@ app:
     issuer: auth-service
   encryption:
     secret-key: ${ENCRYPTION_SECRET_KEY:your-32-character-encryption-key!}
+  sms:
+    provider: ${SMS_PROVIDER:log}  # log, coolsms
+    coolsms:
+      api-key: ${COOLSMS_API_KEY:}
+      api-secret: ${COOLSMS_API_SECRET:}
+      sender: ${COOLSMS_SENDER:}
   oauth2:
     redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}

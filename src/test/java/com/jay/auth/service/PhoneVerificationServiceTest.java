@@ -34,6 +34,9 @@ class PhoneVerificationServiceTest {
     @Mock
     private EncryptionService encryptionService;
 
+    @Mock
+    private SmsSender smsSender;
+
     @Nested
     @DisplayName("인증 코드 발송")
     class SendVerificationCode {

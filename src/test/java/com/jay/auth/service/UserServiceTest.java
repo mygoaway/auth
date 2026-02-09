@@ -43,6 +43,8 @@ class UserServiceTest {
     private PhoneVerificationService phoneVerificationService;
     @Mock
     private EmailVerificationService emailVerificationService;
+    @Mock
+    private AuditLogService auditLogService;
 
     @Nested
     @DisplayName("프로필 조회")

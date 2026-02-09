@@ -30,6 +30,7 @@ public class UserService {
     private final TokenService tokenService;
     private final PhoneVerificationService phoneVerificationService;
     private final EmailVerificationService emailVerificationService;
+    private final AuditLogService auditLogService;
 
     @Cacheable(value = "userProfile", key = "#userId")
     @Transactional(readOnly = true)
@@ -71,6 +72,7 @@ public class UserService {
 
         String encryptedNickname = encryptionService.encryptNickname(request.getNickname());
         user.updateNickname(encryptedNickname);
+        auditLogService.log(userId, "NICKNAME_CHANGE", "USER");
 
         log.info("User {} updated nickname", userId);
     }
@@ -91,6 +93,7 @@ public class UserService {
 
         // 인증 레코드 삭제
         phoneVerificationService.deleteVerificationByTokenId(request.getTokenId());
+        auditLogService.log(userId, "PHONE_CHANGE", "USER");
 
         log.info("User {} updated phone", userId);
     }
@@ -113,6 +116,7 @@ public class UserService {
 
         // 인증 기록 삭제
         emailVerificationService.deleteVerificationByTokenId(request.getTokenId());
+        auditLogService.log(userId, "RECOVERY_EMAIL_CHANGE", "USER");
 
         log.info("User {} updated recovery email", userId);
     }
@@ -153,6 +157,7 @@ public class UserService {
 
         // 모든 토큰 무효화
         tokenService.logoutAll(userId, null);
+        auditLogService.log(userId, "ACCOUNT_DELETE_REQUEST", "USER");
 
         log.info("User {} requested deletion (30 day grace period)", userId);
     }

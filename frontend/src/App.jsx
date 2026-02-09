@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider } from './components/Toast';
+import ErrorBoundary from './components/ErrorBoundary';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
@@ -56,11 +58,15 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ToastProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </ToastProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

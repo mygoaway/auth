@@ -8,6 +8,7 @@ import com.jay.auth.dto.response.ActiveSessionResponse;
 import com.jay.auth.dto.response.ChannelStatusResponse;
 import com.jay.auth.dto.response.LoginHistoryResponse;
 import com.jay.auth.dto.response.SecurityDashboardResponse;
+import com.jay.auth.dto.response.TrustedDeviceResponse;
 import com.jay.auth.dto.response.UserProfileResponse;
 import com.jay.auth.dto.response.WeeklyActivityResponse;
 import com.jay.auth.security.UserPrincipal;
@@ -16,6 +17,7 @@ import com.jay.auth.service.ActivityReportService;
 import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.SecurityDashboardService;
 import com.jay.auth.service.TokenService;
+import com.jay.auth.service.TrustedDeviceService;
 import com.jay.auth.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -40,6 +42,7 @@ public class UserController {
     private final TokenService tokenService;
     private final SecurityDashboardService securityDashboardService;
     private final ActivityReportService activityReportService;
+    private final TrustedDeviceService trustedDeviceService;
 
     @Operation(summary = "프로필 조회", description = "현재 사용자의 프로필을 조회합니다")
     @GetMapping("/profile")
@@ -170,6 +173,50 @@ public class UserController {
                 userPrincipal.getUserId());
 
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "신뢰할 수 있는 기기 목록", description = "등록된 신뢰 기기 목록을 조회합니다")
+    @GetMapping("/devices/trusted")
+    public ResponseEntity<List<TrustedDeviceResponse>> getTrustedDevices(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        List<TrustedDeviceResponse> devices = trustedDeviceService.getTrustedDevices(
+                userPrincipal.getUserId());
+
+        return ResponseEntity.ok(devices);
+    }
+
+    @Operation(summary = "현재 기기 신뢰 등록", description = "현재 접속 기기를 신뢰할 수 있는 기기로 등록합니다")
+    @PostMapping("/devices/trusted")
+    public ResponseEntity<Void> trustCurrentDevice(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            HttpServletRequest httpRequest) {
+
+        var sessionInfo = loginHistoryService.extractSessionInfo(httpRequest);
+        trustedDeviceService.trustDevice(userPrincipal.getUserId(), sessionInfo);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "신뢰 기기 삭제", description = "신뢰할 수 있는 기기 등록을 해제합니다")
+    @DeleteMapping("/devices/trusted/{deviceId}")
+    public ResponseEntity<Void> removeTrustedDevice(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable String deviceId) {
+
+        trustedDeviceService.removeTrustedDevice(userPrincipal.getUserId(), deviceId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "모든 신뢰 기기 삭제", description = "모든 신뢰할 수 있는 기기를 해제합니다")
+    @DeleteMapping("/devices/trusted")
+    public ResponseEntity<Void> removeAllTrustedDevices(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        trustedDeviceService.removeAllTrustedDevices(userPrincipal.getUserId());
+
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "주간 활동 리포트", description = "이번 주 로그인 활동 및 보안 요약을 조회합니다")

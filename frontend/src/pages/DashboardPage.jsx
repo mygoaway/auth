@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const [backupCodes, setBackupCodes] = useState([]);
   const [securityDashboard, setSecurityDashboard] = useState(null);
   const [weeklyActivity, setWeeklyActivity] = useState(null);
+  const [trustedDevices, setTrustedDevices] = useState([]);
   const [lastLogin, setLastLogin] = useState(null);
   const [passwordWarning, setPasswordWarning] = useState(null);
   const [modal, setModal] = useState(null);
@@ -62,6 +63,7 @@ export default function DashboardPage() {
       loadLoginHistory();
       loadTwoFactorStatus();
       loadSecurityDashboard();
+      loadTrustedDevices();
     }
     if (activeTab === 'activity') {
       loadWeeklyActivity();
@@ -165,6 +167,44 @@ export default function DashboardPage() {
       setWeeklyActivity(response.data);
     } catch (err) {
       console.error('Failed to load weekly activity', err);
+    }
+  };
+
+  const loadTrustedDevices = async () => {
+    try {
+      const response = await userApi.getTrustedDevices();
+      setTrustedDevices(response.data);
+    } catch (err) {
+      console.error('Failed to load trusted devices', err);
+    }
+  };
+
+  const handleTrustCurrentDevice = async () => {
+    try {
+      setLoading(true);
+      await userApi.trustCurrentDevice();
+      setSuccess('현재 기기가 신뢰 기기로 등록되었습니다');
+      await loadTrustedDevices();
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || '기기 등록에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveTrustedDevice = async (deviceId) => {
+    if (!window.confirm('이 기기의 신뢰 등록을 해제하시겠습니까?')) return;
+    try {
+      setLoading(true);
+      await userApi.removeTrustedDevice(deviceId);
+      setSuccess('신뢰 기기가 해제되었습니다');
+      await loadTrustedDevices();
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || '기기 해제에 실패했습니다');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -864,6 +904,52 @@ export default function DashboardPage() {
               </div>
             </div>
 
+
+            <div className="info-card">
+              <h3>신뢰할 수 있는 기기</h3>
+              <p className="info-description">
+                신뢰 기기로 등록하면 해당 기기에서의 로그인이 보안 알림 대상에서 제외됩니다. (30일간 유효)
+              </p>
+              <button
+                className="btn btn-small"
+                onClick={handleTrustCurrentDevice}
+                disabled={loading}
+                style={{ marginBottom: 12 }}
+              >
+                현재 기기 신뢰 등록
+              </button>
+              {trustedDevices.length > 0 ? (
+                <div className="trusted-devices-list">
+                  {trustedDevices.map((device) => (
+                    <div key={device.deviceId} className="trusted-device-item">
+                      <div className="trusted-device-icon">
+                        {device.deviceType === 'Mobile' ? '📱' : device.deviceType === 'Tablet' ? '📲' : '💻'}
+                      </div>
+                      <div className="trusted-device-info">
+                        <div className="trusted-device-name">{device.browser} / {device.os}</div>
+                        <div className="trusted-device-meta">
+                          {device.location && <span>{device.location}</span>}
+                          {device.lastUsedAt && (
+                            <span className="trusted-device-time">
+                              마지막 사용: {new Date(device.lastUsedAt).toLocaleDateString('ko-KR')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        className="channel-unlink-btn"
+                        onClick={() => handleRemoveTrustedDevice(device.deviceId)}
+                        disabled={loading}
+                      >
+                        해제
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="info-description" style={{ marginTop: 8 }}>등록된 신뢰 기기가 없습니다.</p>
+              )}
+            </div>
 
             <div className="info-card">
               <h3>최근 로그인 기록</h3>

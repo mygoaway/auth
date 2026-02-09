@@ -77,6 +77,18 @@ export const userApi = {
 
   getWeeklyActivity: () =>
     client.get('/users/activity/weekly'),
+
+  getTrustedDevices: () =>
+    client.get('/users/devices/trusted'),
+
+  trustCurrentDevice: () =>
+    client.post('/users/devices/trusted'),
+
+  removeTrustedDevice: (deviceId) =>
+    client.delete(`/users/devices/trusted/${deviceId}`),
+
+  removeAllTrustedDevices: () =>
+    client.delete('/users/devices/trusted'),
 };
 
 export const phoneApi = {

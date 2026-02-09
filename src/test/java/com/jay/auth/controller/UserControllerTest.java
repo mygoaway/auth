@@ -71,6 +71,9 @@ class UserControllerTest {
     @MockitoBean
     private com.jay.auth.service.ActivityReportService activityReportService;
 
+    @MockitoBean
+    private com.jay.auth.service.TrustedDeviceService trustedDeviceService;
+
     @BeforeEach
     void setUp() {
         UserPrincipal userPrincipal = new UserPrincipal(1L, "uuid-1234", "USER");

@@ -47,7 +47,9 @@ public class SecurityDashboardService {
                 .orElseThrow(UserNotFoundException::new);
 
         List<SecurityFactor> factors = calculateSecurityFactors(userId, user);
-        int totalScore = factors.stream().mapToInt(SecurityFactor::getScore).sum();
+        int rawScore = factors.stream().mapToInt(SecurityFactor::getScore).sum();
+        int maxPossible = factors.stream().mapToInt(SecurityFactor::getMaxScore).sum();
+        int totalScore = maxPossible > 0 ? (int) Math.round((double) rawScore / maxPossible * 100) : 0;
         String level = getSecurityLevel(totalScore);
 
         List<SecurityActivity> recentActivities = getRecentActivities(userId);
@@ -75,16 +77,18 @@ public class SecurityDashboardService {
                 .enabled(twoFactorStatus.isEnabled())
                 .build());
 
-        // 2. 비밀번호 강도/최신성 (25점)
+        // 2. 비밀번호 강도/최신성 (25점) - 이메일 로그인 사용자만 해당
         UserSignInInfo signInInfo = userSignInInfoRepository.findByUserId(userId).orElse(null);
-        int passwordScore = calculatePasswordScore(signInInfo);
-        factors.add(SecurityFactor.builder()
-                .name("PASSWORD_HEALTH")
-                .description("비밀번호 건강도")
-                .score(passwordScore)
-                .maxScore(25)
-                .enabled(passwordScore >= 15)
-                .build());
+        if (signInInfo != null) {
+            int passwordScore = calculatePasswordScore(signInInfo);
+            factors.add(SecurityFactor.builder()
+                    .name("PASSWORD_HEALTH")
+                    .description("비밀번호 건강도")
+                    .score(passwordScore)
+                    .maxScore(25)
+                    .enabled(passwordScore >= 15)
+                    .build());
+        }
 
         // 3. 복구 이메일 설정 (15점) - User 엔티티에서 직접 확인
         boolean hasRecoveryEmail = user.getRecoveryEmailEnc() != null;

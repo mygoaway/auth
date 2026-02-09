@@ -13,6 +13,8 @@ import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ public class UserService {
     private final PhoneVerificationService phoneVerificationService;
     private final EmailVerificationService emailVerificationService;
 
+    @Cacheable(value = "userProfile", key = "#userId")
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile(Long userId) {
         User user = userRepository.findByIdWithChannels(userId)
@@ -60,6 +63,7 @@ public class UserService {
                 .build();
     }
 
+    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public void updateNickname(Long userId, UpdateProfileRequest request) {
         User user = userRepository.findById(userId)
@@ -71,6 +75,7 @@ public class UserService {
         log.info("User {} updated nickname", userId);
     }
 
+    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public void updatePhone(Long userId, UpdatePhoneRequest request) {
         // tokenId 유효성 검증
@@ -90,6 +95,7 @@ public class UserService {
         log.info("User {} updated phone", userId);
     }
 
+    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public void updateRecoveryEmail(Long userId, UpdateRecoveryEmailRequest request) {
         // tokenId로 이메일 인증 완료 여부 확인
@@ -137,6 +143,7 @@ public class UserService {
      * - 모든 토큰 무효화
      * - 30일 후 배치에서 실제 데이터 삭제
      */
+    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public void deleteAccount(Long userId) {
         User user = userRepository.findById(userId)
@@ -153,6 +160,7 @@ public class UserService {
     /**
      * 탈퇴 유예 취소 (계정 복구)
      */
+    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public void cancelDeletion(Long userId) {
         User user = userRepository.findById(userId)

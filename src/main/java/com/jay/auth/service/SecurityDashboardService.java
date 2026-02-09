@@ -14,6 +14,7 @@ import com.jay.auth.repository.UserRepository;
 import com.jay.auth.repository.UserSignInInfoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ public class SecurityDashboardService {
     /**
      * 보안 대시보드 정보 조회
      */
+    @Cacheable(value = "securityDashboard", key = "#userId")
     @Transactional(readOnly = true)
     public SecurityDashboardResponse getSecurityDashboard(Long userId) {
         User user = userRepository.findById(userId)

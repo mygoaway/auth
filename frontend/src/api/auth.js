@@ -33,6 +33,9 @@ export const authApi = {
 
   resetPassword: (tokenId, email, newPassword) =>
     client.post('/auth/password/reset', { tokenId, email, newPassword }),
+
+  analyzePassword: (password) =>
+    client.post('/auth/password/analyze', { password }),
 };
 
 export const userApi = {

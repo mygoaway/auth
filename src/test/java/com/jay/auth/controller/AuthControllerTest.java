@@ -18,6 +18,7 @@ import com.jay.auth.service.LoginRateLimitService;
 import com.jay.auth.service.PasswordService;
 import com.jay.auth.service.SecurityNotificationService;
 import com.jay.auth.service.TokenService;
+import com.jay.auth.util.PasswordUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -73,6 +74,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private SecurityNotificationService securityNotificationService;
+
+    @MockitoBean
+    private PasswordUtil passwordUtil;
 
     @BeforeEach
     void setUp() {

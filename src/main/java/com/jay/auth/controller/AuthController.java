@@ -4,6 +4,7 @@ import com.jay.auth.domain.enums.ChannelCode;
 import com.jay.auth.dto.request.*;
 import com.jay.auth.dto.response.ChangePasswordResponse;
 import com.jay.auth.dto.response.LoginResponse;
+import com.jay.auth.dto.response.PasswordAnalysisResponse;
 import com.jay.auth.dto.response.SignUpResponse;
 import com.jay.auth.dto.response.TokenResponse;
 import com.jay.auth.exception.RateLimitException;
@@ -14,6 +15,7 @@ import com.jay.auth.service.LoginRateLimitService;
 import com.jay.auth.service.PasswordService;
 import com.jay.auth.service.SecurityNotificationService;
 import com.jay.auth.service.TokenService;
+import com.jay.auth.util.PasswordUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,6 +40,7 @@ public class AuthController {
     private final LoginRateLimitService loginRateLimitService;
     private final LoginHistoryService loginHistoryService;
     private final SecurityNotificationService securityNotificationService;
+    private final PasswordUtil passwordUtil;
 
     @Operation(summary = "이메일 회원가입", description = "이메일 인증 완료 후 회원가입을 진행합니다")
     @PostMapping("/email/signup")
@@ -164,6 +167,17 @@ public class AuthController {
         passwordService.changePassword(userPrincipal.getUserId(), request);
 
         return ResponseEntity.ok(ChangePasswordResponse.of(true));
+    }
+
+    @Operation(summary = "비밀번호 강도 분석", description = "비밀번호의 강도를 분석하고 상세 피드백을 제공합니다")
+    @PostMapping("/password/analyze")
+    public ResponseEntity<PasswordAnalysisResponse> analyzePassword(
+            @RequestBody java.util.Map<String, String> request) {
+
+        String password = request.get("password");
+        PasswordAnalysisResponse response = passwordUtil.analyzePassword(password);
+
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "비밀번호 재설정", description = "이메일 인증 후 비밀번호를 재설정합니다")

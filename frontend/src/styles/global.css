@@ -1838,6 +1838,25 @@ body {
   color: #999;
 }
 
+.strength-score {
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.strength-suggestions {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #fffbe6;
+  border-radius: 6px;
+  border-left: 3px solid #ffc107;
+}
+
+.suggestion-item {
+  font-size: 12px;
+  color: #8c6d1f;
+  padding: 2px 0;
+}
+
 /* Active Sessions */
 .session-list {
   padding: 8px 0;

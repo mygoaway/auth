@@ -32,6 +32,14 @@ public class AccountLinkingException extends BusinessException {
         );
     }
 
+    public static AccountLinkingException cannotUnlinkEmailChannel() {
+        return new AccountLinkingException(
+                "이메일 채널은 해제할 수 없습니다.",
+                "CANNOT_UNLINK_EMAIL_CHANNEL",
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
     public static AccountLinkingException channelNotFound() {
         return new AccountLinkingException(
                 "Channel not found",

@@ -13,6 +13,7 @@ import com.jay.auth.repository.UserSignInInfoRepository;
 import com.jay.auth.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,6 +75,7 @@ public class AccountLinkingService {
     /**
      * Link a social account to an existing user
      */
+    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public void linkSocialAccount(Long userId, ChannelCode channelCode, String channelKey, String email) {
         User user = userRepository.findById(userId)
@@ -123,6 +125,7 @@ public class AccountLinkingService {
     /**
      * Unlink a channel from a user
      */
+    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public void unlinkChannel(Long userId, ChannelCode channelCode) {
         User user = userRepository.findByIdWithChannels(userId)
@@ -139,15 +142,14 @@ public class AccountLinkingService {
             throw AccountLinkingException.channelNotFound();
         }
 
+        // EMAIL channel cannot be unlinked
+        if (channelCode == ChannelCode.EMAIL) {
+            throw AccountLinkingException.cannotUnlinkEmailChannel();
+        }
+
         // Check if this is the last channel
         if (channels.size() <= 1) {
             throw AccountLinkingException.cannotUnlinkLastChannel();
-        }
-
-        // If unlinking EMAIL channel, also delete UserSignInInfo
-        if (channelCode == ChannelCode.EMAIL) {
-            userSignInInfoRepository.findByUserId(userId)
-                    .ifPresent(userSignInInfoRepository::delete);
         }
 
         // Remove from user's channel list (orphanRemoval will delete from DB)

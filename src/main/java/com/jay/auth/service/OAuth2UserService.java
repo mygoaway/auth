@@ -12,6 +12,7 @@ import com.jay.auth.security.oauth2.OAuth2UserInfo;
 import com.jay.auth.util.NicknameGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +59,7 @@ public class OAuth2UserService {
      * Process OAuth2 user for account linking mode.
      * Links the social account to an existing user instead of creating a new one.
      */
+    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public User processOAuth2UserForLinking(Long userId, ChannelCode channelCode, OAuth2UserInfo oAuth2UserInfo) {
         String channelKey = oAuth2UserInfo.getId();

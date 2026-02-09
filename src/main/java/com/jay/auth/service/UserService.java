@@ -77,7 +77,7 @@ public class UserService {
         log.info("User {} updated nickname", userId);
     }
 
-    @CacheEvict(value = "userProfile", key = "#userId")
+    @CacheEvict(value = {"userProfile", "securityDashboard"}, key = "#userId")
     @Transactional
     public void updatePhone(Long userId, UpdatePhoneRequest request) {
         // tokenId 유효성 검증
@@ -98,7 +98,7 @@ public class UserService {
         log.info("User {} updated phone", userId);
     }
 
-    @CacheEvict(value = "userProfile", key = "#userId")
+    @CacheEvict(value = {"userProfile", "securityDashboard"}, key = "#userId")
     @Transactional
     public void updateRecoveryEmail(Long userId, UpdateRecoveryEmailRequest request) {
         // tokenId로 이메일 인증 완료 여부 확인

@@ -303,6 +303,7 @@ export default function DashboardPage() {
       await userApi.updatePhone(phone, phoneTokenId);
       setSuccess('핸드폰 번호가 변경되었습니다');
       await loadProfile();
+      loadSecurityDashboard();
       setTimeout(resetModal, 1500);
     } catch (err) {
       setError(err.response?.data?.error?.message || '핸드폰 번호 변경에 실패했습니다');
@@ -361,6 +362,7 @@ export default function DashboardPage() {
       await userApi.updateRecoveryEmail(recoveryEmail, emailTokenId);
       setSuccess('복구 이메일이 변경되었습니다');
       await loadProfile();
+      loadSecurityDashboard();
       setTimeout(resetModal, 1500);
     } catch (err) {
       setError(err.response?.data?.error?.message || '복구 이메일 변경에 실패했습니다');
@@ -698,14 +700,16 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       {isLinked ? (
-                        <button
-                          className="channel-unlink-btn"
-                          onClick={() => handleUnlinkChannel(code)}
-                          disabled={loading || linkedCount <= 1}
-                          title={linkedCount <= 1 ? '최소 1개의 로그인 방법이 필요합니다' : ''}
-                        >
-                          연동 해제
-                        </button>
+                        code !== 'EMAIL' && (
+                          <button
+                            className="channel-unlink-btn"
+                            onClick={() => handleUnlinkChannel(code)}
+                            disabled={loading || linkedCount <= 1}
+                            title={linkedCount <= 1 ? '최소 1개의 로그인 방법이 필요합니다' : ''}
+                          >
+                            연동 해제
+                          </button>
+                        )
                       ) : (
                         <button
                           className="channel-link-btn"

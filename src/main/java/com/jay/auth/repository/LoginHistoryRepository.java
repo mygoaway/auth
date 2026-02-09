@@ -4,6 +4,7 @@ import com.jay.auth.domain.entity.LoginHistory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -23,6 +24,11 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long
             "AND h.createdAt > :since")
     long countFailedLoginsSince(@Param("userId") Long userId, @Param("since") LocalDateTime since);
 
+    @Modifying
     @Query("DELETE FROM LoginHistory h WHERE h.createdAt < :before")
     void deleteOldHistory(@Param("before") LocalDateTime before);
+
+    @Modifying
+    @Query("DELETE FROM LoginHistory h WHERE h.userId = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

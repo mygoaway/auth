@@ -27,53 +27,46 @@ public class LoginHistoryService {
 
     /**
      * Record successful login
+     * HttpServletRequest에서 필요한 정보를 동기적으로 추출 후 비동기 저장
      */
-    @Async
-    @Transactional
     public void recordLoginSuccess(Long userId, ChannelCode channelCode, HttpServletRequest request) {
         String clientIp = getClientIp(request);
-        String location = geoIpService.getLocation(clientIp);
-
-        LoginHistory history = LoginHistory.builder()
-                .userId(userId)
-                .channelCode(channelCode)
-                .ipAddress(clientIp)
-                .userAgent(request.getHeader("User-Agent"))
-                .deviceType(parseDeviceType(request.getHeader("User-Agent")))
-                .browser(parseBrowser(request.getHeader("User-Agent")))
-                .os(parseOs(request.getHeader("User-Agent")))
-                .location(location)
-                .isSuccess(true)
-                .build();
-
-        loginHistoryRepository.save(history);
-        log.debug("Login history recorded: userId={}, channelCode={}", userId, channelCode);
+        String userAgent = request.getHeader("User-Agent");
+        saveLoginHistoryAsync(userId, channelCode, clientIp, userAgent, true, null);
     }
 
     /**
      * Record failed login attempt
+     * HttpServletRequest에서 필요한 정보를 동기적으로 추출 후 비동기 저장
      */
-    @Async
-    @Transactional
     public void recordLoginFailure(Long userId, ChannelCode channelCode, String reason, HttpServletRequest request) {
         String clientIp = getClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
+        saveLoginHistoryAsync(userId, channelCode, clientIp, userAgent, false, reason);
+    }
+
+    @Async
+    @Transactional
+    public void saveLoginHistoryAsync(Long userId, ChannelCode channelCode,
+                                       String clientIp, String userAgent,
+                                       boolean isSuccess, String failureReason) {
         String location = geoIpService.getLocation(clientIp);
 
         LoginHistory history = LoginHistory.builder()
                 .userId(userId)
                 .channelCode(channelCode)
                 .ipAddress(clientIp)
-                .userAgent(request.getHeader("User-Agent"))
-                .deviceType(parseDeviceType(request.getHeader("User-Agent")))
-                .browser(parseBrowser(request.getHeader("User-Agent")))
-                .os(parseOs(request.getHeader("User-Agent")))
+                .userAgent(userAgent)
+                .deviceType(parseDeviceType(userAgent))
+                .browser(parseBrowser(userAgent))
+                .os(parseOs(userAgent))
                 .location(location)
-                .isSuccess(false)
-                .failureReason(reason)
+                .isSuccess(isSuccess)
+                .failureReason(failureReason)
                 .build();
 
         loginHistoryRepository.save(history);
-        log.debug("Login failure recorded: userId={}, reason={}", userId, reason);
+        log.debug("Login history recorded: userId={}, channelCode={}, success={}", userId, channelCode, isSuccess);
     }
 
     /**

@@ -39,8 +39,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String clientIp = getClientIp(request);
         String path = request.getRequestURI();
 
-        boolean isAuthEndpoint = path.startsWith("/api/v1/auth/login")
-                || path.startsWith("/api/v1/auth/signup")
+        boolean isAuthEndpoint = path.startsWith("/api/v1/auth/email/login")
+                || path.startsWith("/api/v1/auth/email/signup")
                 || path.startsWith("/api/v1/auth/password/reset");
 
         String key;

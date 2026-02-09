@@ -36,7 +36,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         controllers = UserController.class,
         excludeFilters = @ComponentScan.Filter(
                 type = FilterType.ASSIGNABLE_TYPE,
-                classes = JwtAuthenticationFilter.class
+                classes = {
+                        JwtAuthenticationFilter.class,
+                        com.jay.auth.config.RateLimitFilter.class,
+                        com.jay.auth.config.RequestLoggingFilter.class
+                }
         )
 )
 @AutoConfigureMockMvc(addFilters = false)

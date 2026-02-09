@@ -211,7 +211,7 @@ class UserServiceTest {
             userService.deleteAccount(1L);
 
             // then
-            assertThat(user.getStatus()).isEqualTo(UserStatus.DELETED);
+            assertThat(user.getStatus()).isEqualTo(UserStatus.PENDING_DELETE);
             verify(tokenService).logoutAll(1L, null);
         }
 

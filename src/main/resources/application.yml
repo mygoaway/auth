@@ -44,6 +44,8 @@ app:
     issuer: auth-service
   encryption:
     secret-key: ${ENCRYPTION_SECRET_KEY:your-32-character-encryption-key!}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   sms:
     provider: ${SMS_PROVIDER:log}  # log, coolsms
     coolsms:

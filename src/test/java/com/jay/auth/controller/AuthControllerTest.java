@@ -42,7 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 classes = {
                         JwtAuthenticationFilter.class,
                         com.jay.auth.config.RateLimitFilter.class,
-                        com.jay.auth.config.RequestLoggingFilter.class
+                        com.jay.auth.config.RequestLoggingFilter.class,
+                        com.jay.auth.config.SecurityHeadersFilter.class
                 }
         )
 )

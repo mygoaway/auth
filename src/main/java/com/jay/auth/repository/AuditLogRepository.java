@@ -17,6 +17,11 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
     List<AuditLog> findByActionOrderByCreatedAtDesc(String action, Pageable pageable);
 
+    @Query("SELECT a FROM AuditLog a WHERE a.userId = :userId AND a.createdAt >= :since AND a.createdAt < :until ORDER BY a.createdAt DESC")
+    List<AuditLog> findByUserIdAndPeriod(@Param("userId") Long userId,
+                                         @Param("since") LocalDateTime since,
+                                         @Param("until") LocalDateTime until);
+
     @Modifying
     @Query("DELETE FROM AuditLog a WHERE a.createdAt < :before")
     void deleteOldLogs(@Param("before") LocalDateTime before);

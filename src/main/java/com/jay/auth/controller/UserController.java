@@ -9,8 +9,10 @@ import com.jay.auth.dto.response.ChannelStatusResponse;
 import com.jay.auth.dto.response.LoginHistoryResponse;
 import com.jay.auth.dto.response.SecurityDashboardResponse;
 import com.jay.auth.dto.response.UserProfileResponse;
+import com.jay.auth.dto.response.WeeklyActivityResponse;
 import com.jay.auth.security.UserPrincipal;
 import com.jay.auth.service.AccountLinkingService;
+import com.jay.auth.service.ActivityReportService;
 import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.SecurityDashboardService;
 import com.jay.auth.service.TokenService;
@@ -37,6 +39,7 @@ public class UserController {
     private final LoginHistoryService loginHistoryService;
     private final TokenService tokenService;
     private final SecurityDashboardService securityDashboardService;
+    private final ActivityReportService activityReportService;
 
     @Operation(summary = "프로필 조회", description = "현재 사용자의 프로필을 조회합니다")
     @GetMapping("/profile")
@@ -164,6 +167,17 @@ public class UserController {
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         SecurityDashboardResponse response = securityDashboardService.getSecurityDashboard(
+                userPrincipal.getUserId());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "주간 활동 리포트", description = "이번 주 로그인 활동 및 보안 요약을 조회합니다")
+    @GetMapping("/activity/weekly")
+    public ResponseEntity<WeeklyActivityResponse> getWeeklyActivity(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        WeeklyActivityResponse response = activityReportService.getWeeklyReport(
                 userPrincipal.getUserId());
 
         return ResponseEntity.ok(response);

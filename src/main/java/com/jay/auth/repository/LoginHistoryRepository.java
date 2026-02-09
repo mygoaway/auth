@@ -24,6 +24,11 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long
             "AND h.createdAt > :since")
     long countFailedLoginsSince(@Param("userId") Long userId, @Param("since") LocalDateTime since);
 
+    @Query("SELECT h FROM LoginHistory h WHERE h.userId = :userId AND h.createdAt >= :since AND h.createdAt < :until ORDER BY h.createdAt DESC")
+    List<LoginHistory> findByUserIdAndPeriod(@Param("userId") Long userId,
+                                             @Param("since") LocalDateTime since,
+                                             @Param("until") LocalDateTime until);
+
     @Modifying
     @Query("DELETE FROM LoginHistory h WHERE h.createdAt < :before")
     void deleteOldHistory(@Param("before") LocalDateTime before);

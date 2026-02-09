@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [backupCodes, setBackupCodes] = useState([]);
   const [securityDashboard, setSecurityDashboard] = useState(null);
+  const [weeklyActivity, setWeeklyActivity] = useState(null);
   const [lastLogin, setLastLogin] = useState(null);
   const [passwordWarning, setPasswordWarning] = useState(null);
   const [modal, setModal] = useState(null);
@@ -61,6 +62,9 @@ export default function DashboardPage() {
       loadLoginHistory();
       loadTwoFactorStatus();
       loadSecurityDashboard();
+    }
+    if (activeTab === 'activity') {
+      loadWeeklyActivity();
     }
   }, [activeTab, user]);
 
@@ -152,6 +156,15 @@ export default function DashboardPage() {
       setSecurityDashboard(response.data);
     } catch (err) {
       console.error('Failed to load security dashboard', err);
+    }
+  };
+
+  const loadWeeklyActivity = async () => {
+    try {
+      const response = await userApi.getWeeklyActivity();
+      setWeeklyActivity(response.data);
+    } catch (err) {
+      console.error('Failed to load weekly activity', err);
     }
   };
 
@@ -490,6 +503,12 @@ export default function DashboardPage() {
           onClick={() => setActiveTab('security')}
         >
           보안
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
+          onClick={() => setActiveTab('activity')}
+        >
+          활동
         </button>
       </div>
 
@@ -881,6 +900,122 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'activity' && (
+          <div className="tab-content">
+            {weeklyActivity ? (
+              <>
+                <div className="info-card">
+                  <h3>주간 활동 요약</h3>
+                  <p className="info-description">
+                    {new Date(weeklyActivity.weekStart).toLocaleDateString('ko-KR')} ~ {new Date(weeklyActivity.weekEnd).toLocaleDateString('ko-KR')}
+                  </p>
+
+                  <div className="weekly-stats-grid">
+                    <div className="weekly-stat-box">
+                      <span className="weekly-stat-value">{weeklyActivity.loginStats?.totalLogins || 0}</span>
+                      <span className="weekly-stat-label">총 로그인</span>
+                    </div>
+                    <div className="weekly-stat-box success">
+                      <span className="weekly-stat-value">{weeklyActivity.loginStats?.successfulLogins || 0}</span>
+                      <span className="weekly-stat-label">성공</span>
+                    </div>
+                    <div className="weekly-stat-box danger">
+                      <span className="weekly-stat-value">{weeklyActivity.loginStats?.failedLogins || 0}</span>
+                      <span className="weekly-stat-label">실패</span>
+                    </div>
+                  </div>
+                </div>
+
+                {weeklyActivity.loginStats?.loginsByChannel?.length > 0 && (
+                  <div className="info-card">
+                    <h3>채널별 로그인</h3>
+                    <div className="channel-login-list">
+                      {weeklyActivity.loginStats.loginsByChannel.map((ch, i) => (
+                        <div key={i} className="channel-login-item">
+                          <span className="channel-badge-small" style={{
+                            backgroundColor: CHANNEL_INFO[ch.channel]?.color || '#6c757d',
+                            color: CHANNEL_INFO[ch.channel]?.textColor || '#fff'
+                          }}>
+                            {CHANNEL_INFO[ch.channel]?.icon} {CHANNEL_INFO[ch.channel]?.name || ch.channel}
+                          </span>
+                          <span className="channel-login-count">{ch.count}회</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {weeklyActivity.deviceBreakdown?.length > 0 && (
+                  <div className="info-card">
+                    <h3>기기별 접속</h3>
+                    <div className="device-breakdown-list">
+                      {weeklyActivity.deviceBreakdown.map((device, i) => (
+                        <div key={i} className="device-breakdown-item">
+                          <span className="device-icon">
+                            {device.deviceType === 'Mobile' ? '📱' : device.deviceType === 'Tablet' ? '📲' : '💻'}
+                          </span>
+                          <span className="device-info">{device.browser} / {device.os}</span>
+                          <span className="device-count">{device.count}회</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {weeklyActivity.locations?.length > 0 && (
+                  <div className="info-card">
+                    <h3>접속 지역</h3>
+                    <div className="location-list">
+                      {weeklyActivity.locations.map((loc, i) => (
+                        <div key={i} className="location-item">
+                          <span className="location-name">{loc.location}</span>
+                          <span className="location-count">{loc.count}회</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {weeklyActivity.accountEvents?.length > 0 && (
+                  <div className="info-card">
+                    <h3>계정 활동 이벤트</h3>
+                    <div className="account-events-list">
+                      {weeklyActivity.accountEvents.map((event, i) => (
+                        <div key={i} className="account-event-item">
+                          <div className="event-action">{event.action}</div>
+                          {event.detail && <div className="event-detail">{event.detail}</div>}
+                          <div className="event-time">
+                            {new Date(event.occurredAt).toLocaleString('ko-KR', {
+                              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {weeklyActivity.securityAlerts?.length > 0 && (
+                  <div className="info-card">
+                    <h3>보안 알림</h3>
+                    <div className="security-alerts-list">
+                      {weeklyActivity.securityAlerts.map((alert, i) => (
+                        <div key={i} className="security-alert-item">
+                          {alert}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="info-card">
+                <p className="info-description">주간 활동 데이터를 불러오는 중...</p>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1857,6 +1857,135 @@ body {
   padding: 2px 0;
 }
 
+/* Weekly Activity */
+.weekly-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.weekly-stat-box {
+  text-align: center;
+  padding: 16px 8px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.weekly-stat-box.success { background: #e6f7e6; border-color: #b7eb8f; }
+.weekly-stat-box.danger { background: #fff2f0; border-color: #ffccc7; }
+
+.weekly-stat-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+}
+
+.weekly-stat-box.success .weekly-stat-value { color: #52c41a; }
+.weekly-stat-box.danger .weekly-stat-value { color: #ff4d4f; }
+
+.weekly-stat-label {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.channel-login-list, .device-breakdown-list, .location-list, .account-events-list {
+  padding: 8px 0;
+}
+
+.channel-login-item, .device-breakdown-item, .location-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.channel-login-item:last-child, .device-breakdown-item:last-child, .location-item:last-child {
+  border-bottom: none;
+}
+
+.channel-badge-small {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.channel-login-count, .device-count, .location-count {
+  font-weight: 600;
+  color: #555;
+  font-size: 14px;
+}
+
+.device-breakdown-item {
+  gap: 12px;
+}
+
+.device-icon {
+  font-size: 20px;
+}
+
+.device-info {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+}
+
+.location-name {
+  font-size: 14px;
+  color: #333;
+}
+
+.account-event-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.account-event-item:last-child {
+  border-bottom: none;
+}
+
+.event-action {
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+}
+
+.event-detail {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.event-time {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 4px;
+}
+
+.security-alerts-list {
+  padding: 8px 0;
+}
+
+.security-alert-item {
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  background: #fffbe6;
+  border-left: 3px solid #faad14;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #8c6d1f;
+}
+
+.security-alert-item:last-child {
+  margin-bottom: 0;
+}
+
 /* Active Sessions */
 .session-list {
   padding: 8px 0;

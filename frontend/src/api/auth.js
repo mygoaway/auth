@@ -74,6 +74,9 @@ export const userApi = {
 
   getSecurityDashboard: () =>
     client.get('/users/security/dashboard'),
+
+  getWeeklyActivity: () =>
+    client.get('/users/activity/weekly'),
 };
 
 export const phoneApi = {

@@ -46,6 +46,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             Long userId;
             String userUuid;
             ChannelCode channelCode;
+            String role;
             boolean isLinkMode;
             boolean pendingDeletion;
             String deletionRequestedAt;
@@ -54,6 +55,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 userId = oidcUser.getUserId();
                 userUuid = oidcUser.getUserUuid();
                 channelCode = oidcUser.getChannelCode();
+                role = oidcUser.getRole();
                 isLinkMode = oidcUser.isLinkMode();
                 pendingDeletion = oidcUser.isPendingDeletion();
                 deletionRequestedAt = oidcUser.getDeletionRequestedAt() != null
@@ -62,6 +64,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 userId = oAuth2User.getUserId();
                 userUuid = oAuth2User.getUserUuid();
                 channelCode = oAuth2User.getChannelCode();
+                role = oAuth2User.getRole();
                 isLinkMode = oAuth2User.isLinkMode();
                 pendingDeletion = oAuth2User.isPendingDeletion();
                 deletionRequestedAt = oAuth2User.getDeletionRequestedAt() != null
@@ -93,7 +96,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 // Normal login mode: extract session info and issue tokens
                 var sessionInfo = loginHistoryService.extractSessionInfo(request);
                 TokenResponse tokenResponse = tokenService.issueTokensWithSession(
-                        userId, userUuid, channelCode, sessionInfo);
+                        userId, userUuid, channelCode, role, sessionInfo);
 
                 // Record login history
                 loginHistoryService.recordLoginSuccess(userId, channelCode, request);

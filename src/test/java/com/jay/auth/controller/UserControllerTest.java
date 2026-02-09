@@ -70,7 +70,7 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        UserPrincipal userPrincipal = new UserPrincipal(1L, "uuid-1234");
+        UserPrincipal userPrincipal = new UserPrincipal(1L, "uuid-1234", "USER");
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userPrincipal, null, Collections.emptyList());
         SecurityContextHolder.getContext().setAuthentication(authentication);

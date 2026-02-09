@@ -27,6 +27,7 @@ public class JwtTokenProvider {
     private static final String CLAIM_CHANNEL_CODE = "channelCode";
     private static final String CLAIM_TOKEN_TYPE = "tokenType";
     private static final String CLAIM_TOKEN_ID = "jti";
+    private static final String CLAIM_ROLE = "role";
 
     public enum TokenType {
         ACCESS, REFRESH
@@ -44,21 +45,21 @@ public class JwtTokenProvider {
     /**
      * Access Token 생성
      */
-    public String createAccessToken(Long userId, String userUuid, ChannelCode channelCode) {
-        return createToken(userId, userUuid, channelCode, TokenType.ACCESS,
+    public String createAccessToken(Long userId, String userUuid, ChannelCode channelCode, String role) {
+        return createToken(userId, userUuid, channelCode, role, TokenType.ACCESS,
                 appProperties.getJwt().getAccessTokenExpiration());
     }
 
     /**
      * Refresh Token 생성
      */
-    public String createRefreshToken(Long userId, String userUuid, ChannelCode channelCode) {
-        return createToken(userId, userUuid, channelCode, TokenType.REFRESH,
+    public String createRefreshToken(Long userId, String userUuid, ChannelCode channelCode, String role) {
+        return createToken(userId, userUuid, channelCode, role, TokenType.REFRESH,
                 appProperties.getJwt().getRefreshTokenExpiration());
     }
 
     private String createToken(Long userId, String userUuid, ChannelCode channelCode,
-                               TokenType tokenType, long expiration) {
+                               String role, TokenType tokenType, long expiration) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
         String tokenId = UUID.randomUUID().toString();
@@ -68,6 +69,7 @@ public class JwtTokenProvider {
                 .claim(CLAIM_USER_ID, userId)
                 .claim(CLAIM_USER_UUID, userUuid)
                 .claim(CLAIM_CHANNEL_CODE, channelCode.name())
+                .claim(CLAIM_ROLE, role != null ? role : "USER")
                 .claim(CLAIM_TOKEN_TYPE, tokenType.name())
                 .claim(CLAIM_TOKEN_ID, tokenId)
                 .issuer(appProperties.getJwt().getIssuer())
@@ -124,6 +126,15 @@ public class JwtTokenProvider {
     public String getUserUuid(String token) {
         Claims claims = getClaims(token);
         return claims.get(CLAIM_USER_UUID, String.class);
+    }
+
+    /**
+     * 토큰에서 역할 추출
+     */
+    public String getRole(String token) {
+        Claims claims = getClaims(token);
+        String role = claims.get(CLAIM_ROLE, String.class);
+        return role != null ? role : "USER";
     }
 
     /**

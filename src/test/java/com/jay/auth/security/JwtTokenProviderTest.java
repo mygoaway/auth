@@ -35,7 +35,7 @@ class JwtTokenProviderTest {
         ChannelCode channelCode = ChannelCode.EMAIL;
 
         // when
-        String token = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode);
+        String token = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode, "USER");
 
         // then
         assertThat(jwtTokenProvider.validateToken(token)).isTrue();
@@ -54,7 +54,7 @@ class JwtTokenProviderTest {
         ChannelCode channelCode = ChannelCode.GOOGLE;
 
         // when
-        String token = jwtTokenProvider.createRefreshToken(userId, userUuid, channelCode);
+        String token = jwtTokenProvider.createRefreshToken(userId, userUuid, channelCode, "USER");
 
         // then
         assertThat(jwtTokenProvider.validateToken(token)).isTrue();
@@ -71,8 +71,8 @@ class JwtTokenProviderTest {
         ChannelCode channelCode = ChannelCode.EMAIL;
 
         // when
-        String token1 = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode);
-        String token2 = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode);
+        String token1 = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode, "USER");
+        String token2 = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode, "USER");
 
         // then
         String tokenId1 = jwtTokenProvider.getTokenId(token1);
@@ -97,8 +97,8 @@ class JwtTokenProviderTest {
         ChannelCode channelCode = ChannelCode.EMAIL;
 
         // when
-        String accessToken = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode);
-        String refreshToken = jwtTokenProvider.createRefreshToken(userId, userUuid, channelCode);
+        String accessToken = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode, "USER");
+        String refreshToken = jwtTokenProvider.createRefreshToken(userId, userUuid, channelCode, "USER");
 
         // then
         long accessRemaining = jwtTokenProvider.getRemainingExpiration(accessToken);

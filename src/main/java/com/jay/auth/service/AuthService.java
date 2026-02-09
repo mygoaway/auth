@@ -105,7 +105,8 @@ public class AuthService {
         TokenResponse tokenResponse = tokenService.issueTokens(
                 user.getId(),
                 user.getUserUuid(),
-                ChannelCode.EMAIL
+                ChannelCode.EMAIL,
+                user.getRole().name()
         );
 
         log.info("User signed up with email: {}, userId: {}", email, user.getId());
@@ -129,7 +130,8 @@ public class AuthService {
         TokenResponse tokenResponse = tokenService.issueTokens(
                 result.getUserId(),
                 result.getUserUuid(),
-                ChannelCode.EMAIL
+                ChannelCode.EMAIL,
+                result.getRole()
         );
 
         return LoginResponse.of(
@@ -153,6 +155,7 @@ public class AuthService {
                 result.getUserId(),
                 result.getUserUuid(),
                 ChannelCode.EMAIL,
+                result.getRole(),
                 sessionInfo
         );
 
@@ -226,6 +229,7 @@ public class AuthService {
                 email,
                 nickname,
                 ChannelCode.EMAIL,
+                user.getRole().name(),
                 pendingDeletion,
                 user.getDeletionRequestedAt()
         );

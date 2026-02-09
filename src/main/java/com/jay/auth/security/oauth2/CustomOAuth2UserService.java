@@ -84,6 +84,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 channelCode,
                 oAuth2User.getAttributes(),
                 userNameAttributeName,
+                user.getRole().name(),
                 isLinkMode,
                 pendingDeletion,
                 user.getDeletionRequestedAt()

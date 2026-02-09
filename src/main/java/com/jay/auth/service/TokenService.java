@@ -30,9 +30,9 @@ public class TokenService {
     /**
      * 토큰 발급 (로그인 시)
      */
-    public TokenResponse issueTokens(Long userId, String userUuid, ChannelCode channelCode) {
-        String accessToken = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode);
-        String refreshToken = jwtTokenProvider.createRefreshToken(userId, userUuid, channelCode);
+    public TokenResponse issueTokens(Long userId, String userUuid, ChannelCode channelCode, String role) {
+        String accessToken = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode, role);
+        String refreshToken = jwtTokenProvider.createRefreshToken(userId, userUuid, channelCode, role);
 
         // Refresh Token Redis 저장
         String tokenId = jwtTokenProvider.getTokenId(refreshToken);
@@ -53,8 +53,16 @@ public class TokenService {
      */
     public TokenResponse issueTokensWithSession(Long userId, String userUuid, ChannelCode channelCode,
             TokenStore.SessionInfo sessionInfo) {
-        String accessToken = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode);
-        String refreshToken = jwtTokenProvider.createRefreshToken(userId, userUuid, channelCode);
+        return issueTokensWithSession(userId, userUuid, channelCode, "USER", sessionInfo);
+    }
+
+    /**
+     * 토큰 발급 (세션 정보 + 역할 포함)
+     */
+    public TokenResponse issueTokensWithSession(Long userId, String userUuid, ChannelCode channelCode,
+            String role, TokenStore.SessionInfo sessionInfo) {
+        String accessToken = jwtTokenProvider.createAccessToken(userId, userUuid, channelCode, role);
+        String refreshToken = jwtTokenProvider.createRefreshToken(userId, userUuid, channelCode, role);
 
         // Refresh Token + Session 저장
         String tokenId = jwtTokenProvider.getTokenId(refreshToken);
@@ -99,10 +107,11 @@ public class TokenService {
         // 5. 새 토큰 발급
         String userUuid = jwtTokenProvider.getUserUuid(refreshToken);
         ChannelCode channelCode = jwtTokenProvider.getChannelCode(refreshToken);
+        String role = jwtTokenProvider.getRole(refreshToken);
 
         log.info("Refreshed tokens for user: {}", userId);
 
-        return issueTokens(userId, userUuid, channelCode);
+        return issueTokens(userId, userUuid, channelCode, role);
     }
 
     /**

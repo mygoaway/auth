@@ -18,6 +18,7 @@ public class LoginResult {
     private String email;
     private String nickname;
     private ChannelCode channelCode;
+    private String role;
     private boolean pendingDeletion;
     private LocalDateTime deletionRequestedAt;
 
@@ -28,12 +29,13 @@ public class LoginResult {
                 .email(email)
                 .nickname(nickname)
                 .channelCode(channelCode)
+                .role("USER")
                 .pendingDeletion(false)
                 .build();
     }
 
     public static LoginResult of(Long userId, String userUuid, String email, String nickname,
-                                 ChannelCode channelCode, boolean pendingDeletion,
+                                 ChannelCode channelCode, String role, boolean pendingDeletion,
                                  LocalDateTime deletionRequestedAt) {
         return LoginResult.builder()
                 .userId(userId)
@@ -41,6 +43,7 @@ public class LoginResult {
                 .email(email)
                 .nickname(nickname)
                 .channelCode(channelCode)
+                .role(role != null ? role : "USER")
                 .pendingDeletion(pendingDeletion)
                 .deletionRequestedAt(deletionRequestedAt)
                 .build();

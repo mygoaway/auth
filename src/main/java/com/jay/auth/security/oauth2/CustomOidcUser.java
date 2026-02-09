@@ -24,6 +24,7 @@ public class CustomOidcUser implements OidcUser {
     private final Map<String, Object> attributes;
     private final Collection<? extends GrantedAuthority> authorities;
     private final String nameAttributeKey;
+    private final String role;
     private final boolean linkMode;
     private final boolean pendingDeletion;
     private final LocalDateTime deletionRequestedAt;
@@ -31,19 +32,19 @@ public class CustomOidcUser implements OidcUser {
     public CustomOidcUser(Long userId, String userUuid, ChannelCode channelCode,
                           OidcIdToken idToken, OidcUserInfo userInfo,
                           Map<String, Object> attributes, String nameAttributeKey) {
-        this(userId, userUuid, channelCode, idToken, userInfo, attributes, nameAttributeKey, false, false, null);
+        this(userId, userUuid, channelCode, idToken, userInfo, attributes, nameAttributeKey, "USER", false, false, null);
     }
 
     public CustomOidcUser(Long userId, String userUuid, ChannelCode channelCode,
                           OidcIdToken idToken, OidcUserInfo userInfo,
                           Map<String, Object> attributes, String nameAttributeKey, boolean linkMode) {
-        this(userId, userUuid, channelCode, idToken, userInfo, attributes, nameAttributeKey, linkMode, false, null);
+        this(userId, userUuid, channelCode, idToken, userInfo, attributes, nameAttributeKey, "USER", linkMode, false, null);
     }
 
     public CustomOidcUser(Long userId, String userUuid, ChannelCode channelCode,
                           OidcIdToken idToken, OidcUserInfo userInfo,
-                          Map<String, Object> attributes, String nameAttributeKey, boolean linkMode,
-                          boolean pendingDeletion, LocalDateTime deletionRequestedAt) {
+                          Map<String, Object> attributes, String nameAttributeKey, String role,
+                          boolean linkMode, boolean pendingDeletion, LocalDateTime deletionRequestedAt) {
         this.userId = userId;
         this.userUuid = userUuid;
         this.channelCode = channelCode;
@@ -52,6 +53,7 @@ public class CustomOidcUser implements OidcUser {
         this.attributes = attributes;
         this.nameAttributeKey = nameAttributeKey;
         this.authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        this.role = role != null ? role : "USER";
         this.linkMode = linkMode;
         this.pendingDeletion = pendingDeletion;
         this.deletionRequestedAt = deletionRequestedAt;

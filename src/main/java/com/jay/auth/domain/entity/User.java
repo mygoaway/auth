@@ -1,5 +1,6 @@
 package com.jay.auth.domain.entity;
 
+import com.jay.auth.domain.enums.UserRole;
 import com.jay.auth.domain.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -62,6 +63,10 @@ public class User extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     private UserStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 20)
+    private UserRole role;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserSignInInfo signInInfo;
 
@@ -75,6 +80,9 @@ public class User extends BaseEntity {
         }
         if (this.status == null) {
             this.status = UserStatus.ACTIVE;
+        }
+        if (this.role == null) {
+            this.role = UserRole.USER;
         }
     }
 
@@ -114,6 +122,10 @@ public class User extends BaseEntity {
 
     public void updateStatus(UserStatus status) {
         this.status = status;
+    }
+
+    public void updateRole(UserRole role) {
+        this.role = role;
     }
 
     public void requestDeletion() {

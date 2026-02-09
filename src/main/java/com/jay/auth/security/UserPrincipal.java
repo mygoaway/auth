@@ -12,4 +12,5 @@ public class UserPrincipal {
 
     private final Long userId;
     private final String userUuid;
+    private final String role;
 }

@@ -37,16 +37,16 @@ class TokenServiceTest {
         @DisplayName("토큰이 정상 발급되어야 한다")
         void issueTokensSuccess() {
             // given
-            given(jwtTokenProvider.createAccessToken(1L, "uuid-1234", ChannelCode.EMAIL))
+            given(jwtTokenProvider.createAccessToken(1L, "uuid-1234", ChannelCode.EMAIL, "USER"))
                     .willReturn("access-token");
-            given(jwtTokenProvider.createRefreshToken(1L, "uuid-1234", ChannelCode.EMAIL))
+            given(jwtTokenProvider.createRefreshToken(1L, "uuid-1234", ChannelCode.EMAIL, "USER"))
                     .willReturn("refresh-token");
             given(jwtTokenProvider.getTokenId("refresh-token")).willReturn("token-id");
             given(jwtTokenProvider.getRefreshTokenExpiration()).willReturn(1209600000L);
             given(jwtTokenProvider.getAccessTokenExpiration()).willReturn(1800000L);
 
             // when
-            TokenResponse response = tokenService.issueTokens(1L, "uuid-1234", ChannelCode.EMAIL);
+            TokenResponse response = tokenService.issueTokens(1L, "uuid-1234", ChannelCode.EMAIL, "USER");
 
             // then
             assertThat(response.getAccessToken()).isEqualTo("access-token");
@@ -73,11 +73,12 @@ class TokenServiceTest {
             given(tokenStore.existsRefreshToken(1L, "old-token-id")).willReturn(true);
             given(jwtTokenProvider.getUserUuid(refreshToken)).willReturn("uuid-1234");
             given(jwtTokenProvider.getChannelCode(refreshToken)).willReturn(ChannelCode.EMAIL);
+            given(jwtTokenProvider.getRole(refreshToken)).willReturn("USER");
 
             // 새 토큰 발급 mock
-            given(jwtTokenProvider.createAccessToken(1L, "uuid-1234", ChannelCode.EMAIL))
+            given(jwtTokenProvider.createAccessToken(1L, "uuid-1234", ChannelCode.EMAIL, "USER"))
                     .willReturn("new-access-token");
-            given(jwtTokenProvider.createRefreshToken(1L, "uuid-1234", ChannelCode.EMAIL))
+            given(jwtTokenProvider.createRefreshToken(1L, "uuid-1234", ChannelCode.EMAIL, "USER"))
                     .willReturn("new-refresh-token");
             given(jwtTokenProvider.getTokenId("new-refresh-token")).willReturn("new-token-id");
             given(jwtTokenProvider.getRefreshTokenExpiration()).willReturn(1209600000L);

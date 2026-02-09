@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -35,4 +37,20 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByRecoveryEmailLowerEnc(String recoveryEmailLowerEnc);
 
     Optional<User> findByRecoveryEmailLowerEnc(String recoveryEmailLowerEnc);
+
+    long countByStatus(UserStatus status);
+
+    long countByCreatedAtAfter(LocalDateTime dateTime);
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.channels LEFT JOIN FETCH u.signInInfo ORDER BY u.createdAt DESC")
+    List<User> findRecentUsersWithChannels(org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT u FROM User u WHERE u.status = 'PENDING_DELETE' AND u.deletionRequestedAt < :cutoffDate")
+    List<User> findExpiredPendingDeletions(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+    @Query("SELECT u FROM User u LEFT JOIN u.signInInfo si " +
+            "WHERE u.status = 'ACTIVE' " +
+            "AND (si IS NULL OR si.lastLoginAt < :cutoffDate) " +
+            "AND u.createdAt < :cutoffDate")
+    List<User> findDormantCandidates(@Param("cutoffDate") LocalDateTime cutoffDate);
 }

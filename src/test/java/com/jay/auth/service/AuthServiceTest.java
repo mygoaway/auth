@@ -4,6 +4,7 @@ import com.jay.auth.domain.entity.User;
 import com.jay.auth.domain.entity.UserChannel;
 import com.jay.auth.domain.entity.UserSignInInfo;
 import com.jay.auth.domain.enums.ChannelCode;
+import com.jay.auth.domain.enums.UserRole;
 import com.jay.auth.domain.enums.UserStatus;
 import com.jay.auth.domain.enums.VerificationType;
 import com.jay.auth.dto.request.EmailLoginRequest;
@@ -88,11 +89,12 @@ class AuthServiceTest {
                 User u = invocation.getArgument(0);
                 setField(u, "id", 1L);
                 setField(u, "userUuid", "uuid-1234");
+                setField(u, "role", UserRole.USER);
                 return u;
             });
 
             TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800);
-            given(tokenService.issueTokens(eq(1L), eq("uuid-1234"), eq(ChannelCode.EMAIL)))
+            given(tokenService.issueTokens(eq(1L), eq("uuid-1234"), eq(ChannelCode.EMAIL), eq("USER")))
                     .willReturn(tokenResponse);
 
             // when
@@ -182,7 +184,7 @@ class AuthServiceTest {
             given(encryptionService.decryptNickname("enc_nickname")).willReturn("테스트");
 
             TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800);
-            given(tokenService.issueTokens(1L, "uuid-1234", ChannelCode.EMAIL)).willReturn(tokenResponse);
+            given(tokenService.issueTokens(1L, "uuid-1234", ChannelCode.EMAIL, "USER")).willReturn(tokenResponse);
 
             // when
             LoginResponse response = authService.loginWithEmail(request);
@@ -284,6 +286,7 @@ class AuthServiceTest {
                 .build();
         setField(user, "id", id);
         setField(user, "userUuid", uuid);
+        setField(user, "role", UserRole.USER);
         return user;
     }
 

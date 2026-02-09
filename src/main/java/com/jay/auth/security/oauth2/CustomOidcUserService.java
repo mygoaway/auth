@@ -92,6 +92,7 @@ public class CustomOidcUserService extends OidcUserService {
                 oidcUser.getUserInfo(),
                 attributes,
                 userNameAttributeName,
+                user.getRole().name(),
                 isLinkMode,
                 pendingDeletion,
                 user.getDeletionRequestedAt()

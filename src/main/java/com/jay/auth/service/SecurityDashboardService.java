@@ -46,12 +46,12 @@ public class SecurityDashboardService {
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
 
-        List<SecurityFactor> factors = calculateSecurityFactors(userId);
+        List<SecurityFactor> factors = calculateSecurityFactors(userId, user);
         int totalScore = factors.stream().mapToInt(SecurityFactor::getScore).sum();
         String level = getSecurityLevel(totalScore);
 
         List<SecurityActivity> recentActivities = getRecentActivities(userId);
-        List<String> recommendations = generateRecommendations(userId, factors);
+        List<String> recommendations = generateRecommendations(factors);
 
         return SecurityDashboardResponse.builder()
                 .securityScore(totalScore)
@@ -62,7 +62,7 @@ public class SecurityDashboardService {
                 .build();
     }
 
-    private List<SecurityFactor> calculateSecurityFactors(Long userId) {
+    private List<SecurityFactor> calculateSecurityFactors(Long userId, User user) {
         List<SecurityFactor> factors = new ArrayList<>();
 
         // 1. 2FA 설정 (30점)
@@ -86,9 +86,8 @@ public class SecurityDashboardService {
                 .enabled(passwordScore >= 15)
                 .build());
 
-        // 3. 복구 이메일 설정 (15점)
-        boolean hasRecoveryEmail = signInInfo != null &&
-                signInInfo.getUser().getRecoveryEmailEnc() != null;
+        // 3. 복구 이메일 설정 (15점) - User 엔티티에서 직접 확인
+        boolean hasRecoveryEmail = user.getRecoveryEmailEnc() != null;
         factors.add(SecurityFactor.builder()
                 .name("RECOVERY_EMAIL")
                 .description("복구 이메일 설정")
@@ -184,7 +183,7 @@ public class SecurityDashboardService {
         return activities;
     }
 
-    private List<String> generateRecommendations(Long userId, List<SecurityFactor> factors) {
+    private List<String> generateRecommendations(List<SecurityFactor> factors) {
         List<String> recommendations = new ArrayList<>();
 
         for (SecurityFactor factor : factors) {

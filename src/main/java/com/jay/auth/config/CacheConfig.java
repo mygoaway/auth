@@ -51,6 +51,9 @@ public class CacheConfig {
         // 보안 대시보드: 3분 TTL
         cacheConfigurations.put("securityDashboard", defaultConfig.entryTtl(Duration.ofMinutes(3)));
 
+        // GeoIP: 24시간 TTL
+        cacheConfigurations.put("geoip", defaultConfig.entryTtl(Duration.ofHours(24)));
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigurations)

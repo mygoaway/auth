@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class LoginHistoryService {
 
     private final LoginHistoryRepository loginHistoryRepository;
+    private final GeoIpService geoIpService;
 
     /**
      * Record successful login
@@ -30,14 +31,18 @@ public class LoginHistoryService {
     @Async
     @Transactional
     public void recordLoginSuccess(Long userId, ChannelCode channelCode, HttpServletRequest request) {
+        String clientIp = getClientIp(request);
+        String location = geoIpService.getLocation(clientIp);
+
         LoginHistory history = LoginHistory.builder()
                 .userId(userId)
                 .channelCode(channelCode)
-                .ipAddress(getClientIp(request))
+                .ipAddress(clientIp)
                 .userAgent(request.getHeader("User-Agent"))
                 .deviceType(parseDeviceType(request.getHeader("User-Agent")))
                 .browser(parseBrowser(request.getHeader("User-Agent")))
                 .os(parseOs(request.getHeader("User-Agent")))
+                .location(location)
                 .isSuccess(true)
                 .build();
 
@@ -51,14 +56,18 @@ public class LoginHistoryService {
     @Async
     @Transactional
     public void recordLoginFailure(Long userId, ChannelCode channelCode, String reason, HttpServletRequest request) {
+        String clientIp = getClientIp(request);
+        String location = geoIpService.getLocation(clientIp);
+
         LoginHistory history = LoginHistory.builder()
                 .userId(userId)
                 .channelCode(channelCode)
-                .ipAddress(getClientIp(request))
+                .ipAddress(clientIp)
                 .userAgent(request.getHeader("User-Agent"))
                 .deviceType(parseDeviceType(request.getHeader("User-Agent")))
                 .browser(parseBrowser(request.getHeader("User-Agent")))
                 .os(parseOs(request.getHeader("User-Agent")))
+                .location(location)
                 .isSuccess(false)
                 .failureReason(reason)
                 .build();
@@ -93,12 +102,15 @@ public class LoginHistoryService {
      */
     public TokenStore.SessionInfo extractSessionInfo(HttpServletRequest request) {
         String userAgent = request.getHeader("User-Agent");
+        String clientIp = getClientIp(request);
+        String location = geoIpService.getLocation(clientIp);
+
         return new TokenStore.SessionInfo(
                 parseDeviceType(userAgent),
                 parseBrowser(userAgent),
                 parseOs(userAgent),
-                getClientIp(request),
-                null  // location (could be determined by IP lookup)
+                clientIp,
+                location
         );
     }
 

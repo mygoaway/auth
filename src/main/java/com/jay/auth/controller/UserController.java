@@ -8,6 +8,7 @@ import com.jay.auth.dto.response.ActiveSessionResponse;
 import com.jay.auth.dto.response.ChannelStatusResponse;
 import com.jay.auth.dto.response.LoginHistoryResponse;
 import com.jay.auth.dto.response.SecurityDashboardResponse;
+import com.jay.auth.dto.response.SecuritySettingsResponse;
 import com.jay.auth.dto.response.SuspiciousActivityResponse;
 import com.jay.auth.dto.response.TrustedDeviceResponse;
 import com.jay.auth.dto.response.UserProfileResponse;
@@ -18,6 +19,7 @@ import com.jay.auth.service.ActivityReportService;
 import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.SecurityDashboardService;
 import com.jay.auth.service.TokenService;
+import com.jay.auth.service.SecuritySettingsService;
 import com.jay.auth.service.SuspiciousActivityService;
 import com.jay.auth.service.TrustedDeviceService;
 import com.jay.auth.service.UserService;
@@ -46,6 +48,7 @@ public class UserController {
     private final ActivityReportService activityReportService;
     private final TrustedDeviceService trustedDeviceService;
     private final SuspiciousActivityService suspiciousActivityService;
+    private final SecuritySettingsService securitySettingsService;
 
     @Operation(summary = "프로필 조회", description = "현재 사용자의 프로필을 조회합니다")
     @GetMapping("/profile")
@@ -242,6 +245,55 @@ public class UserController {
                 userPrincipal.getUserId());
 
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "보안 설정 조회", description = "알림 설정 및 계정 잠금 상태를 조회합니다")
+    @GetMapping("/security/settings")
+    public ResponseEntity<SecuritySettingsResponse> getSecuritySettings(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        SecuritySettingsResponse response = securitySettingsService.getSecuritySettings(
+                userPrincipal.getUserId());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "로그인 알림 설정 변경", description = "로그인 알림 수신 여부를 변경합니다")
+    @PatchMapping("/security/settings/login-notification")
+    public ResponseEntity<Void> updateLoginNotification(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestBody java.util.Map<String, Boolean> request) {
+
+        Boolean enabled = request.get("enabled");
+        if (enabled != null) {
+            securitySettingsService.updateLoginNotification(userPrincipal.getUserId(), enabled);
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "의심 활동 알림 설정 변경", description = "의심스러운 활동 알림 수신 여부를 변경합니다")
+    @PatchMapping("/security/settings/suspicious-notification")
+    public ResponseEntity<Void> updateSuspiciousNotification(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestBody java.util.Map<String, Boolean> request) {
+
+        Boolean enabled = request.get("enabled");
+        if (enabled != null) {
+            securitySettingsService.updateSuspiciousNotification(userPrincipal.getUserId(), enabled);
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "계정 잠금 해제", description = "잠금된 계정을 해제합니다")
+    @PostMapping("/security/unlock")
+    public ResponseEntity<Void> unlockAccount(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        securitySettingsService.unlockAccount(userPrincipal.getUserId());
+
+        return ResponseEntity.ok().build();
     }
 
     private String extractTokenId(HttpServletRequest request) {

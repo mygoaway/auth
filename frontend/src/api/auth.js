@@ -92,6 +92,18 @@ export const userApi = {
 
   getSuspiciousActivity: () =>
     client.get('/users/security/suspicious'),
+
+  getSecuritySettings: () =>
+    client.get('/users/security/settings'),
+
+  updateLoginNotification: (enabled) =>
+    client.patch('/users/security/settings/login-notification', { enabled }),
+
+  updateSuspiciousNotification: (enabled) =>
+    client.patch('/users/security/settings/suspicious-notification', { enabled }),
+
+  unlockAccount: () =>
+    client.post('/users/security/unlock'),
 };
 
 export const phoneApi = {

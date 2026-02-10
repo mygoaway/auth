@@ -78,6 +78,9 @@ class AuthControllerTest {
     @MockitoBean
     private PasswordUtil passwordUtil;
 
+    @MockitoBean
+    private com.jay.auth.service.SecuritySettingsService securitySettingsService;
+
     @BeforeEach
     void setUp() {
         // Mock session info extraction

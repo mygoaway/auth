@@ -14,6 +14,7 @@ import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.LoginRateLimitService;
 import com.jay.auth.service.PasswordService;
 import com.jay.auth.service.SecurityNotificationService;
+import com.jay.auth.service.SecuritySettingsService;
 import com.jay.auth.service.TokenService;
 import com.jay.auth.util.PasswordUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +41,7 @@ public class AuthController {
     private final LoginRateLimitService loginRateLimitService;
     private final LoginHistoryService loginHistoryService;
     private final SecurityNotificationService securityNotificationService;
+    private final SecuritySettingsService securitySettingsService;
     private final PasswordUtil passwordUtil;
 
     @Operation(summary = "이메일 회원가입", description = "이메일 인증 완료 후 회원가입을 진행합니다")
@@ -92,6 +94,7 @@ public class AuthController {
             Long userId = authService.findUserIdByEmail(email);
             if (userId != null) {
                 loginHistoryService.recordLoginFailure(userId, ChannelCode.EMAIL, e.getMessage(), httpRequest);
+                securitySettingsService.recordFailedAttemptForLock(userId);
             }
 
             throw e;

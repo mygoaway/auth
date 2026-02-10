@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [weeklyActivity, setWeeklyActivity] = useState(null);
   const [trustedDevices, setTrustedDevices] = useState([]);
   const [suspiciousActivity, setSuspiciousActivity] = useState(null);
+  const [securitySettings, setSecuritySettings] = useState(null);
   const [lastLogin, setLastLogin] = useState(null);
   const [passwordWarning, setPasswordWarning] = useState(null);
   const [modal, setModal] = useState(null);
@@ -66,6 +67,7 @@ export default function DashboardPage() {
       loadSecurityDashboard();
       loadTrustedDevices();
       loadSuspiciousActivity();
+      loadSecuritySettings();
     }
     if (activeTab === 'activity') {
       loadWeeklyActivity();
@@ -169,6 +171,51 @@ export default function DashboardPage() {
       setWeeklyActivity(response.data);
     } catch (err) {
       console.error('Failed to load weekly activity', err);
+    }
+  };
+
+  const loadSecuritySettings = async () => {
+    try {
+      const response = await userApi.getSecuritySettings();
+      setSecuritySettings(response.data);
+    } catch (err) {
+      console.error('Failed to load security settings', err);
+    }
+  };
+
+  const handleToggleLoginNotification = async () => {
+    if (!securitySettings) return;
+    try {
+      const newVal = !securitySettings.loginNotificationEnabled;
+      await userApi.updateLoginNotification(newVal);
+      setSecuritySettings(prev => ({ ...prev, loginNotificationEnabled: newVal }));
+    } catch (err) {
+      setError('설정 변경에 실패했습니다');
+    }
+  };
+
+  const handleToggleSuspiciousNotification = async () => {
+    if (!securitySettings) return;
+    try {
+      const newVal = !securitySettings.suspiciousActivityNotificationEnabled;
+      await userApi.updateSuspiciousNotification(newVal);
+      setSecuritySettings(prev => ({ ...prev, suspiciousActivityNotificationEnabled: newVal }));
+    } catch (err) {
+      setError('설정 변경에 실패했습니다');
+    }
+  };
+
+  const handleUnlockAccount = async () => {
+    try {
+      setLoading(true);
+      await userApi.unlockAccount();
+      setSuccess('계정 잠금이 해제되었습니다');
+      await loadSecuritySettings();
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || '잠금 해제에 실패했습니다');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1013,6 +1060,56 @@ export default function DashboardPage() {
                 <p className="info-description" style={{ marginTop: 8 }}>등록된 신뢰 기기가 없습니다.</p>
               )}
             </div>
+
+            {/* Notification Settings & Account Lock */}
+            {securitySettings && (
+              <div className="info-card">
+                <h3>알림 설정</h3>
+
+                {securitySettings.accountLocked && (
+                  <div className="lock-banner">
+                    <span className="lock-banner-icon">🔒</span>
+                    <div className="lock-banner-text">
+                      <strong>계정이 잠금되었습니다</strong>
+                      {securitySettings.lockReason && <p>{securitySettings.lockReason}</p>}
+                    </div>
+                    <button className="btn btn-small" onClick={handleUnlockAccount} disabled={loading}>
+                      잠금 해제
+                    </button>
+                  </div>
+                )}
+
+                <div className="notification-setting-item">
+                  <div className="notification-setting-info">
+                    <span className="notification-setting-label">로그인 알림</span>
+                    <span className="notification-setting-desc">새로운 기기에서 로그인 시 이메일 알림</span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={securitySettings.loginNotificationEnabled}
+                      onChange={handleToggleLoginNotification}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div className="notification-setting-item">
+                  <div className="notification-setting-info">
+                    <span className="notification-setting-label">의심 활동 알림</span>
+                    <span className="notification-setting-desc">의심스러운 로그인 활동 감지 시 알림</span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={securitySettings.suspiciousActivityNotificationEnabled}
+                      onChange={handleToggleSuspiciousNotification}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            )}
 
             <div className="info-card">
               <h3>최근 로그인 기록</h3>

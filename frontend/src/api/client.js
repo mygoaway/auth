@@ -41,7 +41,12 @@ client.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // 인증 API(로그인/회원가입 등)의 401은 refresh 시도하지 않음
+    const isAuthRequest = originalRequest.url?.includes('/auth/email/login')
+      || originalRequest.url?.includes('/auth/email/signup')
+      || originalRequest.url?.includes('/auth/password/');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
       originalRequest._retry = true;
 
       try {

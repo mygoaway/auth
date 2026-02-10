@@ -433,8 +433,8 @@ export default function DashboardPage() {
       return;
     }
 
-    // 기존 복구 이메일과 동일한지 검증
-    if (user.recoveryEmail && recoveryEmail.toLowerCase() === user.recoveryEmail.toLowerCase()) {
+    // 기존 복구 이메일과 동일한지 검증 (실제 등록된 경우에만)
+    if (user.recoveryEmail && user.recoveryEmail.trim() !== '' && recoveryEmail.toLowerCase() === user.recoveryEmail.toLowerCase()) {
       setError('현재 등록된 복구 이메일과 동일합니다.');
       return;
     }

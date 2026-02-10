@@ -33,6 +33,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final String AUTH_RATE_LIMIT_PREFIX = "rate:auth:";
     private static final int MAX_AUTH_REQUESTS_PER_MINUTE = 10;
 
+    // 인증된 사용자 API는 넉넉한 제한 (대시보드 탭 전환 시 다수 동시 호출)
+    private static final String USER_RATE_LIMIT_PREFIX = "rate:user:";
+    private static final int MAX_USER_REQUESTS_PER_MINUTE = 200;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
@@ -43,12 +47,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/v1/auth/email/signup")
                 || path.startsWith("/api/v1/auth/password/reset");
 
+        boolean isUserEndpoint = path.startsWith("/api/v1/users/")
+                || path.startsWith("/api/v1/2fa/")
+                || path.startsWith("/api/v1/admin/");
+
         String key;
         int maxRequests;
 
         if (isAuthEndpoint) {
             key = AUTH_RATE_LIMIT_PREFIX + clientIp;
             maxRequests = MAX_AUTH_REQUESTS_PER_MINUTE;
+        } else if (isUserEndpoint) {
+            key = USER_RATE_LIMIT_PREFIX + clientIp;
+            maxRequests = MAX_USER_REQUESTS_PER_MINUTE;
         } else {
             key = RATE_LIMIT_PREFIX + clientIp;
             maxRequests = MAX_REQUESTS_PER_MINUTE;

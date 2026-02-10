@@ -56,7 +56,8 @@ public class CustomOidcUserService extends OidcUserService {
         Long linkUserId = linkState != null ? oAuth2LinkStateService.getLinkUserId(linkState) : null;
         boolean isLinkMode = linkUserId != null;
 
-        log.debug("OIDC loadUser: linkState={}, linkUserId={}, isLinkMode={}", linkState, linkUserId, isLinkMode);
+        log.info("OIDC loadUser: linkState={}, linkUserId={}, isLinkMode={}, channelCode={}",
+                linkState, linkUserId, isLinkMode, channelCode);
 
         User user;
         try {
@@ -103,13 +104,18 @@ public class CustomOidcUserService extends OidcUserService {
         try {
             ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs == null) {
+                log.warn("OIDC getLinkStateFromCookie: RequestAttributes is null");
                 return null;
             }
             HttpServletRequest request = attrs.getRequest();
             Cookie[] cookies = request.getCookies();
             if (cookies == null) {
+                log.info("OIDC getLinkStateFromCookie: No cookies in request");
                 return null;
             }
+            log.info("OIDC getLinkStateFromCookie: Found {} cookies: {}",
+                    cookies.length,
+                    Arrays.stream(cookies).map(Cookie::getName).toList());
             return Arrays.stream(cookies)
                     .filter(c -> OAuth2LinkController.LINK_STATE_COOKIE_NAME.equals(c.getName()))
                     .map(Cookie::getValue)

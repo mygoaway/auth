@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi, authApi, phoneApi, emailApi, twoFactorApi, oauth2Api } from '../api/auth';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
@@ -16,8 +16,12 @@ const CHANNEL_INFO = {
 export default function DashboardPage() {
   const { user, logout, loadProfile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    return ['home', 'profile', 'channels', 'security', 'activity'].includes(tab) ? tab : 'home';
+  });
   const [channelsStatus, setChannelsStatus] = useState(null);
   const [loginHistory, setLoginHistory] = useState([]);
   const [twoFactorStatus, setTwoFactorStatus] = useState(null);
@@ -52,6 +56,13 @@ export default function DashboardPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
+
+  // Clear tab query param after reading it
+  useEffect(() => {
+    if (searchParams.get('tab')) {
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'home') {

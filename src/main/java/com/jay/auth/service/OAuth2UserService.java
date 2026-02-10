@@ -12,9 +12,12 @@ import com.jay.auth.security.oauth2.OAuth2UserInfo;
 import com.jay.auth.util.NicknameGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +31,7 @@ public class OAuth2UserService {
     private final UserChannelRepository userChannelRepository;
     private final EncryptionService encryptionService;
     private final NicknameGenerator nicknameGenerator;
+    private final CacheManager cacheManager;
 
     @Transactional
     public User processOAuth2User(ChannelCode channelCode, OAuth2UserInfo oAuth2UserInfo) {
@@ -59,7 +63,6 @@ public class OAuth2UserService {
      * Process OAuth2 user for account linking mode.
      * Links the social account to an existing user instead of creating a new one.
      */
-    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public User processOAuth2UserForLinking(Long userId, ChannelCode channelCode, OAuth2UserInfo oAuth2UserInfo) {
         String channelKey = oAuth2UserInfo.getId();
@@ -109,6 +112,16 @@ public class OAuth2UserService {
                 .build();
 
         userChannelRepository.save(newChannel);
+        user.addChannel(newChannel);
+        userRepository.flush();
+
+        // 트랜잭션 커밋 후 캐시 제거 (AOP 순서 문제 방지)
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                evictUserProfileCache(userId);
+            }
+        });
 
         log.info("Social account linked to user: userId={}, channelCode={}, channelKey={}", userId, channelCode, channelKey);
 
@@ -157,5 +170,17 @@ public class OAuth2UserService {
         }
         EncryptionService.EncryptedEmail encryptedEmail = encryptionService.encryptEmail(email);
         channel.updateChannelEmail(encryptedEmail.encrypted(), encryptedEmail.encryptedLower());
+    }
+
+    private void evictUserProfileCache(Long userId) {
+        try {
+            var cache = cacheManager.getCache("userProfile");
+            if (cache != null) {
+                cache.evict(userId);
+                log.debug("Evicted userProfile cache for userId={}", userId);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to evict userProfile cache: {}", e.getMessage());
+        }
     }
 }

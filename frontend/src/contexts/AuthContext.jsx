@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi, userApi } from '../api/auth';
 
 const AuthContext = createContext(null);
@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const response = await userApi.getProfile();
       setUser(response.data);
@@ -42,7 +42,7 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const login = async (email, password, rememberMe = false) => {
     const response = await authApi.login(email, password);

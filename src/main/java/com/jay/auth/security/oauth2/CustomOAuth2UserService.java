@@ -50,7 +50,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         Long linkUserId = linkState != null ? oAuth2LinkStateService.getLinkUserId(linkState) : null;
         boolean isLinkMode = linkUserId != null;
 
-        log.debug("OAuth2 loadUser: linkState={}, linkUserId={}, isLinkMode={}", linkState, linkUserId, isLinkMode);
+        log.info("OAuth2 loadUser: linkState={}, linkUserId={}, isLinkMode={}, channelCode={}",
+                linkState, linkUserId, isLinkMode, channelCode);
 
         User user;
         try {

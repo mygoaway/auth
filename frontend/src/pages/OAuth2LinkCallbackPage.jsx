@@ -39,7 +39,7 @@ export default function OAuth2LinkCallbackPage() {
           console.error('Failed to refresh profile:', err);
         }
 
-        setTimeout(() => navigate('/dashboard'), 2000);
+        setTimeout(() => navigate('/dashboard?tab=channels'), 2000);
       } else {
         setStatus('error');
         setMessage('계정 연동에 실패했습니다');
@@ -48,7 +48,7 @@ export default function OAuth2LinkCallbackPage() {
     };
 
     handleCallback();
-  }, [searchParams, navigate, loadProfile]);
+  }, []);
 
   return (
     <div className="auth-container">

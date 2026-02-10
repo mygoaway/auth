@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [securityDashboard, setSecurityDashboard] = useState(null);
   const [weeklyActivity, setWeeklyActivity] = useState(null);
   const [trustedDevices, setTrustedDevices] = useState([]);
+  const [suspiciousActivity, setSuspiciousActivity] = useState(null);
   const [lastLogin, setLastLogin] = useState(null);
   const [passwordWarning, setPasswordWarning] = useState(null);
   const [modal, setModal] = useState(null);
@@ -64,6 +65,7 @@ export default function DashboardPage() {
       loadTwoFactorStatus();
       loadSecurityDashboard();
       loadTrustedDevices();
+      loadSuspiciousActivity();
     }
     if (activeTab === 'activity') {
       loadWeeklyActivity();
@@ -167,6 +169,15 @@ export default function DashboardPage() {
       setWeeklyActivity(response.data);
     } catch (err) {
       console.error('Failed to load weekly activity', err);
+    }
+  };
+
+  const loadSuspiciousActivity = async () => {
+    try {
+      const response = await userApi.getSuspiciousActivity();
+      setSuspiciousActivity(response.data);
+    } catch (err) {
+      console.error('Failed to load suspicious activity', err);
     }
   };
 
@@ -826,6 +837,58 @@ export default function DashboardPage() {
                     <ul>
                       {securityDashboard.recommendations.map((rec, index) => (
                         <li key={index}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Suspicious Activity */}
+            {suspiciousActivity && suspiciousActivity.events && suspiciousActivity.events.length > 0 && (
+              <div className={`info-card suspicious-card ${suspiciousActivity.riskLevel?.toLowerCase()}`}>
+                <h3>
+                  의심스러운 활동 감지
+                  <span className={`risk-badge ${suspiciousActivity.riskLevel?.toLowerCase()}`}>
+                    {suspiciousActivity.riskLevel === 'HIGH' && '위험'}
+                    {suspiciousActivity.riskLevel === 'MEDIUM' && '주의'}
+                    {suspiciousActivity.riskLevel === 'LOW' && '참고'}
+                    {suspiciousActivity.riskLevel === 'SAFE' && '안전'}
+                  </span>
+                </h3>
+                <div className="suspicious-events">
+                  {suspiciousActivity.events.map((event, i) => (
+                    <div key={i} className={`suspicious-event ${event.severity?.toLowerCase()}`}>
+                      <div className="suspicious-event-header">
+                        <span className="suspicious-event-type">
+                          {event.type === 'BRUTE_FORCE' && '무차별 대입 시도'}
+                          {event.type === 'MULTIPLE_LOCATIONS' && '다중 지역 로그인'}
+                          {event.type === 'RAPID_LOGIN' && '빠른 연속 로그인'}
+                          {event.type === 'UNUSUAL_HOURS' && '비정상 시간대 로그인'}
+                          {event.type === 'NEW_DEVICE' && '새 기기 로그인'}
+                        </span>
+                        <span className={`severity-badge ${event.severity?.toLowerCase()}`}>
+                          {event.severity === 'HIGH' ? '높음' : event.severity === 'MEDIUM' ? '중간' : '낮음'}
+                        </span>
+                      </div>
+                      <div className="suspicious-event-desc">{event.description}</div>
+                      <div className="suspicious-event-meta">
+                        {event.location && <span>{event.location}</span>}
+                        {event.detectedAt && (
+                          <span>{new Date(event.detectedAt).toLocaleString('ko-KR', {
+                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                          })}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {suspiciousActivity.recommendations?.length > 0 && (
+                  <div className="suspicious-recommendations">
+                    <h4>권장 조치</h4>
+                    <ul>
+                      {suspiciousActivity.recommendations.map((rec, i) => (
+                        <li key={i}>{rec}</li>
                       ))}
                     </ul>
                   </div>

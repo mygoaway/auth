@@ -1986,6 +1986,115 @@ body {
   margin-bottom: 0;
 }
 
+/* Suspicious Activity */
+.suspicious-card.high {
+  border-left: 4px solid #ff4d4f;
+}
+
+.suspicious-card.medium {
+  border-left: 4px solid #faad14;
+}
+
+.suspicious-card.low {
+  border-left: 4px solid #1890ff;
+}
+
+.risk-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.risk-badge.high { background: #fff2f0; color: #ff4d4f; }
+.risk-badge.medium { background: #fffbe6; color: #faad14; }
+.risk-badge.low { background: #e6f7ff; color: #1890ff; }
+.risk-badge.safe { background: #f6ffed; color: #52c41a; }
+
+.suspicious-events {
+  margin-top: 12px;
+}
+
+.suspicious-event {
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  background: #fafafa;
+  border-left: 3px solid #d9d9d9;
+}
+
+.suspicious-event.high { background: #fff2f0; border-left-color: #ff4d4f; }
+.suspicious-event.medium { background: #fffbe6; border-left-color: #faad14; }
+.suspicious-event.low { background: #f0f5ff; border-left-color: #1890ff; }
+
+.suspicious-event:last-child {
+  margin-bottom: 0;
+}
+
+.suspicious-event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.suspicious-event-type {
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+}
+
+.severity-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.severity-badge.high { background: #ff4d4f; color: #fff; }
+.severity-badge.medium { background: #faad14; color: #fff; }
+.severity-badge.low { background: #1890ff; color: #fff; }
+
+.suspicious-event-desc {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.suspicious-event-meta {
+  font-size: 11px;
+  color: #999;
+  display: flex;
+  gap: 12px;
+}
+
+.suspicious-recommendations {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f6ffed;
+  border-radius: 6px;
+}
+
+.suspicious-recommendations h4 {
+  font-size: 13px;
+  margin: 0 0 8px 0;
+  color: #389e0d;
+}
+
+.suspicious-recommendations ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.suspicious-recommendations li {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 4px;
+}
+
 /* Trusted Devices */
 .trusted-devices-list {
   padding: 4px 0;

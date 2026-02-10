@@ -89,6 +89,9 @@ export const userApi = {
 
   removeAllTrustedDevices: () =>
     client.delete('/users/devices/trusted'),
+
+  getSuspiciousActivity: () =>
+    client.get('/users/security/suspicious'),
 };
 
 export const phoneApi = {

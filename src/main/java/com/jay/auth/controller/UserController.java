@@ -8,6 +8,7 @@ import com.jay.auth.dto.response.ActiveSessionResponse;
 import com.jay.auth.dto.response.ChannelStatusResponse;
 import com.jay.auth.dto.response.LoginHistoryResponse;
 import com.jay.auth.dto.response.SecurityDashboardResponse;
+import com.jay.auth.dto.response.SuspiciousActivityResponse;
 import com.jay.auth.dto.response.TrustedDeviceResponse;
 import com.jay.auth.dto.response.UserProfileResponse;
 import com.jay.auth.dto.response.WeeklyActivityResponse;
@@ -17,6 +18,7 @@ import com.jay.auth.service.ActivityReportService;
 import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.SecurityDashboardService;
 import com.jay.auth.service.TokenService;
+import com.jay.auth.service.SuspiciousActivityService;
 import com.jay.auth.service.TrustedDeviceService;
 import com.jay.auth.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,6 +45,7 @@ public class UserController {
     private final SecurityDashboardService securityDashboardService;
     private final ActivityReportService activityReportService;
     private final TrustedDeviceService trustedDeviceService;
+    private final SuspiciousActivityService suspiciousActivityService;
 
     @Operation(summary = "프로필 조회", description = "현재 사용자의 프로필을 조회합니다")
     @GetMapping("/profile")
@@ -217,6 +220,17 @@ public class UserController {
         trustedDeviceService.removeAllTrustedDevices(userPrincipal.getUserId());
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "의심스러운 활동 분석", description = "최근 7일간 의심스러운 로그인 활동을 분석합니다")
+    @GetMapping("/security/suspicious")
+    public ResponseEntity<SuspiciousActivityResponse> getSuspiciousActivity(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        SuspiciousActivityResponse response = suspiciousActivityService.analyzeRecentActivity(
+                userPrincipal.getUserId());
+
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "주간 활동 리포트", description = "이번 주 로그인 활동 및 보안 요약을 조회합니다")

@@ -4,10 +4,12 @@ import { authApi } from '../api/auth';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 export default function ForgotPasswordPage() {
-  const [step, setStep] = useState(1); // 1: email, 2: verify, 3: new password
+  const [step, setStep] = useState(1); // 1: recovery email, 2: verify, 3: select account, 4: new password
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [tokenId, setTokenId] = useState('');
+  const [accounts, setAccounts] = useState([]);
+  const [selectedLoginEmail, setSelectedLoginEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -44,8 +46,20 @@ export default function ForgotPasswordPage() {
 
     try {
       await authApi.verifyCode(email, code, 'PASSWORD_RESET');
-      setSuccess('인증이 완료되었습니다');
-      setStep(3);
+      setSuccess('');
+
+      // 인증 완료 후 연결된 계정 목록 조회
+      const accountsResponse = await authApi.getRecoveryAccounts(tokenId, email);
+      const accountList = accountsResponse.data.accounts;
+      setAccounts(accountList);
+
+      if (accountList.length === 1) {
+        // 계정이 하나뿐이면 자동 선택 후 바로 비밀번호 변경 단계로
+        setSelectedLoginEmail(accountList[0].loginEmail);
+        setStep(4);
+      } else {
+        setStep(3);
+      }
     } catch (err) {
       const message = err.response?.data?.error?.message
         || err.response?.data?.message
@@ -54,6 +68,13 @@ export default function ForgotPasswordPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectAccount = (loginEmail) => {
+    setSelectedLoginEmail(loginEmail);
+    setError('');
+    setSuccess('');
+    setStep(4);
   };
 
   const handleResetPassword = async (e) => {
@@ -73,7 +94,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      await authApi.resetPassword(tokenId, email, newPassword);
+      await authApi.resetPassword(tokenId, email, selectedLoginEmail, newPassword);
       setSuccess('비밀번호가 재설정되었습니다');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
@@ -86,7 +107,7 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  // 이메일 입력 화면
+  // Step 1: 복구 이메일 입력 화면
   if (step === 1) {
     return (
       <div className="auth-container">
@@ -96,7 +117,7 @@ export default function ForgotPasswordPage() {
           </div>
           <p className="auth-subtitle">비밀번호 재설정</p>
           <p className="auth-description">
-            가입하신 이메일로 인증 코드를 전송합니다
+            복구 이메일로 인증 코드를 전송합니다
           </p>
 
           {error && <div className="error-message">{error}</div>}
@@ -108,7 +129,7 @@ export default function ForgotPasswordPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="가입한 이메일을 입력하세요"
+                  placeholder="복구 이메일을 입력하세요"
                   required
                 />
                 {email && (
@@ -130,7 +151,7 @@ export default function ForgotPasswordPage() {
     );
   }
 
-  // 인증 코드 입력 화면
+  // Step 2: 인증 코드 입력 화면
   if (step === 2) {
     return (
       <div className="auth-container">
@@ -145,7 +166,7 @@ export default function ForgotPasswordPage() {
 
           <form onSubmit={handleVerifyCode}>
             <div className="form-group">
-              <label>이메일</label>
+              <label>복구 이메일</label>
               <input type="email" value={email} disabled className="disabled-input" />
             </div>
 
@@ -173,7 +194,7 @@ export default function ForgotPasswordPage() {
 
           <div className="back-link">
             <a href="#" onClick={(e) => { e.preventDefault(); setStep(1); setError(''); setSuccess(''); }}>
-              이메일 다시 입력
+              복구 이메일 다시 입력
             </a>
           </div>
         </div>
@@ -181,7 +202,45 @@ export default function ForgotPasswordPage() {
     );
   }
 
-  // 새 비밀번호 입력 화면
+  // Step 3: 계정 선택 화면
+  if (step === 3) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-logo">
+            <h1>Authly</h1>
+          </div>
+          <p className="auth-subtitle">계정 선택</p>
+          <p className="auth-description">
+            비밀번호를 재설정할 계정을 선택하세요
+          </p>
+
+          {error && <div className="error-message">{error}</div>}
+
+          <div className="account-list">
+            {accounts.map((account, index) => (
+              <div
+                key={index}
+                className="account-item"
+                onClick={() => handleSelectAccount(account.loginEmail)}
+              >
+                <div className="account-email">{account.maskedEmail}</div>
+                <span className="account-arrow">&rsaquo;</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="back-link">
+            <a href="#" onClick={(e) => { e.preventDefault(); setStep(1); setError(''); setSuccess(''); }}>
+              복구 이메일 다시 입력
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 4: 새 비밀번호 입력 화면
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -195,9 +254,14 @@ export default function ForgotPasswordPage() {
 
         <form onSubmit={handleResetPassword}>
           <div className="form-group">
-            <label>이메일</label>
+            <label>복구 이메일</label>
             <input type="email" value={email} disabled className="disabled-input" />
             <span className="verified-badge">✓ 인증완료</span>
+          </div>
+
+          <div className="form-group">
+            <label>로그인 이메일</label>
+            <input type="email" value={selectedLoginEmail} disabled className="disabled-input" />
           </div>
 
           <div className="form-group">

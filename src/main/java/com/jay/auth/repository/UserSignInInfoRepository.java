@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserSignInInfoRepository extends JpaRepository<UserSignInInfo, Long> {
@@ -23,4 +24,7 @@ public interface UserSignInInfoRepository extends JpaRepository<UserSignInInfo, 
 
     @Query("SELECT s FROM UserSignInInfo s JOIN FETCH s.user u WHERE u.recoveryEmailLowerEnc = :recoveryEmailLowerEnc")
     Optional<UserSignInInfo> findByRecoveryEmailLowerEncWithUser(@Param("recoveryEmailLowerEnc") String recoveryEmailLowerEnc);
+
+    @Query("SELECT s FROM UserSignInInfo s JOIN FETCH s.user u WHERE u.recoveryEmailLowerEnc = :recoveryEmailLowerEnc")
+    List<UserSignInInfo> findAllByRecoveryEmailLowerEncWithUser(@Param("recoveryEmailLowerEnc") String recoveryEmailLowerEnc);
 }

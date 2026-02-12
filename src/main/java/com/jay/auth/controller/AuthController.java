@@ -5,6 +5,7 @@ import com.jay.auth.dto.request.*;
 import com.jay.auth.dto.response.ChangePasswordResponse;
 import com.jay.auth.dto.response.LoginResponse;
 import com.jay.auth.dto.response.PasswordAnalysisResponse;
+import com.jay.auth.dto.response.RecoveryAccountsResponse;
 import com.jay.auth.dto.response.SignUpResponse;
 import com.jay.auth.dto.response.TokenResponse;
 import com.jay.auth.exception.RateLimitException;
@@ -179,6 +180,17 @@ public class AuthController {
 
         String password = request.get("password");
         PasswordAnalysisResponse response = passwordUtil.analyzePassword(password);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "비밀번호 재설정 - 계정 목록 조회", description = "복구 이메일 인증 후 연결된 계정 목록을 조회합니다")
+    @PostMapping("/password/reset/accounts")
+    public ResponseEntity<RecoveryAccountsResponse> getRecoveryAccounts(
+            @Valid @RequestBody RecoveryAccountsRequest request) {
+
+        RecoveryAccountsResponse response = passwordService.getAccountsByRecoveryEmail(
+                request.getTokenId(), request.getRecoveryEmail());
 
         return ResponseEntity.ok(response);
     }

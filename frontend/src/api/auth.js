@@ -31,8 +31,11 @@ export const authApi = {
   changePassword: (currentPassword, newPassword) =>
     client.post('/auth/password/change', { currentPassword, newPassword }),
 
-  resetPassword: (tokenId, email, newPassword) =>
-    client.post('/auth/password/reset', { tokenId, email, newPassword }),
+  getRecoveryAccounts: (tokenId, recoveryEmail) =>
+    client.post('/auth/password/reset/accounts', { tokenId, recoveryEmail }),
+
+  resetPassword: (tokenId, recoveryEmail, loginEmail, newPassword) =>
+    client.post('/auth/password/reset', { tokenId, recoveryEmail, loginEmail, newPassword }),
 
   analyzePassword: (password) =>
     client.post('/auth/password/analyze', { password }),

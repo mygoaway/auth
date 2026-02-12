@@ -1395,6 +1395,12 @@ export default function DashboardPage() {
               {error && <div className="error-message">{error}</div>}
               {success && <div className="success-message">{success}</div>}
 
+              {!hasEmailChannel && (
+                <div className="info-message">
+                  복구 이메일은 이메일(비밀번호) 로그인 계정의 비밀번호 재설정에 사용됩니다. 현재 소셜 로그인만 사용 중이라면 별도로 등록하지 않아도 됩니다.
+                </div>
+              )}
+
               {emailStep === 1 && (
                 <div className="form-group">
                   <label>복구 이메일</label>

@@ -4,6 +4,7 @@ import com.jay.auth.domain.entity.UserSignInInfo;
 import com.jay.auth.domain.enums.VerificationType;
 import com.jay.auth.dto.request.ChangePasswordRequest;
 import com.jay.auth.dto.request.ResetPasswordRequest;
+import com.jay.auth.dto.response.RecoveryAccountsResponse;
 import com.jay.auth.exception.AuthenticationException;
 import com.jay.auth.exception.InvalidPasswordException;
 import com.jay.auth.exception.InvalidVerificationException;
@@ -15,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -68,6 +71,46 @@ public class PasswordService {
         log.info("User {} changed password and logged out from all sessions", userId);
     }
 
+    @Transactional(readOnly = true)
+    public RecoveryAccountsResponse getAccountsByRecoveryEmail(String tokenId, String recoveryEmail) {
+        // 복구 이메일 인증 확인
+        if (!emailVerificationService.isVerifiedByTokenId(
+                tokenId, recoveryEmail, VerificationType.PASSWORD_RESET)) {
+            throw InvalidVerificationException.notVerified();
+        }
+
+        // 복구 이메일로 연결된 모든 로그인 정보 조회
+        String recoveryEmailLowerEnc = encryptionService.encryptForSearch(recoveryEmail);
+        List<UserSignInInfo> signInInfoList = userSignInInfoRepository
+                .findAllByRecoveryEmailLowerEncWithUser(recoveryEmailLowerEnc);
+
+        if (signInInfoList.isEmpty()) {
+            throw UserNotFoundException.recoveryEmailNotFound();
+        }
+
+        List<RecoveryAccountsResponse.AccountInfo> accounts = signInInfoList.stream()
+                .map(signInInfo -> {
+                    String loginEmail = encryptionService.decryptEmail(signInInfo.getLoginEmailEnc());
+                    String maskedEmail = maskEmail(loginEmail);
+                    return new RecoveryAccountsResponse.AccountInfo(loginEmail, maskedEmail);
+                })
+                .toList();
+
+        return RecoveryAccountsResponse.builder()
+                .accounts(accounts)
+                .build();
+    }
+
+    private String maskEmail(String email) {
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 1) {
+            return email;
+        }
+        String local = email.substring(0, atIndex);
+        String domain = email.substring(atIndex);
+        return local.charAt(0) + "***" + domain;
+    }
+
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         // 복구 이메일 인증 확인
@@ -81,10 +124,16 @@ public class PasswordService {
             throw new InvalidPasswordException();
         }
 
-        // 복구 이메일로 로그인 정보 조회
+        // 로그인 이메일로 로그인 정보 조회
+        String loginEmailLowerEnc = encryptionService.encryptForSearch(request.getLoginEmail());
+        UserSignInInfo signInInfo = userSignInInfoRepository.findByLoginEmailLowerEncWithUser(loginEmailLowerEnc)
+                .orElseThrow(UserNotFoundException::new);
+
+        // 해당 계정의 복구 이메일이 요청의 복구 이메일과 일치하는지 검증
         String recoveryEmailLowerEnc = encryptionService.encryptForSearch(request.getRecoveryEmail());
-        UserSignInInfo signInInfo = userSignInInfoRepository.findByRecoveryEmailLowerEncWithUser(recoveryEmailLowerEnc)
-                .orElseThrow(UserNotFoundException::recoveryEmailNotFound);
+        if (!recoveryEmailLowerEnc.equals(signInInfo.getUser().getRecoveryEmailLowerEnc())) {
+            throw UserNotFoundException.recoveryEmailNotFound();
+        }
 
         Long userId = signInInfo.getUser().getId();
 

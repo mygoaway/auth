@@ -3,6 +3,7 @@ package com.jay.auth.service;
 import com.jay.auth.domain.entity.User;
 import com.jay.auth.domain.entity.UserChannel;
 import com.jay.auth.domain.enums.ChannelCode;
+import com.jay.auth.dto.response.ChannelStatusResponse;
 import com.jay.auth.exception.AccountLinkingException;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserChannelRepository;
@@ -22,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -186,7 +188,262 @@ class AccountLinkingServiceTest {
                     ChannelCode.GOOGLE, "google-123", 1L);
 
             // then
-            assert result;
+            assertThat(result).isTrue();
+        }
+
+        @Test
+        @DisplayName("현재 사용자에게 연동된 계정은 사용 가능해야 한다")
+        void availableWhenLinkedToCurrentUser() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId);
+            UserChannel channel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(ChannelCode.GOOGLE)
+                    .channelKey("google-123")
+                    .build();
+
+            given(userChannelRepository.findByChannelCodeAndChannelKeyWithUser(
+                    ChannelCode.GOOGLE, "google-123")).willReturn(Optional.of(channel));
+
+            // when
+            boolean result = accountLinkingService.isSocialAccountAvailable(
+                    ChannelCode.GOOGLE, "google-123", userId);
+
+            // then
+            assertThat(result).isTrue();
+        }
+
+        @Test
+        @DisplayName("다른 사용자에게 연동된 계정은 사용 불가해야 한다")
+        void notAvailableWhenLinkedToAnotherUser() {
+            // given
+            Long currentUserId = 1L;
+            Long otherUserId = 2L;
+            User otherUser = createUser(otherUserId);
+            UserChannel channel = UserChannel.builder()
+                    .user(otherUser)
+                    .channelCode(ChannelCode.GOOGLE)
+                    .channelKey("google-123")
+                    .build();
+
+            given(userChannelRepository.findByChannelCodeAndChannelKeyWithUser(
+                    ChannelCode.GOOGLE, "google-123")).willReturn(Optional.of(channel));
+
+            // when
+            boolean result = accountLinkingService.isSocialAccountAvailable(
+                    ChannelCode.GOOGLE, "google-123", currentUserId);
+
+            // then
+            assertThat(result).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("채널 상태 조회")
+    class GetChannelsStatus {
+
+        @Test
+        @DisplayName("채널 상태가 정상 조회되어야 한다")
+        void getChannelsStatusSuccess() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId);
+            UserChannel emailChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(ChannelCode.EMAIL)
+                    .channelKey("test@example.com")
+                    .channelEmailEnc("enc_email")
+                    .channelEmailLowerEnc("enc_email_lower")
+                    .build();
+            List<UserChannel> channels = new ArrayList<>();
+            channels.add(emailChannel);
+            setField(user, "channels", channels);
+
+            given(userRepository.findByIdWithChannels(userId)).willReturn(Optional.of(user));
+            given(encryptionService.decryptEmail("enc_email")).willReturn("test@example.com");
+
+            // when
+            ChannelStatusResponse response = accountLinkingService.getChannelsStatus(userId);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.getChannels()).isNotEmpty();
+            // EMAIL should be linked
+            ChannelStatusResponse.ChannelStatus emailStatus = response.getChannels().stream()
+                    .filter(ch -> "EMAIL".equals(ch.getChannelCode()))
+                    .findFirst().orElse(null);
+            assertThat(emailStatus).isNotNull();
+            assertThat(emailStatus.isLinked()).isTrue();
+            assertThat(emailStatus.getChannelEmail()).isEqualTo("test@example.com");
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 사용자 조회 시 예외가 발생해야 한다")
+        void getChannelsStatusUserNotFound() {
+            // given
+            Long userId = 99L;
+            given(userRepository.findByIdWithChannels(userId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> accountLinkingService.getChannelsStatus(userId))
+                    .isInstanceOf(UserNotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("채널 연동 해제 - 추가 케이스")
+    class UnlinkChannelAdditional {
+
+        @Test
+        @DisplayName("소셜 채널 연동 해제가 성공해야 한다")
+        void unlinkSocialChannelSuccess() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId);
+            UserChannel emailChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(ChannelCode.EMAIL)
+                    .channelKey("test@example.com")
+                    .build();
+            UserChannel googleChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(ChannelCode.GOOGLE)
+                    .channelKey("google-123")
+                    .build();
+            List<UserChannel> channels = new ArrayList<>();
+            channels.add(emailChannel);
+            channels.add(googleChannel);
+            setField(user, "channels", channels);
+
+            given(userRepository.findByIdWithChannels(userId)).willReturn(Optional.of(user));
+
+            // when
+            accountLinkingService.unlinkChannel(userId, ChannelCode.GOOGLE);
+
+            // then
+            verify(securityNotificationService).notifyAccountUnlinked(userId, ChannelCode.GOOGLE);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 사용자의 채널 해제 시 예외가 발생해야 한다")
+        void unlinkChannelUserNotFound() {
+            // given
+            Long userId = 99L;
+            given(userRepository.findByIdWithChannels(userId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> accountLinkingService.unlinkChannel(userId, ChannelCode.GOOGLE))
+                    .isInstanceOf(UserNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("이메일 채널은 해제할 수 없어야 한다 (2개 채널 보유 시)")
+        void unlinkEmailChannelFails() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId);
+            UserChannel emailChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(ChannelCode.EMAIL)
+                    .channelKey("test@example.com")
+                    .build();
+            UserChannel googleChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(ChannelCode.GOOGLE)
+                    .channelKey("google-123")
+                    .build();
+            List<UserChannel> channels = new ArrayList<>();
+            channels.add(emailChannel);
+            channels.add(googleChannel);
+            setField(user, "channels", channels);
+
+            given(userRepository.findByIdWithChannels(userId)).willReturn(Optional.of(user));
+
+            // when & then
+            assertThatThrownBy(() -> accountLinkingService.unlinkChannel(userId, ChannelCode.EMAIL))
+                    .isInstanceOf(AccountLinkingException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("소셜 계정 연동 - 추가 케이스")
+    class LinkSocialAccountAdditional {
+
+        @Test
+        @DisplayName("이미 현재 사용자에게 연동된 소셜 계정이면 실패해야 한다")
+        void linkFailsWhenAlreadyLinkedToSameUser() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId);
+            ChannelCode channelCode = ChannelCode.GOOGLE;
+            String channelKey = "google-123";
+
+            UserChannel existingChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(channelCode)
+                    .channelKey(channelKey)
+                    .build();
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(userChannelRepository.findByChannelCodeAndChannelKeyWithUser(channelCode, channelKey))
+                    .willReturn(Optional.of(existingChannel));
+
+            // when & then
+            assertThatThrownBy(() ->
+                    accountLinkingService.linkSocialAccount(userId, channelCode, channelKey, null))
+                    .isInstanceOf(AccountLinkingException.class);
+        }
+
+        @Test
+        @DisplayName("이미 같은 채널 타입이 연동되어 있으면 실패해야 한다")
+        void linkFailsWhenChannelTypeAlreadyLinked() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId);
+            ChannelCode channelCode = ChannelCode.GOOGLE;
+            String channelKey = "google-new";
+
+            UserChannel existingGoogleChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(channelCode)
+                    .channelKey("google-old")
+                    .build();
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(userChannelRepository.findByChannelCodeAndChannelKeyWithUser(channelCode, channelKey))
+                    .willReturn(Optional.empty());
+            given(userChannelRepository.findByUserIdAndChannelCode(userId, channelCode))
+                    .willReturn(List.of(existingGoogleChannel));
+
+            // when & then
+            assertThatThrownBy(() ->
+                    accountLinkingService.linkSocialAccount(userId, channelCode, channelKey, null))
+                    .isInstanceOf(AccountLinkingException.class);
+        }
+
+        @Test
+        @DisplayName("이메일 없이 소셜 계정 연동이 성공해야 한다")
+        void linkSocialAccountWithoutEmail() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId);
+            ChannelCode channelCode = ChannelCode.KAKAO;
+            String channelKey = "kakao-123";
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(userChannelRepository.findByChannelCodeAndChannelKeyWithUser(channelCode, channelKey))
+                    .willReturn(Optional.empty());
+            given(userChannelRepository.findByUserIdAndChannelCode(userId, channelCode))
+                    .willReturn(Collections.emptyList());
+
+            // when
+            accountLinkingService.linkSocialAccount(userId, channelCode, channelKey, null);
+
+            // then
+            verify(userChannelRepository).save(any(UserChannel.class));
+            verify(encryptionService, never()).encryptEmail(any());
+            verify(securityNotificationService).notifyAccountLinked(userId, channelCode);
         }
     }
 

@@ -313,6 +313,7 @@ export default function DashboardPage() {
       setBackupCodes(response.data.backupCodes);
       setModal('2fa-backup');
       loadTwoFactorStatus();
+      loadSecurityDashboard();
     } catch (err) {
       setError(err.response?.data?.message || '2FA 활성화에 실패했습니다');
     } finally {
@@ -331,6 +332,7 @@ export default function DashboardPage() {
       setSuccess('2단계 인증이 비활성화되었습니다');
       resetModal();
       loadTwoFactorStatus();
+      loadSecurityDashboard();
     } catch (err) {
       setError(err.response?.data?.message || '2FA 비활성화에 실패했습니다');
     } finally {

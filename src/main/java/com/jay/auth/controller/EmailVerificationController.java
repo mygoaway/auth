@@ -5,6 +5,7 @@ import com.jay.auth.dto.request.SendVerificationRequest;
 import com.jay.auth.dto.request.VerifyEmailRequest;
 import com.jay.auth.dto.response.VerificationResponse;
 import com.jay.auth.exception.DuplicateEmailException;
+import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.service.AuthService;
 import com.jay.auth.service.EmailVerificationService;
@@ -51,7 +52,10 @@ public class EmailVerificationController {
                 }
             }
             case EMAIL_CHANGE -> {
-                // 이메일 변경: 특별한 사전 검증 없음 (본인 소유 이메일 인증만)
+                // 이메일 변경: 소셜 로그인 채널 이메일은 복구 이메일로 사용 불가
+                if (authService.isSocialChannelEmail(request.getEmail())) {
+                    throw new InvalidVerificationException("소셜 로그인에 사용 중인 이메일은 복구 이메일로 등록할 수 없습니다");
+                }
             }
         }
 

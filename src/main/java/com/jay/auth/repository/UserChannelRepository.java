@@ -30,4 +30,6 @@ public interface UserChannelRepository extends JpaRepository<UserChannel, Long> 
     void deleteByUserIdAndChannelCode(Long userId, ChannelCode channelCode);
 
     long countByUserId(Long userId);
+
+    boolean existsByChannelEmailLowerEncAndChannelCodeNot(String channelEmailLowerEnc, ChannelCode channelCode);
 }

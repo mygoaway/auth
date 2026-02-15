@@ -254,4 +254,13 @@ public class AuthService {
         String emailLowerEnc = encryptionService.encryptForSearch(email);
         return userSignInInfoRepository.existsByLoginEmailLowerEnc(emailLowerEnc);
     }
+
+    /**
+     * 소셜 로그인 채널 이메일 여부 확인
+     */
+    @Transactional(readOnly = true)
+    public boolean isSocialChannelEmail(String email) {
+        String emailLowerEnc = encryptionService.encryptForSearch(email);
+        return userChannelRepository.existsByChannelEmailLowerEncAndChannelCodeNot(emailLowerEnc, ChannelCode.EMAIL);
+    }
 }

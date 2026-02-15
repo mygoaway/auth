@@ -194,7 +194,7 @@ public class UserController {
     }
 
     @Operation(summary = "현재 기기 신뢰 여부 확인", description = "현재 접속 기기가 신뢰 등록되어 있는지 확인합니다")
-    @GetMapping("/devices/trusted/current")
+    @GetMapping("/devices/trusted/check")
     public ResponseEntity<Map<String, Boolean>> isCurrentDeviceTrusted(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             HttpServletRequest httpRequest) {

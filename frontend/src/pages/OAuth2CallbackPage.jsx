@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../api/auth';
@@ -11,8 +11,12 @@ export default function OAuth2CallbackPage() {
   const [showPendingDeletionDialog, setShowPendingDeletionDialog] = useState(false);
   const [deletionRequestedAt, setDeletionRequestedAt] = useState(null);
   const [cancellingDeletion, setCancellingDeletion] = useState(false);
+  const processed = useRef(false);
 
   useEffect(() => {
+    if (processed.current) return;
+    processed.current = true;
+
     const accessToken = searchParams.get('accessToken');
     const refreshToken = searchParams.get('refreshToken');
     const errorParam = searchParams.get('error');

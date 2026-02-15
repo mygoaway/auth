@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authApi, userApi } from '../api/auth';
 
 const AuthContext = createContext(null);
@@ -22,6 +22,31 @@ const clearAllTokens = () => {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const profileLoaded = useRef(false);
+
+  const loadProfile = useCallback(async () => {
+    if (profileLoaded.current) return;
+    profileLoaded.current = true;
+    try {
+      const response = await userApi.getProfile();
+      setUser(response.data);
+    } catch (error) {
+      profileLoaded.current = false;
+      clearAllTokens();
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 프로필 갱신이 필요한 경우 (닉네임 변경 등)
+  const refreshProfile = useCallback(async () => {
+    try {
+      const response = await userApi.getProfile();
+      setUser(response.data);
+    } catch (error) {
+      clearAllTokens();
+    }
+  }, []);
 
   useEffect(() => {
     const storage = getStorage();
@@ -31,20 +56,9 @@ export function AuthProvider({ children }) {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [loadProfile]);
 
-  const loadProfile = useCallback(async () => {
-    try {
-      const response = await userApi.getProfile();
-      setUser(response.data);
-    } catch (error) {
-      clearAllTokens();
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const login = async (email, password, rememberMe = false) => {
+  const login = useCallback(async (email, password, rememberMe = false) => {
     const response = await authApi.login(email, password);
     const data = response.data;
 
@@ -72,34 +86,34 @@ export function AuthProvider({ children }) {
       pendingDeletion: data.pendingDeletion,
       deletionRequestedAt: data.deletionRequestedAt
     };
-  };
+  }, [loadProfile]);
 
-  const complete2FALogin = async (loginData) => {
+  const complete2FALogin = useCallback(async (loginData) => {
     // Called after successful 2FA verification
     const { token, rememberMe } = loginData;
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem('accessToken', token.accessToken);
     storage.setItem('refreshToken', token.refreshToken);
     await loadProfile();
-  };
+  }, [loadProfile]);
 
-  const signup = async (data) => {
+  const signup = useCallback(async (data) => {
     const response = await authApi.signup(data);
     const { token, ...userData } = response.data;
     localStorage.setItem('accessToken', token.accessToken);
     localStorage.setItem('refreshToken', token.refreshToken);
     await loadProfile();
     return response.data;
-  };
+  }, [loadProfile]);
 
-  const handleOAuth2Callback = async (accessToken, refreshToken, rememberMe = true) => {
+  const handleOAuth2Callback = useCallback(async (accessToken, refreshToken, rememberMe = true) => {
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem('accessToken', accessToken);
     storage.setItem('refreshToken', refreshToken);
     await loadProfile();
-  };
+  }, [loadProfile]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       const storage = getStorage();
       const accessToken = storage.getItem('accessToken');
@@ -110,11 +124,12 @@ export function AuthProvider({ children }) {
     } finally {
       clearAllTokens();
       setUser(null);
+      profileLoaded.current = false;
     }
-  };
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, handleOAuth2Callback, loadProfile, complete2FALogin }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, handleOAuth2Callback, loadProfile: refreshProfile, complete2FALogin }}>
       {children}
     </AuthContext.Provider>
   );

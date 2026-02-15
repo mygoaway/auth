@@ -26,6 +26,7 @@ import com.jay.auth.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
+import java.util.Map;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -190,6 +191,18 @@ public class UserController {
                 userPrincipal.getUserId());
 
         return ResponseEntity.ok(devices);
+    }
+
+    @Operation(summary = "현재 기기 신뢰 여부 확인", description = "현재 접속 기기가 신뢰 등록되어 있는지 확인합니다")
+    @GetMapping("/devices/trusted/current")
+    public ResponseEntity<Map<String, Boolean>> isCurrentDeviceTrusted(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            HttpServletRequest httpRequest) {
+
+        var sessionInfo = loginHistoryService.extractSessionInfo(httpRequest);
+        boolean trusted = trustedDeviceService.isDeviceTrusted(userPrincipal.getUserId(), sessionInfo);
+
+        return ResponseEntity.ok(Map.of("trusted", trusted));
     }
 
     @Operation(summary = "현재 기기 신뢰 등록", description = "현재 접속 기기를 신뢰할 수 있는 기기로 등록합니다")

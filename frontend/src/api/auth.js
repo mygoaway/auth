@@ -84,6 +84,9 @@ export const userApi = {
   getTrustedDevices: () =>
     client.get('/users/devices/trusted'),
 
+  isCurrentDeviceTrusted: () =>
+    client.get('/users/devices/trusted/current'),
+
   trustCurrentDevice: () =>
     client.post('/users/devices/trusted'),
 

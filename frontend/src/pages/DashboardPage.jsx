@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [securityDashboard, setSecurityDashboard] = useState(null);
   const [weeklyActivity, setWeeklyActivity] = useState(null);
   const [trustedDevices, setTrustedDevices] = useState([]);
+  const [currentDeviceTrusted, setCurrentDeviceTrusted] = useState(false);
   const [suspiciousActivity, setSuspiciousActivity] = useState(null);
   const [securitySettings, setSecuritySettings] = useState(null);
   const [lastLogin, setLastLogin] = useState(null);
@@ -77,13 +78,14 @@ export default function DashboardPage() {
       loadTwoFactorStatus();
       loadSecurityDashboard();
       loadTrustedDevices();
+      checkCurrentDeviceTrusted();
       loadSuspiciousActivity();
       loadSecuritySettings();
     }
     if (activeTab === 'activity') {
       loadWeeklyActivity();
     }
-  }, [activeTab, user]);
+  }, [activeTab]);
 
   const loadLastLogin = async () => {
     try {
@@ -248,11 +250,21 @@ export default function DashboardPage() {
     }
   };
 
+  const checkCurrentDeviceTrusted = async () => {
+    try {
+      const response = await userApi.isCurrentDeviceTrusted();
+      setCurrentDeviceTrusted(response.data.trusted);
+    } catch (err) {
+      console.error('Failed to check current device trust status', err);
+    }
+  };
+
   const handleTrustCurrentDevice = async () => {
     try {
       setLoading(true);
       await userApi.trustCurrentDevice();
       setSuccess('현재 기기가 신뢰 기기로 등록되었습니다');
+      setCurrentDeviceTrusted(true);
       await loadTrustedDevices();
       setTimeout(() => setSuccess(''), 2000);
     } catch (err) {
@@ -1031,14 +1043,16 @@ export default function DashboardPage() {
               <p className="info-description">
                 신뢰 기기로 등록하면 해당 기기에서의 로그인이 보안 알림 대상에서 제외됩니다. (30일간 유효)
               </p>
-              <button
-                className="btn btn-small"
-                onClick={handleTrustCurrentDevice}
-                disabled={loading}
-                style={{ marginBottom: 12 }}
-              >
-                현재 기기 신뢰 등록
-              </button>
+              {!currentDeviceTrusted && (
+                <button
+                  className="btn btn-small"
+                  onClick={handleTrustCurrentDevice}
+                  disabled={loading}
+                  style={{ marginBottom: 12 }}
+                >
+                  현재 기기 신뢰 등록
+                </button>
+              )}
               {trustedDevices.length > 0 ? (
                 <div className="trusted-devices-list">
                   {trustedDevices.map((device) => (

@@ -595,9 +595,14 @@ export default function DashboardPage() {
       <nav className="dashboard-navbar">
         <div className="navbar-content">
           <div className="navbar-brand">Authly</div>
-          <button className="logout-btn" onClick={handleLogout}>
-            로그아웃
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button className="logout-btn" onClick={() => navigate('/support')}>
+              고객센터
+            </button>
+            <button className="logout-btn" onClick={handleLogout}>
+              로그아웃
+            </button>
+          </div>
         </div>
       </nav>
 

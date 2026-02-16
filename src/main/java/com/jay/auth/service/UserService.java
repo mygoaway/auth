@@ -121,6 +121,14 @@ public class UserService {
         log.info("User {} updated recovery email", userId);
     }
 
+    @Transactional(readOnly = true)
+    public String getNickname(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+        return user.getNicknameEnc() != null
+                ? encryptionService.decryptNickname(user.getNicknameEnc()) : "익명";
+    }
+
     /**
      * 복구 이메일로 등록된 사용자 존재 여부 확인
      */

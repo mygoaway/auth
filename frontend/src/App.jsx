@@ -8,6 +8,8 @@ import DashboardPage from './pages/DashboardPage';
 import OAuth2CallbackPage from './pages/OAuth2CallbackPage';
 import OAuth2LinkCallbackPage from './pages/OAuth2LinkCallbackPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import SupportBoardPage from './pages/SupportBoardPage';
+import SupportPostDetailPage from './pages/SupportPostDetailPage';
 import './styles/global.css';
 
 function PrivateRoute({ children }) {
@@ -51,6 +53,8 @@ function AppRoutes() {
       <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
       <Route path="/oauth2/link/success" element={<PrivateRoute><OAuth2LinkCallbackPage /></PrivateRoute>} />
       <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+      <Route path="/support" element={<PrivateRoute><SupportBoardPage /></PrivateRoute>} />
+      <Route path="/support/:postId" element={<PrivateRoute><SupportPostDetailPage /></PrivateRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" />} />
     </Routes>
   );

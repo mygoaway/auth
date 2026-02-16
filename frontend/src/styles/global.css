@@ -2811,3 +2811,364 @@ body {
 .account-item:hover .account-arrow {
   color: #667eea;
 }
+
+/* ============================================
+   Support Board Styles
+   ============================================ */
+
+.support-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.support-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.support-select {
+  padding: 10px 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+  color: #333;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.support-select:focus {
+  border-color: #667eea;
+}
+
+.support-post-list {
+  padding: 0;
+}
+
+.support-post-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-radius: 8px;
+}
+
+.support-post-item:hover {
+  background: #f8f9fa;
+}
+
+.support-post-item:last-child {
+  border-bottom: none;
+}
+
+.support-post-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.support-post-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.support-post-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1a1a1a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.support-post-meta {
+  font-size: 12px;
+  color: #999;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.support-post-meta .separator {
+  color: #ddd;
+  margin: 0 2px;
+}
+
+.support-category-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f0f3ff;
+  color: #667eea;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.support-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.support-private-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #fff2f0;
+  color: #ff4d4f;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Pagination */
+.support-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 20px;
+}
+
+.support-page-btn {
+  padding: 8px 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.support-page-btn:hover:not(:disabled) {
+  background: #f0f3ff;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.support-page-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-color: transparent;
+}
+
+.support-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Detail Page */
+.support-detail-header {
+  margin-bottom: 20px;
+}
+
+.support-detail-badges {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.support-detail-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.support-detail-meta {
+  font-size: 13px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.support-detail-meta .separator {
+  color: #ddd;
+}
+
+.support-detail-content {
+  padding: 20px 0;
+  border-top: 1px solid #f0f0f0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #333;
+}
+
+.support-detail-content p {
+  margin: 0 0 4px 0;
+}
+
+.support-detail-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+  align-items: center;
+}
+
+/* Comments */
+.support-comments {
+  margin-bottom: 20px;
+}
+
+.support-comment {
+  padding: 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: #f8f9fa;
+  border: 1px solid #f0f0f0;
+}
+
+.support-comment.admin {
+  background: linear-gradient(135deg, #f0f3ff 0%, #e8ecff 100%);
+  border-color: #d6dfff;
+}
+
+.support-comment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.support-comment-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.support-comment-nickname {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.support-admin-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.support-comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.support-comment-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.support-comment-delete {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #ff4d4f;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.support-comment-delete:hover {
+  background: #fff2f0;
+}
+
+.support-comment-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #444;
+}
+
+.support-comment-content p {
+  margin: 0 0 2px 0;
+}
+
+/* Comment Form */
+.support-comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.support-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  background: #fafafa;
+  transition: all 0.2s;
+}
+
+.support-textarea:focus {
+  border-color: #667eea;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Checkbox */
+.support-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #555;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.support-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #667eea;
+}
+
+@media (max-width: 768px) {
+  .support-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .support-filters {
+    flex-wrap: wrap;
+  }
+
+  .support-post-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .support-detail-actions {
+    flex-wrap: wrap;
+  }
+}

@@ -30,6 +30,7 @@ public class SupportPostService {
     private final SupportPostRepository supportPostRepository;
     private final SupportCommentRepository supportCommentRepository;
     private final UserService userService;
+    private final SupportAiReplyService supportAiReplyService;
 
     @Transactional(readOnly = true)
     public Page<SupportPostListResponse> getPosts(Long userId, boolean isAdmin,
@@ -76,6 +77,13 @@ public class SupportPostService {
         supportPostRepository.save(post);
 
         log.info("Support post created: postId={}, userId={}", post.getId(), userId);
+
+        supportAiReplyService.generateAndSaveReply(
+                post.getId(),
+                post.getTitle(),
+                post.getContent(),
+                post.getCategory().name()
+        );
 
         return SupportPostDetailResponse.of(post, List.of());
     }

@@ -56,3 +56,9 @@ app:
     provider: ${EMAIL_PROVIDER:log}  # log, smtp
   oauth2:
     redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}
+  ai:
+    provider: ${AI_PROVIDER:log}  # log, claude
+    claude:
+      api-key: ${CLAUDE_API_KEY:}
+      model: ${CLAUDE_MODEL:claude-sonnet-4-5-20250929}
+      max-tokens: ${CLAUDE_MAX_TOKENS:1024}

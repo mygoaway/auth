@@ -62,6 +62,7 @@ public class SupportPostDetailResponse {
         private String authorNickname;
         private String content;
         private boolean isAdmin;
+        private boolean isAiGenerated;
         private LocalDateTime createdAt;
 
         @Setter
@@ -75,6 +76,7 @@ public class SupportPostDetailResponse {
                     .authorNickname(comment.getAuthorNickname())
                     .content(comment.getContent())
                     .isAdmin(comment.isAdmin())
+                    .isAiGenerated(comment.isAiGenerated())
                     .createdAt(comment.getCreatedAt())
                     .build();
         }

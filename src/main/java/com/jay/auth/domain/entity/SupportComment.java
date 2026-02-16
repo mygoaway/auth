@@ -34,12 +34,16 @@ public class SupportComment extends BaseEntity {
     @Column(name = "is_admin", nullable = false)
     private boolean isAdmin;
 
+    @Column(name = "is_ai_generated", nullable = false)
+    private boolean isAiGenerated;
+
     @Builder
-    public SupportComment(Long postId, Long userId, String authorNickname, String content, boolean isAdmin) {
+    public SupportComment(Long postId, Long userId, String authorNickname, String content, boolean isAdmin, boolean isAiGenerated) {
         this.postId = postId;
         this.userId = userId;
         this.authorNickname = authorNickname;
         this.content = content;
         this.isAdmin = isAdmin;
+        this.isAiGenerated = isAiGenerated;
     }
 }

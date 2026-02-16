@@ -49,6 +49,9 @@ class SupportPostServiceTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private SupportAiReplyService supportAiReplyService;
+
     @Nested
     @DisplayName("게시글 목록 조회")
     class GetPosts {

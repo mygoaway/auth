@@ -13,6 +13,7 @@ public class AppProperties {
 
     private Jwt jwt = new Jwt();
     private Encryption encryption = new Encryption();
+    private Ai ai = new Ai();
 
     @Getter
     @Setter
@@ -27,5 +28,20 @@ public class AppProperties {
     @Setter
     public static class Encryption {
         private String secretKey;
+    }
+
+    @Getter
+    @Setter
+    public static class Ai {
+        private String provider = "log";
+        private Claude claude = new Claude();
+
+        @Getter
+        @Setter
+        public static class Claude {
+            private String apiKey;
+            private String model = "claude-sonnet-4-5-20250929";
+            private int maxTokens = 1024;
+        }
     }
 }

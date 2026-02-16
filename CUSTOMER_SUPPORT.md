@@ -36,6 +36,7 @@
 | 댓글 삭제 | 댓글 작성자 또는 관리자 |
 | 상태 변경 | 관리자만 (OPEN → IN_PROGRESS → RESOLVED → CLOSED) |
 | 비공개 글 | 작성자와 관리자만 열람 가능 |
+| AI 자동응답 | 게시글 등록 시 AI가 자동으로 초기 안내 댓글 작성 |
 | 관리자 통계 | 상태별 게시글 수, 오늘 등록 수 |
 
 ### 카테고리 (PostCategory)
@@ -175,6 +176,9 @@ public class SupportComment extends BaseEntity {
 
     @Column(name = "is_admin", nullable = false)
     private boolean isAdmin;
+
+    @Column(name = "is_ai_generated", nullable = false)
+    private boolean isAiGenerated;
 }
 ```
 
@@ -188,6 +192,7 @@ public class SupportComment extends BaseEntity {
 | `author_nickname` | `VARCHAR(100)` | NOT NULL | 작성 시점 닉네임 스냅샷 |
 | `content` | `TEXT` | NOT NULL | 댓글 내용 |
 | `is_admin` | `BOOLEAN` | NOT NULL | 관리자 작성 여부 |
+| `is_ai_generated` | `BOOLEAN` | NOT NULL | AI 자동응답 여부 |
 | `created_at` | `DATETIME` | NOT NULL | BaseEntity 제공 |
 | `updated_at` | `DATETIME` | NOT NULL | BaseEntity 제공 |
 
@@ -276,6 +281,7 @@ public interface SupportCommentRepository extends JpaRepository<SupportComment, 
 private final SupportPostRepository supportPostRepository;
 private final SupportCommentRepository supportCommentRepository;
 private final UserService userService;
+private final SupportAiReplyService supportAiReplyService;
 ```
 
 ---
@@ -327,8 +333,9 @@ private final UserService userService;
 1. `userService.getNickname(userId)` — 현재 닉네임 스냅샷
 2. `SupportPost.builder()` 로 엔티티 생성 (status는 항상 `OPEN`)
 3. `supportPostRepository.save(post)` — DB 저장
-4. `SupportPostDetailResponse.of(post, List.of())` 반환 (새 게시글이므로 댓글 없음)
-5. 로그 기록: `info`
+4. `supportAiReplyService.generateAndSaveReply()` — **비동기** AI 자동응답 생성 트리거
+5. `SupportPostDetailResponse.of(post, List.of())` 반환 (새 게시글이므로 댓글 없음)
+6. 로그 기록: `info`
 
 ---
 
@@ -443,6 +450,84 @@ private final UserService userService;
 
 ---
 
+### 4.3 AI 자동응답 서비스
+
+#### AiReplyService (인터페이스)
+
+**파일**: `src/main/java/com/jay/auth/service/AiReplyService.java`
+
+```java
+public interface AiReplyService {
+    String generateReply(String title, String content, String category);
+}
+```
+
+#### LogAiReplyService (개발용 stub)
+
+**파일**: `src/main/java/com/jay/auth/service/LogAiReplyService.java`
+
+- `@ConditionalOnProperty(name = "app.ai.provider", havingValue = "log", matchIfMissing = true)`
+- 고정된 안내 문구를 반환 (외부 API 호출 없음)
+- 기본 활성화 (환경변수 미설정 시 자동 사용)
+
+#### ClaudeAiReplyService (Claude API 연동)
+
+**파일**: `src/main/java/com/jay/auth/service/ClaudeAiReplyService.java`
+
+- `@ConditionalOnProperty(name = "app.ai.provider", havingValue = "claude")`
+- Anthropic Messages API (`https://api.anthropic.com/v1/messages`) 호출
+- 시스템 프롬프트로 친절한 고객센터 상담원 역할 부여
+- API 실패 시 폴백 메시지 반환 (예외를 던지지 않음)
+
+**설정 (application.yml)**:
+```yaml
+app:
+  ai:
+    provider: ${AI_PROVIDER:log}  # log, claude
+    claude:
+      api-key: ${CLAUDE_API_KEY:}
+      model: ${CLAUDE_MODEL:claude-sonnet-4-5-20250929}
+      max-tokens: ${CLAUDE_MAX_TOKENS:1024}
+```
+
+#### SupportAiReplyService (오케스트레이터)
+
+**파일**: `src/main/java/com/jay/auth/service/SupportAiReplyService.java`
+
+**의존성**:
+```java
+private final AiReplyService aiReplyService;
+private final SupportCommentRepository supportCommentRepository;
+private final SupportPostRepository supportPostRepository;
+```
+
+##### generateAndSaveReply(Long postId, String title, String content, String category) → void
+
+```
+@Async("asyncExecutor")
+@Transactional
+```
+
+**동작 순서:**
+
+1. `aiReplyService.generateReply(title, content, category)` — AI 응답 생성
+2. `SupportComment.builder()` — 댓글 엔티티 생성 (`userId=0`, `isAdmin=true`, `isAiGenerated=true`, `authorNickname="AI 상담원"`)
+3. `supportCommentRepository.save(comment)` — 댓글 저장
+4. 게시글 상태가 `OPEN`이면 `IN_PROGRESS`로 변경 + `commentCount` 증가
+5. 전체 과정이 try-catch로 감싸져 있어 실패 시 예외를 던지지 않음 (비동기 실행이므로)
+
+**실행 흐름:**
+```
+사용자 글 작성 → createPost() → DB 저장 → 즉시 응답 반환
+                                    ↓ (비동기, asyncExecutor)
+                    SupportAiReplyService.generateAndSaveReply()
+                    → AiReplyService.generateReply() (Claude API or Log stub)
+                    → SupportComment 저장 (userId=0, isAdmin=true, isAiGenerated=true)
+                    → 게시글 상태 OPEN → IN_PROGRESS
+```
+
+---
+
 ## 5. Controller 계층
 
 ### SupportController
@@ -520,10 +605,21 @@ private final UserService userService;
   "comments": [
     {
       "id": 1,
+      "userId": 0,
+      "authorNickname": "AI 상담원",
+      "content": "안녕하세요, 고객센터입니다.\n\n문의하신 내용을 확인하였습니다...",
+      "isAdmin": true,
+      "isAiGenerated": true,
+      "createdAt": "2026-02-15T10:30:05",
+      "isAuthor": false
+    },
+    {
+      "id": 2,
       "userId": 1,
       "authorNickname": "관리자",
       "content": "확인 중입니다.",
       "isAdmin": true,
+      "isAiGenerated": false,
       "createdAt": "2026-02-15T11:00:00",
       "isAuthor": false
     }
@@ -758,6 +854,7 @@ public class SupportPostDetailResponse {
         private String authorNickname;
         private String content;
         private boolean isAdmin;
+        private boolean isAiGenerated;  // AI 자동응답 여부
         private LocalDateTime createdAt;
         @Setter
         @JsonProperty("isAuthor")
@@ -1076,6 +1173,7 @@ const isAuthor = post?.isAuthor;  // 백엔드 응답의 isAuthor 플래그 사�
 ```
 
 - 관리자 댓글: 보라색 그라데이션 배경 + "관리자" 배지
+- AI 자동응답 댓글: 초록색 그라데이션 배경 + "AI 자동응답" 배지
 - 삭제 버튼: 댓글 작성자 또는 관리자에게만 표시
 
 ### 10.6 관리자 페이지 (AdminPage)
@@ -1118,7 +1216,9 @@ const isAuthor = post?.isAuthor;  // 백엔드 응답의 isAuthor 플래그 사�
 | `.support-detail-*` | 상세 페이지 헤더/본문/액션 |
 | `.support-comments`, `.support-comment` | 댓글 목록 |
 | `.support-comment.admin` | 관리자 댓글 보라색 그라데이션 |
+| `.support-comment.ai` | AI 자동응답 댓글 초록색 그라데이션 |
 | `.support-admin-badge` | "관리자" 배지 |
+| `.support-ai-badge` | "AI 자동응답" 배지 (초록색) |
 | `.support-comment-form`, `.support-textarea` | 댓글 입력 |
 | `.support-checkbox-label` | 비공개 체크박스 |
 
@@ -1163,10 +1263,24 @@ private SupportPost createPost(Long id, Long userId, String authorNickname,
 }
 ```
 
-### 11.2 서비스 테스트 (SupportCommentServiceTest)
+### 11.2 서비스 테스트 (SupportAiReplyServiceTest)
+
+**파일**: `src/test/java/com/jay/auth/service/SupportAiReplyServiceTest.java`
+**방식**: `@ExtendWith(MockitoExtension.class)`
+
+| 테스트 그룹 (@Nested) | 테스트 케이스 | 검증 내용 |
+|---|---|---|
+| **AI 자동응답 생성 및 저장 (GenerateAndSaveReply)** | `generateAndSaveReplySuccess` | AI 응답 생성 → 댓글 저장 (userId=0, isAdmin=true, isAiGenerated=true) |
+| | `changeStatusToInProgress` | OPEN 상태 게시글 → IN_PROGRESS 변경 |
+| | `doNotChangeStatusIfNotOpen` | OPEN 아닌 게시글은 상태 변경하지 않음 |
+| | `handleAiServiceFailure` | AI 서비스 실패 시 예외를 던지지 않음, 댓글 저장도 안 함 |
+| | `saveCommentEvenIfPostNotFound` | 게시글이 없어도 댓글은 저장됨 |
+
+### 11.3 서비스 테스트 (SupportCommentServiceTest)
 
 **파일**: `src/test/java/com/jay/auth/service/SupportCommentServiceTest.java`
 **방식**: `@ExtendWith(MockitoExtension.class)`
+
 
 | 테스트 그룹 (@Nested) | 테스트 케이스 | 검증 내용 |
 |---|---|---|
@@ -1178,7 +1292,7 @@ private SupportPost createPost(Long id, Long userId, String authorNickname,
 | | `adminDeletesSuccess` | 관리자 삭제 성공 |
 | | `differentUserThrowsAccessDenied` | 비작성자/비관리자 삭제 → `SupportPostAccessDeniedException` |
 
-### 11.3 컨트롤러 테스트 (SupportControllerTest)
+### 11.4 컨트롤러 테스트 (SupportControllerTest)
 
 **파일**: `src/test/java/com/jay/auth/controller/SupportControllerTest.java`
 **방식**: `@WebMvcTest` + `@AutoConfigureMockMvc(addFilters = false)`
@@ -1221,7 +1335,7 @@ void setUp() {
 | `POST /api/v1/support/posts/1/comments` | 200 | content, authorNickname |
 | `DELETE /api/v1/support/posts/1/comments/1` | 204 | `deleteComment(1L, 1L, 1L, false)` 호출 확인 |
 
-### 11.4 관리자 테스트
+### 11.5 관리자 테스트
 
 **파일**: `src/test/java/com/jay/auth/service/AdminServiceTest.java` — `GetSupportStats` 중첩 클래스
 
@@ -1253,10 +1367,17 @@ void setUp() {
      │                                  │── SupportPost 생성             │
      │                                  │   (status=OPEN, viewCount=0)  │
      │                                  │── save() ───────────────────→ │
+     │                                  │── SupportAiReplyService       │
+     │                                  │   .generateAndSaveReply()     │
+     │                                  │   (비동기 실행 트리거)          │
      │                                  │                                │
      │←── SupportPostDetailResponse ──│                                │
      │                                  │                                │
-     │ [상세 페이지로 이동]              │                                │
+     │ [상세 페이지로 이동]              │     ┌── 비동기(asyncExecutor) ──┐│
+     │                                  │     │ AI 응답 생성             ││
+     │                                  │     │ 댓글 저장 (AI 상담원)    ││
+     │                                  │     │ 상태 OPEN→IN_PROGRESS   ││
+     │                                  │     └─────────────────────────┘│
 ```
 
 ### 12.2 게시글 조회 및 댓글 작성 플로우
@@ -1365,7 +1486,8 @@ void setUp() {
 
 ### 13.3 스케줄링 및 비동기
 
-고객센터 기능에는 **스케줄링 작업이나 `@Async` 연산이 없습니다**:
+- `SupportAiReplyService.generateAndSaveReply()`는 `@Async("asyncExecutor")`로 비동기 실행됩니다
+- AI 응답 생성은 게시글 작성 API 응답 이후 백그라운드에서 처리되므로, 사용자가 새로고침하면 AI 댓글을 확인할 수 있습니다
 - `AccountCleanupScheduler`와 `VerificationCleanupScheduler`는 고객센터 테이블을 처리하지 않습니다
 - 사용자 계정이 삭제되어도 해당 사용자의 게시글/댓글은 그대로 유지됩니다 (orphan 데이터)
 
@@ -1387,6 +1509,10 @@ src/main/java/com/jay/auth/
 ├── service/
 │   ├── SupportPostService.java           # 게시글 비즈니스 로직 (6개 메서드)
 │   ├── SupportCommentService.java        # 댓글 비즈니스 로직 (2개 메서드)
+│   ├── SupportAiReplyService.java        # AI 자동응답 오케스트레이터 (@Async)
+│   ├── AiReplyService.java              # AI 응답 생성 인터페이스
+│   ├── LogAiReplyService.java           # AI 응답 개발용 stub (기본값)
+│   ├── ClaudeAiReplyService.java        # Claude API 연동 구현체
 │   └── AdminService.java                 # 고객센터 통계 조회 (getSupportStats)
 ├── domain/
 │   ├── entity/
@@ -1417,6 +1543,7 @@ src/test/java/com/jay/auth/
 ├── service/
 │   ├── SupportPostServiceTest.java       # 게시글 서비스 단위 테스트 (11개)
 │   ├── SupportCommentServiceTest.java    # 댓글 서비스 단위 테스트 (7개)
+│   ├── SupportAiReplyServiceTest.java    # AI 자동응답 단위 테스트 (5개)
 │   └── AdminServiceTest.java            # 관리자 통계 테스트 (GetSupportStats)
 └── controller/
     ├── SupportControllerTest.java        # 컨트롤러 테스트 (8개)

@@ -44,3 +44,5 @@ app:
     secret-key: test-32-character-encryption-key
   oauth2:
     redirect-uri: http://localhost:3000/oauth2/callback
+  ai:
+    provider: log

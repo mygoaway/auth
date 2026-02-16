@@ -261,11 +261,12 @@ export default function SupportPostDetailPage() {
               {post.comments?.length > 0 ? (
                 <div className="support-comments">
                   {post.comments.map((c) => (
-                    <div key={c.id} className={`support-comment ${c.admin ? 'admin' : ''}`}>
+                    <div key={c.id} className={`support-comment ${c.admin ? 'admin' : ''} ${c.aiGenerated ? 'ai' : ''}`}>
                       <div className="support-comment-header">
                         <div className="support-comment-author">
                           <span className="support-comment-nickname">{c.authorNickname}</span>
                           {c.admin && <span className="support-admin-badge">관리자</span>}
+                          {c.aiGenerated && <span className="support-ai-badge">AI 자동응답</span>}
                         </div>
                         <div className="support-comment-actions">
                           <span className="support-comment-time">

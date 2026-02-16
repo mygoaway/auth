@@ -3041,6 +3041,21 @@ body {
   border-color: #d6dfff;
 }
 
+.support-comment.ai {
+  background: linear-gradient(135deg, #f0fff4 0%, #e6fff0 100%);
+  border-color: #b7ebc9;
+}
+
+.support-ai-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  color: #fff;
+}
+
 .support-comment-header {
   display: flex;
   align-items: center;

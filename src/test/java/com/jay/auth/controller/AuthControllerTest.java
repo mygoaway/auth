@@ -406,6 +406,7 @@ class AuthControllerTest {
                     {
                         "tokenId": "reset-token-123",
                         "recoveryEmail": "recovery@email.com",
+                        "loginEmail": "login@email.com",
                         "newPassword": "NewPass@789"
                     }
                     """;

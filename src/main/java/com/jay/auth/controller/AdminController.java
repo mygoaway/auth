@@ -2,7 +2,7 @@ package com.jay.auth.controller;
 
 import com.jay.auth.domain.enums.UserRole;
 import com.jay.auth.domain.enums.UserStatus;
-import com.jay.auth.dto.response.AdminDashboardResponse;
+import com.jay.auth.dto.response.*;
 import com.jay.auth.security.UserPrincipal;
 import com.jay.auth.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +24,38 @@ public class AdminController {
     @GetMapping("/dashboard")
     public ResponseEntity<AdminDashboardResponse> getDashboard() {
         AdminDashboardResponse response = adminService.getDashboard();
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "사용자 검색", description = "키워드와 상태로 사용자를 검색합니다")
+    @GetMapping("/users")
+    public ResponseEntity<AdminUserSearchResponse> searchUsers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) UserStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        AdminUserSearchResponse response = adminService.searchUsers(keyword, status, page, size);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "로그인 통계 조회", description = "로그인 및 가입 통계를 조회합니다")
+    @GetMapping("/stats/logins")
+    public ResponseEntity<AdminLoginStatsResponse> getLoginStats() {
+        AdminLoginStatsResponse response = adminService.getLoginStats();
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "보안 이벤트 조회", description = "최근 보안 이벤트를 조회합니다")
+    @GetMapping("/security/events")
+    public ResponseEntity<AdminSecurityEventsResponse> getSecurityEvents() {
+        AdminSecurityEventsResponse response = adminService.getSecurityEvents();
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "고객센터 통계 조회", description = "고객센터 게시판 통계를 조회합니다")
+    @GetMapping("/stats/support")
+    public ResponseEntity<AdminSupportStatsResponse> getSupportStats() {
+        AdminSupportStatsResponse response = adminService.getSupportStats();
         return ResponseEntity.ok(response);
     }
 

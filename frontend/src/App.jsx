@@ -10,6 +10,7 @@ import OAuth2LinkCallbackPage from './pages/OAuth2LinkCallbackPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import SupportBoardPage from './pages/SupportBoardPage';
 import SupportPostDetailPage from './pages/SupportPostDetailPage';
+import AdminPage from './pages/AdminPage';
 import './styles/global.css';
 
 function PrivateRoute({ children }) {
@@ -44,6 +45,24 @@ function PublicRoute({ children }) {
   return user ? <Navigate to="/dashboard" /> : children;
 }
 
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card" style={{ textAlign: 'center' }}>
+          <p>로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== 'ADMIN') return <Navigate to="/dashboard" />;
+  return children;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -53,6 +72,7 @@ function AppRoutes() {
       <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
       <Route path="/oauth2/link/success" element={<PrivateRoute><OAuth2LinkCallbackPage /></PrivateRoute>} />
       <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+      <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       <Route path="/support" element={<PrivateRoute><SupportBoardPage /></PrivateRoute>} />
       <Route path="/support/:postId" element={<PrivateRoute><SupportPostDetailPage /></PrivateRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" />} />

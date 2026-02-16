@@ -1,13 +1,12 @@
 package com.jay.auth.service;
 
-import com.jay.auth.domain.entity.User;
-import com.jay.auth.domain.entity.UserChannel;
-import com.jay.auth.domain.entity.UserSignInInfo;
-import com.jay.auth.domain.enums.ChannelCode;
-import com.jay.auth.domain.enums.UserRole;
-import com.jay.auth.domain.enums.UserStatus;
-import com.jay.auth.dto.response.AdminDashboardResponse;
+import com.jay.auth.domain.entity.*;
+import com.jay.auth.domain.enums.*;
+import com.jay.auth.dto.response.*;
 import com.jay.auth.exception.UserNotFoundException;
+import com.jay.auth.repository.AuditLogRepository;
+import com.jay.auth.repository.LoginHistoryRepository;
+import com.jay.auth.repository.SupportPostRepository;
 import com.jay.auth.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -16,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
@@ -38,6 +39,15 @@ class AdminServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private LoginHistoryRepository loginHistoryRepository;
+
+    @Mock
+    private AuditLogRepository auditLogRepository;
+
+    @Mock
+    private SupportPostRepository supportPostRepository;
 
     @Mock
     private EncryptionService encryptionService;
@@ -227,6 +237,173 @@ class AdminServiceTest {
 
             // then
             assertThat(target.getStatus()).isEqualTo(UserStatus.DORMANT);
+        }
+    }
+
+    @Nested
+    @DisplayName("사용자 검색")
+    class SearchUsers {
+
+        @Test
+        @DisplayName("키워드와 상태로 사용자를 검색할 수 있어야 한다")
+        void searchUsersSuccess() {
+            // given
+            User user = createUserWithChannels();
+            Page<User> page = new PageImpl<>(List.of(user), PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt")), 1);
+            given(encryptionService.encryptEmail("test@email.com"))
+                    .willReturn(new EncryptionService.EncryptedEmail("enc_keyword", "enc_keyword_lower"));
+            given(userRepository.searchUsers(eq("enc_keyword_lower"), eq(UserStatus.ACTIVE), any(PageRequest.class)))
+                    .willReturn(page);
+            given(encryptionService.decryptEmail("enc_email")).willReturn("test@email.com");
+            given(encryptionService.decryptNickname("enc_nickname")).willReturn("테스트");
+
+            // when
+            AdminUserSearchResponse response = adminService.searchUsers("test@email.com", UserStatus.ACTIVE, 0, 20);
+
+            // then
+            assertThat(response.getUsers()).hasSize(1);
+            assertThat(response.getTotalElements()).isEqualTo(1);
+            assertThat(response.getCurrentPage()).isEqualTo(0);
+            assertThat(response.getTotalPages()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("키워드 없이 검색하면 전체 사용자가 조회되어야 한다")
+        void searchUsersWithoutKeyword() {
+            // given
+            Page<User> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 20), 0);
+            given(userRepository.searchUsers(isNull(), isNull(), any(PageRequest.class)))
+                    .willReturn(emptyPage);
+
+            // when
+            AdminUserSearchResponse response = adminService.searchUsers(null, null, 0, 20);
+
+            // then
+            assertThat(response.getUsers()).isEmpty();
+            assertThat(response.getTotalElements()).isEqualTo(0);
+        }
+    }
+
+    @Nested
+    @DisplayName("로그인 통계")
+    class GetLoginStats {
+
+        @Test
+        @DisplayName("로그인 통계가 정확하게 반환되어야 한다")
+        void getLoginStatsSuccess() {
+            // given
+            given(loginHistoryRepository.countByCreatedAtAfter(any(LocalDateTime.class))).willReturn(150L);
+            given(userRepository.countByCreatedAtAfter(any(LocalDateTime.class))).willReturn(10L);
+            given(loginHistoryRepository.countDistinctActiveUsersSince(any(LocalDateTime.class))).willReturn(500L);
+            List<Object[]> dailyLogins = Collections.singletonList(new Object[]{"2025-01-15", 100L});
+            given(loginHistoryRepository.countDailyLogins(any(LocalDateTime.class)))
+                    .willReturn(dailyLogins);
+            List<Object[]> dailySignups = Collections.singletonList(new Object[]{"2025-01-15", 5L});
+            given(userRepository.countDailySignups(any(LocalDateTime.class)))
+                    .willReturn(dailySignups);
+
+            // when
+            AdminLoginStatsResponse response = adminService.getLoginStats();
+
+            // then
+            assertThat(response.getTodayLogins()).isEqualTo(150L);
+            assertThat(response.getTodaySignups()).isEqualTo(10L);
+            assertThat(response.getActiveUsersLast7Days()).isEqualTo(500L);
+            assertThat(response.getDailyLogins()).hasSize(1);
+            assertThat(response.getDailySignups()).hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("보안 이벤트")
+    class GetSecurityEvents {
+
+        @Test
+        @DisplayName("보안 이벤트가 정확하게 반환되어야 한다")
+        void getSecurityEventsSuccess() {
+            // given
+            given(auditLogRepository.countByActionSince(eq("LOGIN_FAILED"), any(LocalDateTime.class))).willReturn(25L);
+            given(auditLogRepository.countByActionSince(eq("PASSWORD_CHANGE"), any(LocalDateTime.class))).willReturn(5L);
+            given(auditLogRepository.countByActionSince(eq("ACCOUNT_LOCKED"), any(LocalDateTime.class))).willReturn(2L);
+
+            LoginHistory failedLogin = LoginHistory.builder()
+                    .userId(1L)
+                    .channelCode(ChannelCode.EMAIL)
+                    .ipAddress("192.168.1.1")
+                    .browser("Chrome")
+                    .isSuccess(false)
+                    .failureReason("INVALID_PASSWORD")
+                    .build();
+            given(loginHistoryRepository.findRecentFailedLogins(any(LocalDateTime.class), any(PageRequest.class)))
+                    .willReturn(List.of(failedLogin));
+
+            AuditLog auditLog = AuditLog.builder()
+                    .userId(1L)
+                    .action("PASSWORD_CHANGE")
+                    .target("USER")
+                    .isSuccess(true)
+                    .build();
+            given(auditLogRepository.findRecentLogs(any(LocalDateTime.class), any(PageRequest.class)))
+                    .willReturn(List.of(auditLog));
+
+            // when
+            AdminSecurityEventsResponse response = adminService.getSecurityEvents();
+
+            // then
+            assertThat(response.getFailedLoginsToday()).isEqualTo(25L);
+            assertThat(response.getPasswordChangesToday()).isEqualTo(5L);
+            assertThat(response.getAccountLocksToday()).isEqualTo(2L);
+            assertThat(response.getRecentFailedLogins()).hasSize(1);
+            assertThat(response.getRecentFailedLogins().get(0).getIpAddress()).isEqualTo("192.168.1.1");
+            assertThat(response.getRecentAuditEvents()).hasSize(1);
+            assertThat(response.getRecentAuditEvents().get(0).getAction()).isEqualTo("PASSWORD_CHANGE");
+        }
+
+        @Test
+        @DisplayName("보안 이벤트가 없으면 빈 목록이 반환되어야 한다")
+        void getSecurityEventsEmpty() {
+            // given
+            given(auditLogRepository.countByActionSince(anyString(), any(LocalDateTime.class))).willReturn(0L);
+            given(loginHistoryRepository.findRecentFailedLogins(any(LocalDateTime.class), any(PageRequest.class)))
+                    .willReturn(Collections.emptyList());
+            given(auditLogRepository.findRecentLogs(any(LocalDateTime.class), any(PageRequest.class)))
+                    .willReturn(Collections.emptyList());
+
+            // when
+            AdminSecurityEventsResponse response = adminService.getSecurityEvents();
+
+            // then
+            assertThat(response.getFailedLoginsToday()).isEqualTo(0L);
+            assertThat(response.getRecentFailedLogins()).isEmpty();
+            assertThat(response.getRecentAuditEvents()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("고객센터 통계")
+    class GetSupportStats {
+
+        @Test
+        @DisplayName("고객센터 통계가 정확하게 반환되어야 한다")
+        void getSupportStatsSuccess() {
+            // given
+            given(supportPostRepository.count()).willReturn(100L);
+            given(supportPostRepository.countByStatus(PostStatus.OPEN)).willReturn(20L);
+            given(supportPostRepository.countByStatus(PostStatus.IN_PROGRESS)).willReturn(15L);
+            given(supportPostRepository.countByStatus(PostStatus.RESOLVED)).willReturn(50L);
+            given(supportPostRepository.countByStatus(PostStatus.CLOSED)).willReturn(15L);
+            given(supportPostRepository.countByCreatedAtAfter(any(LocalDateTime.class))).willReturn(3L);
+
+            // when
+            AdminSupportStatsResponse response = adminService.getSupportStats();
+
+            // then
+            assertThat(response.getTotalPosts()).isEqualTo(100L);
+            assertThat(response.getOpenPosts()).isEqualTo(20L);
+            assertThat(response.getInProgressPosts()).isEqualTo(15L);
+            assertThat(response.getResolvedPosts()).isEqualTo(50L);
+            assertThat(response.getClosedPosts()).isEqualTo(15L);
+            assertThat(response.getTodayPosts()).isEqualTo(3L);
         }
     }
 

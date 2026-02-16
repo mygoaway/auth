@@ -596,6 +596,11 @@ export default function DashboardPage() {
         <div className="navbar-content">
           <div className="navbar-brand">Authly</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {user?.role === 'ADMIN' && (
+              <button className="logout-btn admin-nav-btn" onClick={() => navigate('/admin')}>
+                관리자
+              </button>
+            )}
             <button className="logout-btn" onClick={() => navigate('/support')}>
               고객센터
             </button>

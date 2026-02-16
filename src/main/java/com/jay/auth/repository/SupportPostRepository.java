@@ -11,6 +11,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface SupportPostRepository extends JpaRepository<SupportPost, Long> {
 
+    long countByStatus(PostStatus status);
+
+    long countByCreatedAtAfter(java.time.LocalDateTime dateTime);
+
     @Query("SELECT p FROM SupportPost p WHERE " +
             "(p.isPrivate = false OR p.userId = :userId) " +
             "AND (:category IS NULL OR p.category = :category) " +

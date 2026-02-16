@@ -53,4 +53,17 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "AND (si IS NULL OR si.lastLoginAt < :cutoffDate) " +
             "AND u.createdAt < :cutoffDate")
     List<User> findDormantCandidates(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.channels LEFT JOIN FETCH u.signInInfo " +
+            "WHERE (:keyword IS NULL OR u.emailLowerEnc = :keyword OR u.nicknameEnc LIKE %:keyword% OR u.userUuid = :keyword) " +
+            "AND (:status IS NULL OR u.status = :status)")
+    org.springframework.data.domain.Page<User> searchUsers(
+            @Param("keyword") String keyword,
+            @Param("status") UserStatus status,
+            org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT FUNCTION('DATE', u.createdAt) AS signupDate, COUNT(u) " +
+            "FROM User u WHERE u.createdAt >= :since " +
+            "GROUP BY FUNCTION('DATE', u.createdAt) ORDER BY signupDate DESC")
+    List<Object[]> countDailySignups(@Param("since") LocalDateTime since);
 }

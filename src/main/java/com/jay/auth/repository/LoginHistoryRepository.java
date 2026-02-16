@@ -36,4 +36,17 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long
     @Modifying
     @Query("DELETE FROM LoginHistory h WHERE h.userId = :userId")
     void deleteByUserId(@Param("userId") Long userId);
+
+    long countByCreatedAtAfter(LocalDateTime dateTime);
+
+    @Query("SELECT FUNCTION('DATE', h.createdAt) AS loginDate, COUNT(h) " +
+            "FROM LoginHistory h WHERE h.createdAt >= :since AND h.isSuccess = true " +
+            "GROUP BY FUNCTION('DATE', h.createdAt) ORDER BY loginDate DESC")
+    List<Object[]> countDailyLogins(@Param("since") LocalDateTime since);
+
+    @Query("SELECT h FROM LoginHistory h WHERE h.isSuccess = false AND h.createdAt >= :since ORDER BY h.createdAt DESC")
+    List<LoginHistory> findRecentFailedLogins(@Param("since") LocalDateTime since, Pageable pageable);
+
+    @Query("SELECT COUNT(DISTINCT h.userId) FROM LoginHistory h WHERE h.isSuccess = true AND h.createdAt >= :since")
+    long countDistinctActiveUsersSince(@Param("since") LocalDateTime since);
 }

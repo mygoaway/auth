@@ -55,6 +55,13 @@ public class SupportController {
         boolean isAdmin = "ADMIN".equals(userPrincipal.getRole());
         SupportPostDetailResponse response = supportPostService.getPost(
                 postId, userPrincipal.getUserId(), isAdmin);
+        Long currentUserId = userPrincipal.getUserId();
+        response.setAuthor(response.getUserId() != null
+                && response.getUserId().equals(currentUserId));
+        if (response.getComments() != null) {
+            response.getComments().forEach(c ->
+                    c.setAuthor(c.getUserId() != null && c.getUserId().equals(currentUserId)));
+        }
 
         return ResponseEntity.ok(response);
     }

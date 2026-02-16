@@ -8,6 +8,7 @@ import com.jay.auth.dto.request.UpdateSupportPostRequest;
 import com.jay.auth.dto.response.SupportPostDetailResponse;
 import com.jay.auth.dto.response.SupportPostListResponse;
 import com.jay.auth.exception.SupportPostAccessDeniedException;
+import com.jay.auth.exception.SupportPostNotModifiableException;
 import com.jay.auth.exception.SupportPostNotFoundException;
 import com.jay.auth.repository.SupportCommentRepository;
 import com.jay.auth.repository.SupportPostRepository;
@@ -217,6 +218,24 @@ class SupportPostServiceTest {
 
             // then
             assertThat(result.getTitle()).isEqualTo("수정된 제목");
+        }
+
+        @Test
+        @DisplayName("대기중이 아닌 게시글 수정 시 실패")
+        void updatePostNotOpen() {
+            // given
+            SupportPost post = createPost(1L, 1L, "작성자", "제목", "내용", PostCategory.ACCOUNT, false);
+            setField(post, "status", PostStatus.IN_PROGRESS);
+            given(supportPostRepository.findById(1L)).willReturn(Optional.of(post));
+
+            UpdateSupportPostRequest request = new UpdateSupportPostRequest();
+            setField(request, "title", "수정");
+            setField(request, "content", "수정");
+            setField(request, "category", PostCategory.ACCOUNT);
+
+            // when & then
+            assertThatThrownBy(() -> supportPostService.updatePost(1L, 1L, request))
+                    .isInstanceOf(SupportPostNotModifiableException.class);
         }
 
         @Test

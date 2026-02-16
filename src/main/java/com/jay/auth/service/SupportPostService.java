@@ -9,6 +9,7 @@ import com.jay.auth.dto.request.UpdateSupportPostRequest;
 import com.jay.auth.dto.response.SupportPostDetailResponse;
 import com.jay.auth.dto.response.SupportPostListResponse;
 import com.jay.auth.exception.SupportPostAccessDeniedException;
+import com.jay.auth.exception.SupportPostNotModifiableException;
 import com.jay.auth.exception.SupportPostNotFoundException;
 import com.jay.auth.repository.SupportCommentRepository;
 import com.jay.auth.repository.SupportPostRepository;
@@ -86,6 +87,10 @@ public class SupportPostService {
 
         if (!post.getUserId().equals(userId)) {
             throw new SupportPostAccessDeniedException();
+        }
+
+        if (post.getStatus() != PostStatus.OPEN) {
+            throw new SupportPostNotModifiableException();
         }
 
         post.update(request.getTitle(), request.getContent(), request.getCategory(), request.isPrivate());

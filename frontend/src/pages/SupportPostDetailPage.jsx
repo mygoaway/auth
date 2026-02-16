@@ -38,7 +38,7 @@ export default function SupportPostDetailPage() {
   const [editLoading, setEditLoading] = useState(false);
 
   const isAdmin = user?.channels?.some(c => c.channelCode === 'ADMIN') || user?.role === 'ADMIN';
-  const isAuthor = post && user && post.userId === user.userId;
+  const isAuthor = post?.isAuthor;
 
   useEffect(() => {
     loadPost();
@@ -231,11 +231,11 @@ export default function SupportPostDetailPage() {
 
               {/* Actions */}
               <div className="support-detail-actions">
+                {isAuthor && post.status === 'OPEN' && (
+                  <button className="edit-btn" onClick={openEditModal}>수정</button>
+                )}
                 {isAuthor && (
-                  <>
-                    <button className="edit-btn" onClick={openEditModal}>수정</button>
-                    <button className="channel-unlink-btn" onClick={handleDeletePost}>삭제</button>
-                  </>
+                  <button className="channel-unlink-btn" onClick={handleDeletePost}>삭제</button>
                 )}
                 {isAdmin && !isAuthor && (
                   <button className="channel-unlink-btn" onClick={handleDeletePost}>삭제 (관리자)</button>
@@ -271,7 +271,7 @@ export default function SupportPostDetailPage() {
                           <span className="support-comment-time">
                             {new Date(c.createdAt).toLocaleString('ko-KR')}
                           </span>
-                          {(c.userId === user?.userId || isAdmin) && (
+                          {(c.isAuthor || isAdmin) && (
                             <button
                               className="support-comment-delete"
                               onClick={() => handleDeleteComment(c.id)}

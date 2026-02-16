@@ -3,6 +3,7 @@ package com.jay.auth.service;
 import com.jay.auth.domain.entity.User;
 import com.jay.auth.domain.entity.UserChannel;
 import com.jay.auth.domain.enums.ChannelCode;
+import com.jay.auth.domain.enums.UserRole;
 import com.jay.auth.domain.enums.UserStatus;
 import com.jay.auth.domain.enums.VerificationType;
 import com.jay.auth.dto.request.UpdatePhoneRequest;
@@ -64,6 +65,7 @@ class UserServiceTest {
             UserProfileResponse response = userService.getProfile(1L);
 
             // then
+            assertThat(response.getUserId()).isEqualTo(1L);
             assertThat(response.getUserUuid()).isEqualTo("uuid-1234");
             assertThat(response.getEmail()).isEqualTo("test@email.com");
             assertThat(response.getNickname()).isEqualTo("테스트");
@@ -239,6 +241,7 @@ class UserServiceTest {
                 .build();
         setField(user, "id", id);
         setField(user, "userUuid", "uuid-1234");
+        setField(user, "role", UserRole.USER);
         return user;
     }
 

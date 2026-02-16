@@ -14,11 +14,13 @@ import java.util.List;
 @AllArgsConstructor
 public class UserProfileResponse {
 
+    private Long userId;
     private String userUuid;
     private String email;
     private String recoveryEmail;
     private String phone;
     private String nickname;
+    private String role;
     private String status;
     private List<ChannelInfo> channels;
     private LocalDateTime createdAt;

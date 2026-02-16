@@ -7,6 +7,7 @@ import com.jay.auth.domain.enums.PostStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +30,10 @@ public class SupportPostDetailResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CommentResponse> comments;
+
+    @Setter
+    @JsonProperty("isAuthor")
+    private boolean author;
 
     public static SupportPostDetailResponse of(SupportPost post, List<SupportComment> comments) {
         return SupportPostDetailResponse.builder()
@@ -58,6 +63,10 @@ public class SupportPostDetailResponse {
         private String content;
         private boolean isAdmin;
         private LocalDateTime createdAt;
+
+        @Setter
+        @JsonProperty("isAuthor")
+        private boolean author;
 
         public static CommentResponse from(SupportComment comment) {
             return CommentResponse.builder()

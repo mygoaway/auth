@@ -52,11 +52,13 @@ public class UserService {
                 .toList();
 
         return UserProfileResponse.builder()
+                .userId(user.getId())
                 .userUuid(user.getUserUuid())
                 .email(email)
                 .recoveryEmail(recoveryEmail)
                 .phone(phone)
                 .nickname(nickname)
+                .role(user.getRole().name())
                 .status(user.getStatus().name())
                 .channels(channels)
                 .createdAt(user.getCreatedAt())

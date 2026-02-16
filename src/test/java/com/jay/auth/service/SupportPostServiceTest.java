@@ -291,6 +291,19 @@ class SupportPostServiceTest {
         }
 
         @Test
+        @DisplayName("대기중이 아닌 게시글 삭제 시 실패")
+        void deletePostNotOpen() {
+            // given
+            SupportPost post = createPost(1L, 1L, "작성자", "제목", "내용", PostCategory.ACCOUNT, false);
+            setField(post, "status", PostStatus.RESOLVED);
+            given(supportPostRepository.findById(1L)).willReturn(Optional.of(post));
+
+            // when & then
+            assertThatThrownBy(() -> supportPostService.deletePost(1L, 1L, false))
+                    .isInstanceOf(SupportPostNotModifiableException.class);
+        }
+
+        @Test
         @DisplayName("다른 사용자가 게시글 삭제 시 접근 거부")
         void deletePostByOtherUser() {
             // given

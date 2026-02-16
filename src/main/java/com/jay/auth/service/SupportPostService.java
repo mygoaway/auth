@@ -111,6 +111,10 @@ public class SupportPostService {
             throw new SupportPostAccessDeniedException();
         }
 
+        if (post.getStatus() != PostStatus.OPEN) {
+            throw new SupportPostNotModifiableException();
+        }
+
         supportCommentRepository.deleteByPostId(postId);
         supportPostRepository.delete(post);
 

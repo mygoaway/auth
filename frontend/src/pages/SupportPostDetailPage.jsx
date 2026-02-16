@@ -234,7 +234,7 @@ export default function SupportPostDetailPage() {
                 {isAuthor && post.status === 'OPEN' && (
                   <button className="edit-btn" onClick={openEditModal}>수정</button>
                 )}
-                {isAuthor && (
+                {isAuthor && post.status === 'OPEN' && (
                   <button className="channel-unlink-btn" onClick={handleDeletePost}>삭제</button>
                 )}
                 {isAdmin && !isAuthor && (

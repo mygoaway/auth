@@ -110,7 +110,7 @@ export default function SupportPostDetailPage() {
       title: post.title,
       content: post.content,
       category: post.category,
-      isPrivate: post.private,
+      isPrivate: post.isPrivate,
     });
     setShowEditModal(true);
   };
@@ -211,7 +211,7 @@ export default function SupportPostDetailPage() {
                   >
                     {STATUS_LABELS[post.status]}
                   </span>
-                  {post.private && <span className="support-private-badge">비공개</span>}
+                  {post.isPrivate && <span className="support-private-badge">비공개</span>}
                 </div>
                 <h2 className="support-detail-title">{post.title}</h2>
                 <div className="support-detail-meta">

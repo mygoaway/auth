@@ -4,6 +4,7 @@ import com.jay.auth.domain.enums.PostCategory;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -21,5 +22,10 @@ public class CreateSupportPostRequest {
     @NotNull(message = "카테고리는 필수입니다")
     private PostCategory category;
 
-    private boolean isPrivate;
+    @JsonProperty("isPrivate")
+    private boolean privatePost;
+
+    public boolean isPrivate() {
+        return privatePost;
+    }
 }

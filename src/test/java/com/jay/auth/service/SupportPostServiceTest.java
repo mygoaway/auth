@@ -182,7 +182,7 @@ class SupportPostServiceTest {
             setField(request, "title", "테스트 제목");
             setField(request, "content", "테스트 내용");
             setField(request, "category", PostCategory.ACCOUNT);
-            setField(request, "isPrivate", false);
+            setField(request, "privatePost", false);
 
             // when
             SupportPostDetailResponse result = supportPostService.createPost(1L, request);
@@ -210,7 +210,7 @@ class SupportPostServiceTest {
             setField(request, "title", "수정된 제목");
             setField(request, "content", "수정된 내용");
             setField(request, "category", PostCategory.SECURITY);
-            setField(request, "isPrivate", true);
+            setField(request, "privatePost", true);
 
             // when
             SupportPostDetailResponse result = supportPostService.updatePost(1L, 1L, request);

@@ -149,7 +149,7 @@ export default function SupportBoardPage() {
                 >
                   <div className="support-post-main">
                     <div className="support-post-title-row">
-                      {post.private && <span className="support-private-badge">비공개</span>}
+                      {post.isPrivate && <span className="support-private-badge">비공개</span>}
                       <span className="support-category-badge">{CATEGORY_LABELS[post.category]}</span>
                       <span className="support-post-title">{post.title}</span>
                     </div>

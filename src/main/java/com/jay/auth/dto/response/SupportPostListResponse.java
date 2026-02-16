@@ -3,6 +3,7 @@ package com.jay.auth.dto.response;
 import com.jay.auth.domain.entity.SupportPost;
 import com.jay.auth.domain.enums.PostCategory;
 import com.jay.auth.domain.enums.PostStatus;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -17,7 +18,8 @@ public class SupportPostListResponse {
     private String authorNickname;
     private PostCategory category;
     private PostStatus status;
-    private boolean isPrivate;
+    @JsonProperty("isPrivate")
+    private boolean privatePost;
     private int viewCount;
     private int commentCount;
     private LocalDateTime createdAt;
@@ -29,7 +31,7 @@ public class SupportPostListResponse {
                 .authorNickname(post.getAuthorNickname())
                 .category(post.getCategory())
                 .status(post.getStatus())
-                .isPrivate(post.isPrivate())
+                .privatePost(post.isPrivate())
                 .viewCount(post.getViewCount())
                 .commentCount(post.getCommentCount())
                 .createdAt(post.getCreatedAt())

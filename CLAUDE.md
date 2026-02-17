@@ -25,7 +25,7 @@ npm run lint         # Run ESLint
 
 ## Architecture
 
-Spring Boot 3.5.10 authentication service with email and social login (Google, Kakao, Naver, Facebook), plus a React 19 frontend.
+Spring Boot 3.5.10 authentication service with email and social login (Google, Kakao, Naver), plus a React 19 frontend.
 
 **Tech Stack**: Java 17, Spring Security 6.x, MySQL (JPA/Hibernate), Redis, JWT (jjwt 0.12.6), BCrypt, AES-256, TOTP 2FA (dev.samstevens.totp), Thymeleaf (email templates), Vite, React Router, Axios.
 
@@ -41,7 +41,7 @@ CSRF disabled. Stateless sessions. Public endpoints: `/api/v1/auth/**`, `/api/v1
 Claims: `userId`, `userUuid`, `channelCode`, `role`, `tokenType` (ACCESS/REFRESH), `jti`. Signed with HS256. Access token: 30 min. Refresh token: 14 days. Revoked tokens stored in Redis blacklist by `jti`.
 
 ### OAuth2 Flow
-Google uses OIDC (`CustomOidcUserService`), Naver/Kakao use OAuth2 (`CustomOAuth2UserService`). `CustomOAuth2AuthorizationRequestResolver` overrides the `state` parameter with `link_state` for account linking flow. Success handler redirects to `${app.oauth2.redirect-uri}?accessToken=...&refreshToken=...&expiresIn=...`.
+Google/Kakao use OIDC (`CustomOidcUserService`), Naver uses OAuth2 (`CustomOAuth2UserService`). `CustomOAuth2AuthorizationRequestResolver` overrides the `state` parameter with `link_state` for account linking flow. Success handler redirects to `${app.oauth2.redirect-uri}?accessToken=...&refreshToken=...&expiresIn=...`.
 
 ### Redis Key Namespaces
 
@@ -62,13 +62,15 @@ Spring `@Cacheable` caches: `userProfile` (5 min), `securityDashboard` (3 min), 
 ### Data Model
 - `User` (tb_user): Base user info, 1:0..1 with SignInInfo, 1:N with Channel
 - `UserSignInInfo` (tb_user_sign_in_info): Email login credentials (email users only)
-- `UserChannel` (tb_user_channel): Login channels (EMAIL, GOOGLE, KAKAO, NAVER, FACEBOOK)
+- `UserChannel` (tb_user_channel): Login channels (EMAIL, GOOGLE, KAKAO, NAVER)
 - `UserTwoFactor` (tb_user_two_factor): TOTP 2FA secret and backup codes
 - `LoginHistory` (tb_login_history): Login attempts with device/location (no FK, references user_id)
 - `PasswordHistory` (tb_password_history): Password reuse prevention
 - `EmailVerification` (tb_email_verification): Email verification tokens (no FK, linked by encrypted email)
 - `PhoneVerification` (tb_phone_verification): Phone verification tokens (no FK)
 - `AuditLog` (tb_audit_log): Audit trail (no FK, nullable user_id)
+- `SupportPost` (tb_support_post): Customer support posts with category/status/view count (no FK, references user_id)
+- `SupportComment` (tb_support_comment): Comments on support posts with AI-generated flag (no FK)
 
 ### Key Design Decisions
 - Email fields stored as: `*_enc` (original encrypted) + `*_lower_enc` (lowercase encrypted for search)
@@ -77,8 +79,11 @@ Spring `@Cacheable` caches: `userProfile` (5 min), `securityDashboard` (3 min), 
 - One user can link multiple social accounts
 - OAuth2 account linking uses cookie (`oauth2_link_state`) to pass state through OAuth2 flow
 - Remember Me: localStorage (persistent) vs sessionStorage (session-only)
-- `LoginHistory` and `AuditLog` use loose references (no FK) for performance
+- `LoginHistory`, `AuditLog`, `SupportPost`, `SupportComment` use loose references (no FK) for performance
 - GeoIP via `http://ip-api.com/json/{ip}`, cached 24hr in Redis
+- Support posts have status workflow: OPEN → IN_PROGRESS → RESOLVED → CLOSED
+- Support post categories: ACCOUNT, LOGIN, SECURITY, OTHER
+- AI auto-reply is generated asynchronously when a support post is created
 
 ### API Response Format
 Error responses use `ApiResponse<T>` wrapper with `@JsonInclude(NON_NULL)`:
@@ -97,10 +102,11 @@ Error responses use `ApiResponse<T>` wrapper with `@JsonInclude(NON_NULL)`:
 | `UserController` | `/api/v1/users` | Authenticated |
 | `TwoFactorController` | `/api/v1/2fa` | Authenticated |
 | `OAuth2LinkController` | `/api/v1/oauth2/link` | Authenticated |
+| `SupportController` | `/api/v1/support` | Authenticated |
 | `AdminController` | `/api/v1/admin` | ROLE_ADMIN |
 
 ### Async & Scheduling
-- `@Async("asyncExecutor")`: `AuditLogService`, `LoginHistoryService`, `SecurityNotificationService`
+- `@Async("asyncExecutor")`: `AuditLogService`, `LoginHistoryService`, `SecurityNotificationService`, `SupportAiReplyService`
 - `AccountCleanupScheduler` (3AM daily): PII removal for users in `PENDING_DELETE` >30 days, dormant conversion after 90 days no login, login history cleanup >180 days
 - `VerificationCleanupScheduler` (hourly): Deletes expired email/phone verification rows
 
@@ -108,6 +114,7 @@ Error responses use `ApiResponse<T>` wrapper with `@JsonInclude(NON_NULL)`:
 - **SMS**: `CoolSmsSender` (real) / `LogSmsSender` (dev stub) — switched via `${SMS_PROVIDER:log}`
 - **Email**: `SmtpEmailSender` (real) / `EmailSenderImpl` (dev stub) — switched via `${EMAIL_PROVIDER:log}`. Templates: `verification-code.html`, `security-alert.html` (Thymeleaf)
 - **GeoIP**: `ip-api.com` free tier
+- **AI Reply**: `ClaudeAiReplyService` (real) / `LogAiReplyService` (dev stub) — switched via `${AI_PROVIDER:log}`. Uses Anthropic Messages API (RestTemplate). Default model: `claude-sonnet-4-5-20250929`
 
 ### Frontend Proxy (Vite)
 Dev server on port 3000 proxies `/api`, `/oauth2/authorization`, `/login/oauth2` to `http://localhost:8080`. Axios client uses `http://localhost:8080/api/v1` as base URL (absolute, not proxied). Token auto-refresh interceptor on 401.
@@ -139,6 +146,10 @@ OAUTH2_REDIRECT_URI                # default: http://localhost:3000/oauth2/callb
 DB_HOST, DB_PORT                   # used in dev/prod profiles
 MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD
 COOLSMS_API_KEY, COOLSMS_API_SECRET, COOLSMS_SENDER
+AI_PROVIDER                        # log (default) or claude
+CLAUDE_API_KEY                     # Anthropic API key (required when AI_PROVIDER=claude)
+CLAUDE_MODEL                       # default: claude-sonnet-4-5-20250929
+CLAUDE_MAX_TOKENS                  # default: 1024
 ```
 
 ## Profiles

@@ -44,6 +44,9 @@ dependencies {
     // TOTP (2FA)
     implementation 'dev.samstevens.totp:totp:1.7.1'
 
+    // WebAuthn (Passkey)
+    implementation 'com.webauthn4j:webauthn4j-core:0.28.4.RELEASE'
+
     // Database
     runtimeOnly 'com.mysql:mysql-connector-j'
 

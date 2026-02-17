@@ -129,6 +129,44 @@ public class SecurityNotificationService {
         }
     }
 
+    /**
+     * 패스키 등록 알림
+     */
+    @Async
+    @Transactional(readOnly = true)
+    public void notifyPasskeyRegistered(Long userId, String deviceName) {
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null || user.getEmailEnc() == null) {
+                return;
+            }
+
+            String email = encryptionService.decryptEmail(user.getEmailEnc());
+            log.info("Passkey registered notification for user: {}, device: {}, email: {}", userId, deviceName, email);
+        } catch (Exception e) {
+            log.error("Failed to send passkey registered notification", e);
+        }
+    }
+
+    /**
+     * 패스키 삭제 알림
+     */
+    @Async
+    @Transactional(readOnly = true)
+    public void notifyPasskeyRemoved(Long userId, String deviceName) {
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null || user.getEmailEnc() == null) {
+                return;
+            }
+
+            String email = encryptionService.decryptEmail(user.getEmailEnc());
+            log.info("Passkey removed notification for user: {}, device: {}, email: {}", userId, deviceName, email);
+        } catch (Exception e) {
+            log.error("Failed to send passkey removed notification", e);
+        }
+    }
+
     private String getChannelDisplayName(ChannelCode channelCode) {
         return switch (channelCode) {
             case EMAIL -> "이메일";

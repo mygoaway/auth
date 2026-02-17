@@ -152,3 +152,26 @@ export const oauth2Api = {
   prepareLink: (provider) =>
     client.post(`/oauth2/link/prepare/${provider}`),
 };
+
+export const passkeyApi = {
+  getRegistrationOptions: () =>
+    client.post('/passkey/register/options'),
+
+  verifyRegistration: (data) =>
+    client.post('/passkey/register/verify', data),
+
+  getAuthenticationOptions: () =>
+    client.post('/auth/passkey/login/options'),
+
+  verifyAuthentication: (data) =>
+    client.post('/auth/passkey/login/verify', data),
+
+  list: () =>
+    client.get('/passkey/list'),
+
+  rename: (id, deviceName) =>
+    client.patch(`/passkey/${id}`, { deviceName }),
+
+  remove: (id) =>
+    client.delete(`/passkey/${id}`),
+};

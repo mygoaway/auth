@@ -10,6 +10,7 @@ import com.jay.auth.dto.response.TwoFactorStatusResponse;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.LoginHistoryRepository;
 import com.jay.auth.repository.UserChannelRepository;
+import com.jay.auth.repository.UserPasskeyRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.repository.UserSignInInfoRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class SecurityDashboardService {
     private final UserSignInInfoRepository userSignInInfoRepository;
     private final UserChannelRepository userChannelRepository;
     private final LoginHistoryRepository loginHistoryRepository;
+    private final UserPasskeyRepository userPasskeyRepository;
     private final TotpService totpService;
     private final PasswordPolicyService passwordPolicyService;
     private final EncryptionService encryptionService;
@@ -111,7 +113,17 @@ public class SecurityDashboardService {
                 .enabled(linkedChannels > 1)
                 .build());
 
-        // 5. 최근 활동 확인 (15점)
+        // 5. 패스키 등록 (15점)
+        boolean hasPasskeys = userPasskeyRepository.existsByUserId(userId);
+        factors.add(SecurityFactor.builder()
+                .name("PASSKEY_REGISTERED")
+                .description("패스키 등록")
+                .score(hasPasskeys ? 15 : 0)
+                .maxScore(15)
+                .enabled(hasPasskeys)
+                .build());
+
+        // 6. 최근 활동 확인 (15점)
         boolean recentLoginChecked = checkRecentLoginPattern(userId);
         factors.add(SecurityFactor.builder()
                 .name("LOGIN_MONITORING")
@@ -203,6 +215,9 @@ public class SecurityDashboardService {
                         break;
                     case "RECOVERY_EMAIL":
                         recommendations.add("복구 이메일을 설정하여 계정 복구를 쉽게 할 수 있습니다.");
+                        break;
+                    case "PASSKEY_REGISTERED":
+                        recommendations.add("패스키를 등록하면 비밀번호 없이 안전하게 로그인할 수 있습니다.");
                         break;
                     case "SOCIAL_LINKED":
                         recommendations.add("소셜 계정을 연결하면 로그인 방법을 다양화할 수 있습니다.");

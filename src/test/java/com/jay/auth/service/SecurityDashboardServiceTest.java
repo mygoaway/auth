@@ -10,6 +10,7 @@ import com.jay.auth.dto.response.TwoFactorStatusResponse;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.LoginHistoryRepository;
 import com.jay.auth.repository.UserChannelRepository;
+import com.jay.auth.repository.UserPasskeyRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.repository.UserSignInInfoRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -45,6 +46,8 @@ class SecurityDashboardServiceTest {
     private UserChannelRepository userChannelRepository;
     @Mock
     private LoginHistoryRepository loginHistoryRepository;
+    @Mock
+    private UserPasskeyRepository userPasskeyRepository;
     @Mock
     private TotpService totpService;
     @Mock

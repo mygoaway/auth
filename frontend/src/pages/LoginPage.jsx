@@ -24,7 +24,9 @@ export default function LoginPage() {
   const [deletionRequestedAt, setDeletionRequestedAt] = useState(null);
   const [cancellingDeletion, setCancellingDeletion] = useState(false);
 
-  const { login, complete2FALogin } = useAuth();
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+
+  const { login, complete2FALogin, passkeyLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -113,6 +115,30 @@ export default function LoginPage() {
     }
   };
 
+  const handlePasskeyLogin = async () => {
+    if (!window.PublicKeyCredential) {
+      setError('이 브라우저는 패스키를 지원하지 않습니다');
+      return;
+    }
+    setError('');
+    setPasskeyLoading(true);
+    try {
+      await passkeyLogin();
+      navigate('/dashboard');
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        setError('패스키 인증이 취소되었습니다');
+      } else {
+        const message = err.response?.data?.error?.message
+          || err.response?.data?.message
+          || '패스키 로그인에 실패했습니다';
+        setError(message);
+      }
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
+
   const handleSocialLogin = (provider) => {
     window.location.href = `${OAUTH2_BASE_URL}/oauth2/authorization/${provider}`;
   };
@@ -174,6 +200,25 @@ export default function LoginPage() {
             <h1>Authly</h1>
           </div>
           <p className="auth-subtitle">로그인 방법을 선택해 주세요</p>
+
+          {error && <div className="error-message">{error}</div>}
+
+          {window.PublicKeyCredential && (
+            <>
+              <button
+                className="btn btn-primary passkey-login-btn"
+                onClick={handlePasskeyLogin}
+                disabled={passkeyLoading}
+              >
+                <span className="passkey-icon">🔑</span>
+                {passkeyLoading ? '인증 중...' : '패스키로 로그인'}
+              </button>
+
+              <div className="divider">
+                <span>또는</span>
+              </div>
+            </>
+          )}
 
           <div className="social-login-buttons">
             <button className="social-btn email" onClick={() => setShowEmailLogin(true)}>

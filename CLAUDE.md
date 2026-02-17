@@ -27,7 +27,7 @@ npm run lint         # Run ESLint
 
 Spring Boot 3.5.10 authentication service with email and social login (Google, Kakao, Naver), plus a React 19 frontend.
 
-**Tech Stack**: Java 17, Spring Security 6.x, MySQL (JPA/Hibernate), Redis, JWT (jjwt 0.12.6), BCrypt, AES-256, TOTP 2FA (dev.samstevens.totp), Thymeleaf (email templates), Vite, React Router, Axios.
+**Tech Stack**: Java 17, Spring Security 6.x, MySQL (JPA/Hibernate), Redis, JWT (jjwt 0.12.6), BCrypt, AES-256, TOTP 2FA (dev.samstevens.totp), WebAuthn/Passkey (webauthn4j-core 0.28.4), Thymeleaf (email templates), Vite, React Router, Axios.
 
 ### Security Filter Chain Order
 1. `SecurityHeadersFilter` — XSS/clickjacking response headers
@@ -56,6 +56,8 @@ Google/Kakao use OIDC (`CustomOidcUserService`), Naver uses OAuth2 (`CustomOAuth
 | `rate:auth:{ip}` | 1 min | Auth endpoint rate limit (10 req/min) |
 | `rate:user:{ip}` | 1 min | User endpoint rate limit (200 req/min) |
 | `rate:api:{ip}` | 1 min | General rate limit (60 req/min) |
+| `passkey:challenge:register:{userId}` | 5 min | Passkey registration challenge |
+| `passkey:challenge:login:{sessionId}` | 5 min | Passkey authentication challenge |
 
 Spring `@Cacheable` caches: `userProfile` (5 min), `securityDashboard` (3 min), `geoip` (24 hr).
 
@@ -64,6 +66,7 @@ Spring `@Cacheable` caches: `userProfile` (5 min), `securityDashboard` (3 min), 
 - `UserSignInInfo` (tb_user_sign_in_info): Email login credentials (email users only)
 - `UserChannel` (tb_user_channel): Login channels (EMAIL, GOOGLE, KAKAO, NAVER)
 - `UserTwoFactor` (tb_user_two_factor): TOTP 2FA secret and backup codes
+- `UserPasskey` (tb_user_passkey): WebAuthn passkey credentials (credentialId, publicKey, signCount, transports, deviceName)
 - `LoginHistory` (tb_login_history): Login attempts with device/location (no FK, references user_id)
 - `PasswordHistory` (tb_password_history): Password reuse prevention
 - `EmailVerification` (tb_email_verification): Email verification tokens (no FK, linked by encrypted email)
@@ -84,6 +87,7 @@ Spring `@Cacheable` caches: `userProfile` (5 min), `securityDashboard` (3 min), 
 - Support posts have status workflow: OPEN → IN_PROGRESS → RESOLVED → CLOSED
 - Support post categories: ACCOUNT, LOGIN, SECURITY, OTHER
 - AI auto-reply is generated asynchronously when a support post is created
+- Passkey (WebAuthn): Uses webauthn4j-core with `WebAuthnManager.createNonStrictWebAuthnManager()`. Challenges stored in Redis with 5-min TTL. Max 10 passkeys per user. Login uses discoverable credentials (no allowCredentials). Security dashboard includes passkey factor (15 points)
 
 ### API Response Format
 Error responses use `ApiResponse<T>` wrapper with `@JsonInclude(NON_NULL)`:
@@ -103,6 +107,7 @@ Error responses use `ApiResponse<T>` wrapper with `@JsonInclude(NON_NULL)`:
 | `TwoFactorController` | `/api/v1/2fa` | Authenticated |
 | `OAuth2LinkController` | `/api/v1/oauth2/link` | Authenticated |
 | `SupportController` | `/api/v1/support` | Authenticated |
+| `PasskeyController` | `/api/v1/passkey` (mgmt), `/api/v1/auth/passkey` (login) | Mixed |
 | `AdminController` | `/api/v1/admin` | ROLE_ADMIN |
 
 ### Async & Scheduling
@@ -124,7 +129,7 @@ Dev server on port 3000 proxies `/api`, `/oauth2/authorization`, `/login/oauth2`
 - **Service tests**: `@ExtendWith(MockitoExtension.class)` — pure unit tests with `@InjectMocks`/`@Mock`, no Spring context
 - **Controller tests**: `@WebMvcTest` with `@AutoConfigureMockMvc(addFilters = false)` — excludes security/rate-limit filters via `@ComponentScan.Filter`, uses `@MockitoBean` (Spring Boot 3.4+ API)
 - **Integration tests**: `@SpringBootTest @ActiveProfiles("test") @Import(TestConfig.class)`
-- **TestConfig**: Provides `@Primary` mock beans for `RedisConnectionFactory` and `RedisTemplate` so tests don't need Redis
+- **TestConfig**: Provides `@Primary` mock beans for `RedisConnectionFactory`, `RedisTemplate`, and `StringRedisTemplate` so tests don't need Redis
 - **Test DB**: H2 in-memory (via `application-test.yml`)
 - **JaCoCo**: Coverage excludes `dto/**`, `domain/enums/**`, `config/**`, `AuthApplication.class`
 - **Conventions**: `@Nested` + `@DisplayName` (Korean) for grouping. Private `setField()` reflective helper for setting entity IDs in tests.
@@ -146,6 +151,9 @@ OAUTH2_REDIRECT_URI                # default: http://localhost:3000/oauth2/callb
 DB_HOST, DB_PORT                   # used in dev/prod profiles
 MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD
 COOLSMS_API_KEY, COOLSMS_API_SECRET, COOLSMS_SENDER
+WEBAUTHN_RP_ID                     # default: localhost
+WEBAUTHN_RP_NAME                   # default: Authly
+WEBAUTHN_ORIGIN                    # default: http://localhost:3000
 AI_PROVIDER                        # log (default) or claude
 CLAUDE_API_KEY                     # Anthropic API key (required when AI_PROVIDER=claude)
 CLAUDE_MODEL                       # default: claude-sonnet-4-5-20250929

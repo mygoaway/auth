@@ -56,6 +56,10 @@ app:
     provider: ${EMAIL_PROVIDER:log}  # log, smtp
   oauth2:
     redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}
+  webauthn:
+    rp-id: ${WEBAUTHN_RP_ID:localhost}
+    rp-name: ${WEBAUTHN_RP_NAME:Authly}
+    origin: ${WEBAUTHN_ORIGIN:http://localhost:3000}
   ai:
     provider: ${AI_PROVIDER:log}  # log, claude
     claude:

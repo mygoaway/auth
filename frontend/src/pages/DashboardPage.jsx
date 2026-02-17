@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { userApi, authApi, phoneApi, emailApi, twoFactorApi, oauth2Api } from '../api/auth';
+import { userApi, authApi, phoneApi, emailApi, twoFactorApi, oauth2Api, passkeyApi } from '../api/auth';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 const OAUTH2_BASE_URL = 'http://localhost:8080';
@@ -36,6 +36,9 @@ export default function DashboardPage() {
   const [securitySettings, setSecuritySettings] = useState(null);
   const [lastLogin, setLastLogin] = useState(null);
   const [passwordWarning, setPasswordWarning] = useState(null);
+  const [passkeys, setPasskeys] = useState([]);
+  const [passkeyName, setPasskeyName] = useState('');
+  const [renamingPasskeyId, setRenamingPasskeyId] = useState(null);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -81,6 +84,7 @@ export default function DashboardPage() {
       checkCurrentDeviceTrusted();
       loadSuspiciousActivity();
       loadSecuritySettings();
+      loadPasskeys();
     }
     if (activeTab === 'activity') {
       loadWeeklyActivity();
@@ -215,6 +219,126 @@ export default function DashboardPage() {
       setSecuritySettings(prev => ({ ...prev, suspiciousActivityNotificationEnabled: newVal }));
     } catch (err) {
       setError('설정 변경에 실패했습니다');
+    }
+  };
+
+  const loadPasskeys = async () => {
+    try {
+      const response = await passkeyApi.list();
+      setPasskeys(response.data.passkeys || []);
+    } catch (err) {
+      console.error('Failed to load passkeys', err);
+    }
+  };
+
+  const arrayBufferToBase64Url = (buffer) => {
+    const bytes = new Uint8Array(buffer);
+    let str = '';
+    bytes.forEach(b => str += String.fromCharCode(b));
+    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  };
+
+  const handleRegisterPasskey = async () => {
+    if (!window.PublicKeyCredential) {
+      setError('이 브라우저는 패스키를 지원하지 않습니다');
+      return;
+    }
+    try {
+      setLoading(true);
+      setError('');
+
+      // 1. Get registration options
+      const optionsRes = await passkeyApi.getRegistrationOptions();
+      const options = optionsRes.data;
+
+      // 2. Call WebAuthn create
+      const challengeBuffer = Uint8Array.from(
+        atob(options.challenge.replace(/-/g, '+').replace(/_/g, '/')),
+        c => c.charCodeAt(0)
+      );
+      const userIdBuffer = Uint8Array.from(
+        atob(options.user.id.replace(/-/g, '+').replace(/_/g, '/')),
+        c => c.charCodeAt(0)
+      );
+
+      const createOptions = {
+        publicKey: {
+          challenge: challengeBuffer,
+          rp: { id: options.rp.id, name: options.rp.name },
+          user: { id: userIdBuffer, name: options.user.name, displayName: options.user.displayName },
+          pubKeyCredParams: options.pubKeyCredParams.map(p => ({ type: p.type, alg: p.alg })),
+          timeout: options.timeout,
+          attestation: options.attestation || 'none',
+          excludeCredentials: (options.excludeCredentials || []).map(c => ({
+            id: Uint8Array.from(atob(c.id.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0)),
+            type: c.type,
+          })),
+        },
+      };
+
+      const credential = await navigator.credentials.create(createOptions);
+
+      // 3. Send to server
+      const transports = credential.response.getTransports ? credential.response.getTransports().join(',') : '';
+
+      await passkeyApi.verifyRegistration({
+        credentialId: arrayBufferToBase64Url(credential.rawId),
+        attestationObject: arrayBufferToBase64Url(credential.response.attestationObject),
+        clientDataJSON: arrayBufferToBase64Url(credential.response.clientDataJSON),
+        transports,
+        deviceName: passkeyName || '패스키',
+      });
+
+      setSuccess('패스키가 등록되었습니다');
+      setPasskeyName('');
+      resetModal();
+      await loadPasskeys();
+      await loadSecurityDashboard();
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        setError('패스키 등록이 취소되었습니다');
+      } else {
+        setError(err.response?.data?.error?.message || '패스키 등록에 실패했습니다');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePasskey = async (passkeyId) => {
+    if (!window.confirm('이 패스키를 삭제하시겠습니까?')) return;
+    try {
+      setLoading(true);
+      await passkeyApi.remove(passkeyId);
+      setSuccess('패스키가 삭제되었습니다');
+      await loadPasskeys();
+      await loadSecurityDashboard();
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '패스키 삭제에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRenamePasskey = async (passkeyId) => {
+    if (!passkeyName.trim()) {
+      setError('패스키 이름을 입력해주세요');
+      return;
+    }
+    try {
+      setLoading(true);
+      await passkeyApi.rename(passkeyId, passkeyName);
+      setSuccess('패스키 이름이 변경되었습니다');
+      setRenamingPasskeyId(null);
+      setPasskeyName('');
+      await loadPasskeys();
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || '패스키 이름 변경에 실패했습니다');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1035,6 +1159,25 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              <div className="profile-item">
+                <div className="profile-item-info">
+                  <div className="profile-item-icon blue">🔑</div>
+                  <div className="profile-item-text">
+                    <span className="profile-item-label">패스키 (Passkey)</span>
+                    <span className="profile-item-value">
+                      {passkeys.length > 0 ? (
+                        <span className="status-tag success">{passkeys.length}개 등록됨</span>
+                      ) : (
+                        <span className="status-tag default">미등록</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+                <button className="edit-btn" onClick={() => openModal('passkey-manage')} disabled={loading}>
+                  관리
+                </button>
+              </div>
+
               <div className="profile-item danger">
                 <div className="profile-item-info">
                   <div className="profile-item-icon red">⚠️</div>
@@ -1766,6 +1909,125 @@ export default function DashboardPage() {
               >
                 {loading ? '재발급 중...' : '재발급'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Passkey Management Modal */}
+      {modal === 'passkey-manage' && (
+        <div className="modal-overlay" onClick={resetModal}>
+          <div className="modal passkey-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>패스키 관리</h2>
+              <button className="modal-close" onClick={resetModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {error && <div className="error-message">{error}</div>}
+              {success && <div className="success-message">{success}</div>}
+
+              <p className="info-description">
+                패스키를 등록하면 비밀번호 없이 생체인증(지문, 얼굴)으로 로그인할 수 있습니다.
+              </p>
+
+              {/* Register new passkey */}
+              <div className="passkey-register-section">
+                <div className="form-group">
+                  <label>패스키 이름 (선택)</label>
+                  <div className="input-with-button">
+                    <input
+                      type="text"
+                      value={passkeyName}
+                      onChange={(e) => setPasskeyName(e.target.value)}
+                      placeholder="예: MacBook Pro, iPhone"
+                      maxLength={100}
+                    />
+                    <button
+                      className="btn btn-small"
+                      onClick={handleRegisterPasskey}
+                      disabled={loading || !window.PublicKeyCredential}
+                    >
+                      {loading ? '등록 중...' : '새 패스키 등록'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Passkey list */}
+              {passkeys.length > 0 ? (
+                <div className="passkey-list">
+                  {passkeys.map((pk) => (
+                    <div key={pk.id} className="passkey-item">
+                      <div className="passkey-item-icon">🔑</div>
+                      <div className="passkey-item-info">
+                        {renamingPasskeyId === pk.id ? (
+                          <div className="input-with-button" style={{ marginBottom: 0 }}>
+                            <input
+                              type="text"
+                              value={passkeyName}
+                              onChange={(e) => setPasskeyName(e.target.value)}
+                              placeholder="새 이름"
+                              maxLength={100}
+                              style={{ padding: '8px 12px', fontSize: 13 }}
+                            />
+                            <button
+                              className="btn btn-small"
+                              onClick={() => handleRenamePasskey(pk.id)}
+                              disabled={loading}
+                              style={{ padding: '8px 12px', fontSize: 12 }}
+                            >
+                              저장
+                            </button>
+                            <button
+                              className="btn btn-small btn-secondary"
+                              onClick={() => { setRenamingPasskeyId(null); setPasskeyName(''); }}
+                              style={{ padding: '8px 12px', fontSize: 12 }}
+                            >
+                              취소
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="passkey-item-name">{pk.deviceName || '패스키'}</div>
+                            <div className="passkey-item-meta">
+                              등록: {new Date(pk.createdAt).toLocaleDateString('ko-KR')}
+                              {pk.lastUsedAt && (
+                                <> · 마지막 사용: {new Date(pk.lastUsedAt).toLocaleDateString('ko-KR')}</>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      {renamingPasskeyId !== pk.id && (
+                        <div className="passkey-item-actions">
+                          <button
+                            className="btn btn-small btn-secondary"
+                            onClick={() => { setRenamingPasskeyId(pk.id); setPasskeyName(pk.deviceName || ''); }}
+                            style={{ padding: '6px 12px', fontSize: 12 }}
+                          >
+                            이름변경
+                          </button>
+                          <button
+                            className="channel-unlink-btn"
+                            onClick={() => handleDeletePasskey(pk.id)}
+                            disabled={loading}
+                            style={{ padding: '6px 12px', fontSize: 12 }}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="info-description" style={{ marginTop: 16, textAlign: 'center' }}>
+                  등록된 패스키가 없습니다.
+                </p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={resetModal}>닫기</button>
             </div>
           </div>
         </div>

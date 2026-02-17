@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { authApi, userApi } from '../api/auth';
+import { authApi, userApi, passkeyApi } from '../api/auth';
 
 const AuthContext = createContext(null);
 
@@ -106,6 +106,54 @@ export function AuthProvider({ children }) {
     return response.data;
   }, [loadProfile]);
 
+  const passkeyLogin = useCallback(async () => {
+    // 1. Get authentication options from server
+    const optionsRes = await passkeyApi.getAuthenticationOptions();
+    const options = optionsRes.data;
+
+    // 2. Call WebAuthn API
+    const challengeBuffer = Uint8Array.from(atob(options.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+
+    const publicKeyOptions = {
+      challenge: challengeBuffer,
+      timeout: options.timeout,
+      rpId: options.rpId,
+      userVerification: options.userVerification || 'preferred',
+    };
+
+    if (options.allowCredentials && options.allowCredentials.length > 0) {
+      publicKeyOptions.allowCredentials = options.allowCredentials.map(cred => ({
+        id: Uint8Array.from(atob(cred.id.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+        type: cred.type,
+        transports: cred.transports,
+      }));
+    }
+
+    const credential = await navigator.credentials.get({ publicKey: publicKeyOptions });
+
+    // 3. Send assertion to server
+    const arrayBufferToBase64Url = (buffer) => {
+      const bytes = new Uint8Array(buffer);
+      let str = '';
+      bytes.forEach(b => str += String.fromCharCode(b));
+      return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    };
+
+    const verifyRes = await passkeyApi.verifyAuthentication({
+      credentialId: arrayBufferToBase64Url(credential.rawId),
+      authenticatorData: arrayBufferToBase64Url(credential.response.authenticatorData),
+      clientDataJSON: arrayBufferToBase64Url(credential.response.clientDataJSON),
+      signature: arrayBufferToBase64Url(credential.response.signature),
+      userHandle: credential.response.userHandle ? arrayBufferToBase64Url(credential.response.userHandle) : null,
+    });
+
+    const data = verifyRes.data;
+    localStorage.setItem('accessToken', data.token.accessToken);
+    localStorage.setItem('refreshToken', data.token.refreshToken);
+    await loadProfile();
+    return data;
+  }, [loadProfile]);
+
   const handleOAuth2Callback = useCallback(async (accessToken, refreshToken, rememberMe = true) => {
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem('accessToken', accessToken);
@@ -129,7 +177,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, handleOAuth2Callback, loadProfile: refreshProfile, complete2FALogin }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, handleOAuth2Callback, loadProfile: refreshProfile, complete2FALogin, passkeyLogin }}>
       {children}
     </AuthContext.Provider>
   );

@@ -23,7 +23,7 @@ const ROLE_OPTIONS = ['USER', 'ADMIN'];
 const STATUS_CHANGE_OPTIONS = ['ACTIVE', 'DORMANT', 'LOCKED', 'PENDING_DELETE'];
 
 export default function AdminPage() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -75,7 +75,7 @@ export default function AdminPage() {
       setDashboard(dashRes.data);
       setLoginStats(loginRes.data);
       setSupportStats(supportRes.data);
-    } catch (err) {
+    } catch {
       setError('데이터를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -96,7 +96,7 @@ export default function AdminPage() {
       setUserPage(res.data.currentPage);
       setUserTotalPages(res.data.totalPages);
       setUserTotalElements(res.data.totalElements);
-    } catch (err) {
+    } catch {
       setError('사용자 검색에 실패했습니다.');
     } finally {
       setLoading(false);
@@ -109,7 +109,7 @@ export default function AdminPage() {
     try {
       const res = await adminApi.getSecurityEvents();
       setSecurityEvents(res.data);
-    } catch (err) {
+    } catch {
       setError('보안 이벤트를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -122,7 +122,7 @@ export default function AdminPage() {
     try {
       const res = await adminApi.getSupportStats();
       setSupportStats(res.data);
-    } catch (err) {
+    } catch {
       setError('고객센터 통계를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -141,7 +141,7 @@ export default function AdminPage() {
     try {
       await adminApi.updateUserRole(userId, newRole);
       loadUsers(userPage);
-    } catch (err) {
+    } catch {
       setError('역할 변경에 실패했습니다.');
     }
   };
@@ -150,7 +150,7 @@ export default function AdminPage() {
     try {
       await adminApi.updateUserStatus(userId, newStatus);
       loadUsers(userPage);
-    } catch (err) {
+    } catch {
       setError('상태 변경에 실패했습니다.');
     }
   };

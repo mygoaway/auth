@@ -72,7 +72,7 @@ export default function PasswordStrengthMeter({ password }) {
   // Server-side detailed analysis (debounced)
   useEffect(() => {
     if (!password || password.length < 4) {
-      setServerAnalysis(null);
+      setServerAnalysis(null); // eslint-disable-line react-hooks/set-state-in-effect
       return;
     }
 

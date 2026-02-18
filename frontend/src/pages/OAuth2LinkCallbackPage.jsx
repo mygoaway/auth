@@ -48,7 +48,7 @@ export default function OAuth2LinkCallbackPage() {
     };
 
     handleCallback();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="auth-container">

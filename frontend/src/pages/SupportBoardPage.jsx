@@ -25,7 +25,7 @@ const STATUS_COLORS = {
 };
 
 export default function SupportBoardPage() {
-  const { user } = useAuth();
+  useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -40,7 +40,7 @@ export default function SupportBoardPage() {
 
   useEffect(() => {
     loadPosts();
-  }, [page, category, status]);
+  }, [page, category, status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPosts = async () => {
     setLoading(true);

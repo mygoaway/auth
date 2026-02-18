@@ -42,7 +42,7 @@ export default function SupportPostDetailPage() {
 
   useEffect(() => {
     loadPost();
-  }, [postId]);
+  }, [postId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPost = async () => {
     setLoading(true);

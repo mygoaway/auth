@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
     try {
       const response = await userApi.getProfile();
       setUser(response.data);
-    } catch (error) {
+    } catch {
       profileLoaded.current = false;
       clearAllTokens();
     } finally {
@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
     try {
       const response = await userApi.getProfile();
       setUser(response.data);
-    } catch (error) {
+    } catch {
       clearAllTokens();
     }
   }, []);
@@ -99,7 +99,7 @@ export function AuthProvider({ children }) {
 
   const signup = useCallback(async (data) => {
     const response = await authApi.signup(data);
-    const { token, ...userData } = response.data;
+    const { token } = response.data;
     localStorage.setItem('accessToken', token.accessToken);
     localStorage.setItem('refreshToken', token.refreshToken);
     await loadProfile();
@@ -167,7 +167,7 @@ export function AuthProvider({ children }) {
       const accessToken = storage.getItem('accessToken');
       const refreshToken = storage.getItem('refreshToken');
       await authApi.logout(accessToken, refreshToken);
-    } catch (error) {
+    } catch {
       // ignore logout errors
     } finally {
       clearAllTokens();
@@ -183,6 +183,7 @@ export function AuthProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

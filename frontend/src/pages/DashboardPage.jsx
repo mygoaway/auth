@@ -66,7 +66,7 @@ export default function DashboardPage() {
     if (searchParams.get('tab')) {
       setSearchParams({}, { replace: true });
     }
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (activeTab === 'home') {
@@ -89,7 +89,7 @@ export default function DashboardPage() {
     if (activeTab === 'activity') {
       loadWeeklyActivity();
     }
-  }, [activeTab]);
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadLastLogin = async () => {
     try {
@@ -206,7 +206,7 @@ export default function DashboardPage() {
       const newVal = !securitySettings.loginNotificationEnabled;
       await userApi.updateLoginNotification(newVal);
       setSecuritySettings(prev => ({ ...prev, loginNotificationEnabled: newVal }));
-    } catch (err) {
+    } catch {
       setError('설정 변경에 실패했습니다');
     }
   };
@@ -217,7 +217,7 @@ export default function DashboardPage() {
       const newVal = !securitySettings.suspiciousActivityNotificationEnabled;
       await userApi.updateSuspiciousNotification(newVal);
       setSecuritySettings(prev => ({ ...prev, suspiciousActivityNotificationEnabled: newVal }));
-    } catch (err) {
+    } catch {
       setError('설정 변경에 실패했습니다');
     }
   };

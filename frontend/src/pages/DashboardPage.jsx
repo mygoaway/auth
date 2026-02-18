@@ -75,6 +75,7 @@ export default function DashboardPage() {
     }
     if (activeTab === 'channels') {
       loadChannelsStatus();
+      loadSecurityDashboard(); // 채널 탭 진입 시 보안 점수도 갱신
     }
     if (activeTab === 'security') {
       loadLoginHistory();
@@ -683,6 +684,7 @@ export default function DashboardPage() {
       setSuccess(`${CHANNEL_INFO[channelCode]?.name || channelCode} 연동이 해제되었습니다`);
       await loadChannelsStatus();
       await loadProfile(); // 사용자 컨텍스트 업데이트
+      await loadSecurityDashboard(); // 보안 점수 즉시 갱신
       setTimeout(() => setSuccess(''), 2000);
     } catch (err) {
       setError(err.response?.data?.error?.message || '연동 해제에 실패했습니다');

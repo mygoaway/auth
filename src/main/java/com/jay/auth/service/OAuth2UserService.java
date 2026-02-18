@@ -120,6 +120,7 @@ public class OAuth2UserService {
             @Override
             public void afterCommit() {
                 evictUserProfileCache(userId);
+                evictSecurityDashboardCache(userId);
             }
         });
 
@@ -181,6 +182,18 @@ public class OAuth2UserService {
             }
         } catch (Exception e) {
             log.warn("Failed to evict userProfile cache: {}", e.getMessage());
+        }
+    }
+
+    private void evictSecurityDashboardCache(Long userId) {
+        try {
+            var cache = cacheManager.getCache("securityDashboard");
+            if (cache != null) {
+                cache.evict(userId);
+                log.debug("Evicted securityDashboard cache for userId={}", userId);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to evict securityDashboard cache: {}", e.getMessage());
         }
     }
 }

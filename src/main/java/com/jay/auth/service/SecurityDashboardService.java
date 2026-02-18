@@ -3,6 +3,7 @@ package com.jay.auth.service;
 import com.jay.auth.domain.entity.LoginHistory;
 import com.jay.auth.domain.entity.User;
 import com.jay.auth.domain.entity.UserSignInInfo;
+import com.jay.auth.domain.enums.ChannelCode;
 import com.jay.auth.dto.response.SecurityDashboardResponse;
 import com.jay.auth.dto.response.SecurityDashboardResponse.SecurityActivity;
 import com.jay.auth.dto.response.SecurityDashboardResponse.SecurityFactor;
@@ -102,15 +103,15 @@ public class SecurityDashboardService {
                 .enabled(hasRecoveryEmail)
                 .build());
 
-        // 4. 소셜 계정 연결 (15점)
-        long linkedChannels = userChannelRepository.countByUserId(userId);
-        int socialScore = linkedChannels > 1 ? 15 : (linkedChannels == 1 ? 10 : 0);
+        // 4. 소셜 계정 연결 (15점) - EMAIL 채널 제외, 순수 소셜 채널만 카운팅
+        long linkedSocialChannels = userChannelRepository.countByUserIdAndChannelCodeNot(userId, ChannelCode.EMAIL);
+        int socialScore = linkedSocialChannels >= 2 ? 15 : (linkedSocialChannels == 1 ? 10 : 0);
         factors.add(SecurityFactor.builder()
                 .name("SOCIAL_LINKED")
                 .description("소셜 계정 연결")
                 .score(socialScore)
                 .maxScore(15)
-                .enabled(linkedChannels > 1)
+                .enabled(linkedSocialChannels > 0)
                 .build());
 
         // 5. 패스키 등록 (15점)

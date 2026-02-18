@@ -13,9 +13,11 @@ import com.jay.auth.repository.UserSignInInfoRepository;
 import com.jay.auth.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +37,7 @@ public class AccountLinkingService {
     private final EncryptionService encryptionService;
     private final PasswordUtil passwordUtil;
     private final SecurityNotificationService securityNotificationService;
+    private final CacheManager cacheManager;
 
     /**
      * Get all channels status for a user
@@ -75,7 +78,6 @@ public class AccountLinkingService {
     /**
      * Link a social account to an existing user
      */
-    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public void linkSocialAccount(Long userId, ChannelCode channelCode, String channelKey, String email) {
         User user = userRepository.findById(userId)
@@ -119,13 +121,24 @@ public class AccountLinkingService {
         // 연동 알림 발송
         securityNotificationService.notifyAccountLinked(userId, channelCode);
 
+        // 트랜잭션 커밋 후 캐시 제거 (커밋 전 evict 시 구버전 데이터로 재캐싱되는 문제 방지)
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    evictCaches(userId);
+                }
+            });
+        } else {
+            evictCaches(userId);
+        }
+
         log.info("Social account linked: userId={}, channelCode={}, channelKey={}", userId, channelCode, channelKey);
     }
 
     /**
      * Unlink a channel from a user
      */
-    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public void unlinkChannel(Long userId, ChannelCode channelCode) {
         User user = userRepository.findByIdWithChannels(userId)
@@ -158,6 +171,18 @@ public class AccountLinkingService {
         // 연동 해제 알림 발송
         securityNotificationService.notifyAccountUnlinked(userId, channelCode);
 
+        // 트랜잭션 커밋 후 캐시 제거 (커밋 전 evict 시 구버전 데이터로 재캐싱되는 문제 방지)
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    evictCaches(userId);
+                }
+            });
+        } else {
+            evictCaches(userId);
+        }
+
         log.info("Channel unlinked: userId={}, channelCode={}", userId, channelCode);
     }
 
@@ -175,5 +200,19 @@ public class AccountLinkingService {
 
         // Available only if it's already linked to the current user
         return existingChannel.get().getUser().getId().equals(currentUserId);
+    }
+
+    private void evictCaches(Long userId) {
+        for (String cacheName : new String[]{"userProfile", "securityDashboard"}) {
+            try {
+                var cache = cacheManager.getCache(cacheName);
+                if (cache != null) {
+                    cache.evict(userId);
+                    log.debug("Evicted {} cache for userId={}", cacheName, userId);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to evict {} cache: {}", cacheName, e.getMessage());
+            }
+        }
     }
 }

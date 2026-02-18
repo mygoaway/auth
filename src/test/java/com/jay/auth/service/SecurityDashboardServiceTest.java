@@ -82,8 +82,8 @@ class SecurityDashboardServiceTest {
             given(passwordPolicyService.isPasswordExpired(signInInfo)).willReturn(false);
             given(passwordPolicyService.getDaysUntilExpiration(signInInfo)).willReturn(80);
 
-            // Social accounts linked (15pts)
-            given(userChannelRepository.countByUserId(userId)).willReturn(3L);
+            // Social accounts linked (15pts) - 소셜 채널 2개 이상 = 15점
+            given(userChannelRepository.countByUserIdAndChannelCodeNot(userId, ChannelCode.EMAIL)).willReturn(3L);
 
             // Recent login activity - all successful (15pts)
             LoginHistory successLogin = createLoginHistory(userId, true, "Seoul");
@@ -120,7 +120,7 @@ class SecurityDashboardServiceTest {
             given(userSignInInfoRepository.findByUserId(userId)).willReturn(Optional.empty());
 
             // Only 1 channel (10pts)
-            given(userChannelRepository.countByUserId(userId)).willReturn(1L);
+            given(userChannelRepository.countByUserIdAndChannelCodeNot(userId, ChannelCode.EMAIL)).willReturn(0L);
 
             // No recent login
             given(loginHistoryRepository.findRecentByUserId(eq(userId), any(PageRequest.class)))
@@ -150,7 +150,7 @@ class SecurityDashboardServiceTest {
                     .build();
             given(totpService.getTwoFactorStatus(userId)).willReturn(twoFactorStatus);
             given(userSignInInfoRepository.findByUserId(userId)).willReturn(Optional.empty());
-            given(userChannelRepository.countByUserId(userId)).willReturn(1L);
+            given(userChannelRepository.countByUserIdAndChannelCodeNot(userId, ChannelCode.EMAIL)).willReturn(0L);
             given(loginHistoryRepository.findRecentByUserId(eq(userId), any(PageRequest.class)))
                     .willReturn(List.of());
 
@@ -178,7 +178,7 @@ class SecurityDashboardServiceTest {
                     .build();
             given(totpService.getTwoFactorStatus(userId)).willReturn(twoFactorStatus);
             given(userSignInInfoRepository.findByUserId(userId)).willReturn(Optional.empty());
-            given(userChannelRepository.countByUserId(userId)).willReturn(1L);
+            given(userChannelRepository.countByUserIdAndChannelCodeNot(userId, ChannelCode.EMAIL)).willReturn(0L);
             given(loginHistoryRepository.findRecentByUserId(eq(userId), any(PageRequest.class)))
                     .willReturn(List.of());
 
@@ -206,7 +206,7 @@ class SecurityDashboardServiceTest {
                     .build();
             given(totpService.getTwoFactorStatus(userId)).willReturn(twoFactorStatus);
             given(userSignInInfoRepository.findByUserId(userId)).willReturn(Optional.empty());
-            given(userChannelRepository.countByUserId(userId)).willReturn(1L);
+            given(userChannelRepository.countByUserIdAndChannelCodeNot(userId, ChannelCode.EMAIL)).willReturn(0L);
             given(loginHistoryRepository.findRecentByUserId(eq(userId), any(PageRequest.class)))
                     .willReturn(List.of());
 
@@ -254,7 +254,7 @@ class SecurityDashboardServiceTest {
             given(userSignInInfoRepository.findByUserId(userId)).willReturn(Optional.of(signInInfo));
             given(passwordPolicyService.isPasswordExpired(signInInfo)).willReturn(true);
 
-            given(userChannelRepository.countByUserId(userId)).willReturn(1L);
+            given(userChannelRepository.countByUserIdAndChannelCodeNot(userId, ChannelCode.EMAIL)).willReturn(0L);
             given(loginHistoryRepository.findRecentByUserId(eq(userId), any(PageRequest.class)))
                     .willReturn(List.of());
 

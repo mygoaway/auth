@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -135,6 +136,53 @@ class NicknameGeneratorTest {
                 assertThat(numberPart).hasSize(4);
                 assertThat(numberPart).matches("\\d{4}");
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("generateUnique 메서드")
+    class GenerateUnique {
+
+        @Test
+        @DisplayName("중복이 없으면 기본 generate() 결과를 반환한다")
+        void shouldReturnGeneratedNicknameWhenNoDuplicate() {
+            // given
+            Function<String, Boolean> noConflict = nick -> false;
+
+            // when
+            String nickname = nicknameGenerator.generateUnique(noConflict);
+
+            // then
+            assertThat(nickname).isNotNull().isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("중복이 있으면 UUID suffix 조합 닉네임을 반환한다")
+        void shouldReturnUuidSuffixNicknameWhenDuplicate() {
+            // given - 항상 중복 있음으로 응답
+            Function<String, Boolean> alwaysConflict = nick -> true;
+
+            // when
+            String nickname = nicknameGenerator.generateUnique(alwaysConflict);
+
+            // then - 형용사+명사+8자 hex suffix 형태여야 한다
+            assertThat(nickname).isNotNull().isNotEmpty();
+            String suffix = nickname.replaceAll("[가-힣]+", "");
+            assertThat(suffix).hasSize(8).matches("[0-9a-f]{8}");
+        }
+
+        @Test
+        @DisplayName("반환된 닉네임이 existsChecker를 통과한다")
+        void shouldReturnNicknameThatPassesChecker() {
+            // given - 첫 번째 호출에만 중복 응답
+            java.util.concurrent.atomic.AtomicInteger callCount = new java.util.concurrent.atomic.AtomicInteger(0);
+            Function<String, Boolean> onlyFirstConflict = nick -> callCount.getAndIncrement() == 0;
+
+            // when
+            String nickname = nicknameGenerator.generateUnique(onlyFirstConflict);
+
+            // then
+            assertThat(nickname).isNotNull();
         }
     }
 

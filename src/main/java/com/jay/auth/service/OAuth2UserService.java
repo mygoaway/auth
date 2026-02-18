@@ -136,14 +136,18 @@ public class OAuth2UserService {
         }
 
         // 닉네임 자동 생성
-        String nickname = nicknameGenerator.generate();
+        String nickname = nicknameGenerator.generateUnique(
+                nick -> userRepository.existsByNicknameLowerEnc(encryptionService.encryptNicknameLower(nick))
+        );
         String encryptedNickname = encryptionService.encryptNickname(nickname);
+        String nicknameLowerEnc = encryptionService.encryptNicknameLower(nickname);
 
         // User 생성
         User user = User.builder()
                 .emailEnc(encryptedEmail != null ? encryptedEmail.encrypted() : null)
                 .emailLowerEnc(encryptedEmail != null ? encryptedEmail.encryptedLower() : null)
                 .nicknameEnc(encryptedNickname)
+                .nicknameLowerEnc(nicknameLowerEnc)
                 .status(UserStatus.ACTIVE)
                 .build();
 

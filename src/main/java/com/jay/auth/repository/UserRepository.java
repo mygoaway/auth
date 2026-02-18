@@ -34,6 +34,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "WHERE u.userUuid = :userUuid")
     Optional<User> findByUserUuidWithDetails(@Param("userUuid") String userUuid);
 
+    boolean existsByNicknameLowerEnc(String nicknameLowerEnc);
+
     boolean existsByRecoveryEmailLowerEnc(String recoveryEmailLowerEnc);
 
     Optional<User> findByRecoveryEmailLowerEnc(String recoveryEmailLowerEnc);

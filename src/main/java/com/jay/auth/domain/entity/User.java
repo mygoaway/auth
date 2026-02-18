@@ -15,7 +15,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "tb_user", indexes = {
-        @Index(name = "idx_email_lower", columnList = "email_lower_enc")
+        @Index(name = "idx_email_lower", columnList = "email_lower_enc"),
+        @Index(name = "idx_nickname_lower", columnList = "nickname_lower_enc", unique = true)
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -46,6 +47,9 @@ public class User extends BaseEntity {
 
     @Column(name = "nickname_enc", length = 512)
     private String nicknameEnc;
+
+    @Column(name = "nickname_lower_enc", length = 512, unique = true)
+    private String nicknameLowerEnc;
 
     @Column(name = "email_updated_at")
     private LocalDateTime emailUpdatedAt;
@@ -89,13 +93,14 @@ public class User extends BaseEntity {
     @Builder
     public User(String emailEnc, String emailLowerEnc, String recoveryEmailEnc,
                 String recoveryEmailLowerEnc, String phoneEnc, String nicknameEnc,
-                UserStatus status) {
+                String nicknameLowerEnc, UserStatus status) {
         this.emailEnc = emailEnc;
         this.emailLowerEnc = emailLowerEnc;
         this.recoveryEmailEnc = recoveryEmailEnc;
         this.recoveryEmailLowerEnc = recoveryEmailLowerEnc;
         this.phoneEnc = phoneEnc;
         this.nicknameEnc = nicknameEnc;
+        this.nicknameLowerEnc = nicknameLowerEnc;
         this.status = status != null ? status : UserStatus.ACTIVE;
     }
 
@@ -115,8 +120,9 @@ public class User extends BaseEntity {
         this.phoneUpdatedAt = LocalDateTime.now();
     }
 
-    public void updateNickname(String nicknameEnc) {
+    public void updateNickname(String nicknameEnc, String nicknameLowerEnc) {
         this.nicknameEnc = nicknameEnc;
+        this.nicknameLowerEnc = nicknameLowerEnc;
         this.nicknameUpdatedAt = LocalDateTime.now();
     }
 

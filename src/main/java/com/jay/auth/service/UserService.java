@@ -8,6 +8,7 @@ import com.jay.auth.dto.request.UpdatePhoneRequest;
 import com.jay.auth.dto.request.UpdateProfileRequest;
 import com.jay.auth.dto.request.UpdateRecoveryEmailRequest;
 import com.jay.auth.dto.response.UserProfileResponse;
+import com.jay.auth.exception.DuplicateNicknameException;
 import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserRepository;
@@ -72,8 +73,20 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
 
+        String nicknameLowerEnc = encryptionService.encryptNicknameLower(request.getNickname());
+
+        // 본인 현재 닉네임과 동일한지 확인
+        if (nicknameLowerEnc.equals(user.getNicknameLowerEnc())) {
+            throw new DuplicateNicknameException();
+        }
+
+        // 타인 중복 확인
+        if (userRepository.existsByNicknameLowerEnc(nicknameLowerEnc)) {
+            throw new DuplicateNicknameException();
+        }
+
         String encryptedNickname = encryptionService.encryptNickname(request.getNickname());
-        user.updateNickname(encryptedNickname);
+        user.updateNickname(encryptedNickname, nicknameLowerEnc);
         auditLogService.log(userId, "NICKNAME_CHANGE", "USER");
 
         log.info("User {} updated nickname", userId);

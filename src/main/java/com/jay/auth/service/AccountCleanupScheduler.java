@@ -80,7 +80,7 @@ public class AccountCleanupScheduler {
         user.updateEmail(null, null);
         user.updateRecoveryEmail(null, null);
         user.updatePhone(null);
-        user.updateNickname(null);
+        user.updateNickname(null, null);
     }
 
     private int processDormantAccounts() {

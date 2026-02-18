@@ -68,8 +68,9 @@ class OAuth2UserServiceTest {
                 .willReturn(Optional.empty());
         given(encryptionService.encryptEmail("test@gmail.com"))
                 .willReturn(new EncryptionService.EncryptedEmail("enc_email", "enc_email_lower"));
-        given(nicknameGenerator.generate()).willReturn("행복한고양이1234");
+        given(nicknameGenerator.generateUnique(any())).willReturn("행복한고양이1234");
         given(encryptionService.encryptNickname("행복한고양이1234")).willReturn("enc_nickname");
+        given(encryptionService.encryptNicknameLower("행복한고양이1234")).willReturn("enc_nickname_lower");
 
         User savedUser = createUser(1L, "uuid-1234");
         given(userRepository.save(any(User.class))).willReturn(savedUser);
@@ -193,8 +194,9 @@ class OAuth2UserServiceTest {
 
             given(userChannelRepository.findByChannelCodeAndChannelKeyWithUser(ChannelCode.GOOGLE, "google-456"))
                     .willReturn(Optional.empty());
-            given(nicknameGenerator.generate()).willReturn("행복한강아지5678");
+            given(nicknameGenerator.generateUnique(any())).willReturn("행복한강아지5678");
             given(encryptionService.encryptNickname("행복한강아지5678")).willReturn("enc_nickname2");
+            given(encryptionService.encryptNicknameLower("행복한강아지5678")).willReturn("enc_nickname2_lower");
 
             User savedUser = createUser(2L, "uuid-5678");
             given(userRepository.save(any(User.class))).willReturn(savedUser);

@@ -10,6 +10,7 @@ import com.jay.auth.dto.request.UpdatePhoneRequest;
 import com.jay.auth.dto.request.UpdateProfileRequest;
 import com.jay.auth.dto.request.UpdateRecoveryEmailRequest;
 import com.jay.auth.dto.response.UserProfileResponse;
+import com.jay.auth.exception.DuplicateNicknameException;
 import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserRepository;
@@ -96,7 +97,9 @@ class UserServiceTest {
             // given
             User user = createUser(1L);
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(encryptionService.encryptNicknameLower("새닉네임")).willReturn("enc_new_nickname_lower");
             given(encryptionService.encryptNickname("새닉네임")).willReturn("enc_new_nickname");
+            given(userRepository.existsByNicknameLowerEnc("enc_new_nickname_lower")).willReturn(false);
 
             UpdateProfileRequest request = new UpdateProfileRequest();
             setField(request, "nickname", "새닉네임");
@@ -107,6 +110,41 @@ class UserServiceTest {
             // then
             verify(encryptionService).encryptNickname("새닉네임");
             assertThat(user.getNicknameEnc()).isEqualTo("enc_new_nickname");
+            assertThat(user.getNicknameLowerEnc()).isEqualTo("enc_new_nickname_lower");
+        }
+
+        @Test
+        @DisplayName("본인 현재 닉네임과 동일하면 409를 반환해야 한다")
+        void updateNicknameFailsWhenSameAsCurrentNickname() {
+            // given
+            User user = createUser(1L);
+            setField(user, "nicknameLowerEnc", "enc_nickname_lower");
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(encryptionService.encryptNicknameLower("현재닉네임")).willReturn("enc_nickname_lower");
+
+            UpdateProfileRequest request = new UpdateProfileRequest();
+            setField(request, "nickname", "현재닉네임");
+
+            // when & then
+            assertThatThrownBy(() -> userService.updateNickname(1L, request))
+                    .isInstanceOf(DuplicateNicknameException.class);
+        }
+
+        @Test
+        @DisplayName("이미 다른 사용자가 사용 중인 닉네임이면 409를 반환해야 한다")
+        void updateNicknameFailsWhenNicknameAlreadyTaken() {
+            // given
+            User user = createUser(1L);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(encryptionService.encryptNicknameLower("중복닉네임")).willReturn("enc_duplicate_lower");
+            given(userRepository.existsByNicknameLowerEnc("enc_duplicate_lower")).willReturn(true);
+
+            UpdateProfileRequest request = new UpdateProfileRequest();
+            setField(request, "nickname", "중복닉네임");
+
+            // when & then
+            assertThatThrownBy(() -> userService.updateNickname(1L, request))
+                    .isInstanceOf(DuplicateNicknameException.class);
         }
     }
 

@@ -50,7 +50,9 @@ public class AuthService {
         String tokenId = request.getTokenId();
         String email = request.getEmail();
         String password = request.getPassword();
-        String nickname = nicknameGenerator.generate();
+        String nickname = nicknameGenerator.generateUnique(
+                nick -> userRepository.existsByNicknameLowerEnc(encryptionService.encryptNicknameLower(nick))
+        );
 
         // 1. 비밀번호 정책 검증
         if (!passwordUtil.isValidPassword(password)) {
@@ -73,6 +75,7 @@ public class AuthService {
                 .emailEnc(encryptedEmail.encrypted())
                 .emailLowerEnc(encryptedEmail.encryptedLower())
                 .nicknameEnc(encryptionService.encryptNickname(nickname))
+                .nicknameLowerEnc(encryptionService.encryptNicknameLower(nickname))
                 .build();
 
         userRepository.save(user);

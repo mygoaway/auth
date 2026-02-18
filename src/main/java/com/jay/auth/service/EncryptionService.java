@@ -80,6 +80,15 @@ public class EncryptionService {
     }
 
     /**
+     * 닉네임 소문자 암호화 (중복 검색용)
+     * @param nickname 평문 닉네임
+     * @return 소문자 변환 후 암호화된 닉네임
+     */
+    public String encryptNicknameLower(String nickname) {
+        return encryptionUtil.encryptLower(nickname);
+    }
+
+    /**
      * 소문자 변환 후 암호화 (검색용)
      * @param text 평문
      * @return 소문자 변환 후 암호화된 값

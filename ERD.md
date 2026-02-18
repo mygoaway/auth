@@ -14,6 +14,7 @@
 │     recovery_email_lower_enc VARCHAR(512) │
 │     phone_enc        VARCHAR(512)  │
 │     nickname_enc     VARCHAR(512)  │
+│     nickname_lower_enc VARCHAR(512)│ ← UQ IDX
 │     status           VARCHAR(20) NN│ ← ACTIVE/LOCKED/PENDING_DELETE
 │     role             VARCHAR(20) NN│ ← USER/ADMIN
 │     email_updated_at    DATETIME   │
@@ -146,6 +147,7 @@
 
 - **암호화**: 이메일, 전화번호, 닉네임 등 개인정보는 AES-256으로 암호화 저장 (`*_enc` 컬럼)
 - **검색용 컬럼**: 검색이 필요한 필드는 소문자 변환 후 암호화한 `*_lower_enc` 컬럼을 별도 유지
+- **닉네임 유일성**: `nickname_lower_enc`에 UNIQUE INDEX 적용 — NULL은 제약 미적용(기존 사용자 호환), 닉네임 설정/변경 시 중복 409 반환
 - **소셜 로그인**: `tb_user` + `tb_user_channel`만 사용 (SignInInfo 없음)
 - **이메일 로그인**: `tb_user` + `tb_user_sign_in_info` + `tb_user_channel` 모두 사용
 - **계정 연동**: 한 사용자가 여러 소셜 계정을 연결 가능 (채널별 unique key)

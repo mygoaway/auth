@@ -77,6 +77,8 @@ Spring `@Cacheable` 캐시: `userProfile` (5분), `securityDashboard` (3분), `g
 
 ### 주요 설계 결정
 - 이메일 필드 저장 방식: `*_enc` (원본 암호화) + `*_lower_enc` (소문자 암호화, 검색용)
+- 닉네임 필드 저장 방식: `nickname_enc` (원본 암호화) + `nickname_lower_enc` (소문자 암호화, UNIQUE INDEX로 중복 방지)
+- 닉네임 중복 방지: DB UNIQUE INDEX + 서비스 레이어 사전 검증 이중 구조. 본인 닉네임과 동일하거나 타인이 사용 중인 경우 `DUPLICATE_NICKNAME` (409). 회원가입 시 `NicknameGenerator.generateUnique()`로 충돌 시 UUID 8자 suffix 조합
 - 소셜 로그인: `tb_user` + `tb_user_channel`만 사용 (SignInInfo 없음)
 - 이메일 로그인: `tb_user` + `tb_user_sign_in_info` + `tb_user_channel`
 - 하나의 사용자가 여러 소셜 계정 연동 가능

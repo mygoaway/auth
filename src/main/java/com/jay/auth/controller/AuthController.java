@@ -17,6 +17,7 @@ import com.jay.auth.service.PasswordService;
 import com.jay.auth.service.SecurityNotificationService;
 import com.jay.auth.service.SecuritySettingsService;
 import com.jay.auth.service.TokenService;
+import com.jay.auth.util.AuthUtil;
 import com.jay.auth.util.PasswordUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -62,7 +63,7 @@ public class AuthController {
             HttpServletRequest httpRequest) {
 
         String email = request.getEmail();
-        String ipAddress = getClientIp(httpRequest);
+        String ipAddress = AuthUtil.getClientIp(httpRequest);
 
         // Rate limit check
         if (!loginRateLimitService.isLoginAllowed(email, ipAddress)) {
@@ -102,20 +103,6 @@ public class AuthController {
         }
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
-    }
-
     @Operation(summary = "토큰 갱신", description = "리프레시 토큰으로 새 액세스 토큰을 발급합니다")
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponse> refresh(
@@ -134,10 +121,7 @@ public class AuthController {
 
         String accessToken = request.getAccessToken();
         if (accessToken == null) {
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                accessToken = authHeader.substring(7);
-            }
+            accessToken = AuthUtil.extractBearerToken(httpRequest);
         }
 
         tokenService.logout(accessToken, request.getRefreshToken());
@@ -151,11 +135,7 @@ public class AuthController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             HttpServletRequest httpRequest) {
 
-        String accessToken = null;
-        String authHeader = httpRequest.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            accessToken = authHeader.substring(7);
-        }
+        String accessToken = AuthUtil.extractBearerToken(httpRequest);
 
         tokenService.logoutAll(userPrincipal.getUserId(), accessToken);
 

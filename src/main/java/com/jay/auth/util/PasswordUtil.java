@@ -21,6 +21,10 @@ public class PasswordUtil {
     private static final Pattern PASSWORD_PATTERN = Pattern.compile(
             "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$"
     );
+    private static final Pattern LOWERCASE_PATTERN = Pattern.compile("[a-z]");
+    private static final Pattern UPPERCASE_PATTERN = Pattern.compile("[A-Z]");
+    private static final Pattern DIGIT_PATTERN = Pattern.compile("[0-9]");
+    private static final Pattern SPECIAL_PATTERN = Pattern.compile("[!@#$%^&*(),.?\":{}|<>]");
 
     /**
      * 비밀번호 해싱 (BCrypt)
@@ -84,25 +88,25 @@ public class PasswordUtil {
         else suggestions.add("비밀번호는 최소 8자 이상이어야 합니다.");
 
         // 2. 소문자
-        boolean hasLower = Pattern.compile("[a-z]").matcher(password).find();
+        boolean hasLower = LOWERCASE_PATTERN.matcher(password).find();
         checks.add(CheckItem.builder().name("LOWERCASE").description("소문자 포함").passed(hasLower).build());
         if (hasLower) score += 10;
         else suggestions.add("소문자를 포함해주세요.");
 
         // 3. 대문자
-        boolean hasUpper = Pattern.compile("[A-Z]").matcher(password).find();
+        boolean hasUpper = UPPERCASE_PATTERN.matcher(password).find();
         checks.add(CheckItem.builder().name("UPPERCASE").description("대문자 포함").passed(hasUpper).build());
         if (hasUpper) score += 10;
         else suggestions.add("대문자를 포함해주세요.");
 
         // 4. 숫자
-        boolean hasDigit = Pattern.compile("[0-9]").matcher(password).find();
+        boolean hasDigit = DIGIT_PATTERN.matcher(password).find();
         checks.add(CheckItem.builder().name("DIGIT").description("숫자 포함").passed(hasDigit).build());
         if (hasDigit) score += 10;
         else suggestions.add("숫자를 포함해주세요.");
 
         // 5. 특수문자
-        boolean hasSpecial = Pattern.compile("[!@#$%^&*(),.?\":{}|<>]").matcher(password).find();
+        boolean hasSpecial = SPECIAL_PATTERN.matcher(password).find();
         checks.add(CheckItem.builder().name("SPECIAL").description("특수문자 포함").passed(hasSpecial).build());
         if (hasSpecial) score += 15;
         else suggestions.add("특수문자(!@#$%^&* 등)를 포함해주세요.");

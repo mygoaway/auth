@@ -23,6 +23,7 @@ import com.jay.auth.service.SecuritySettingsService;
 import com.jay.auth.service.SuspiciousActivityService;
 import com.jay.auth.service.TrustedDeviceService;
 import com.jay.auth.service.UserService;
+import com.jay.auth.util.AuthUtil;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
@@ -153,7 +154,7 @@ public class UserController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             HttpServletRequest httpRequest) {
 
-        String currentTokenId = extractTokenId(httpRequest);
+        String currentTokenId = tokenService.getTokenId(AuthUtil.extractBearerToken(httpRequest));
         List<ActiveSessionResponse> sessions = tokenService.getActiveSessions(
                 userPrincipal.getUserId(), currentTokenId);
 
@@ -309,12 +310,4 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    private String extractTokenId(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String accessToken = authHeader.substring(7);
-            return tokenService.getTokenId(accessToken);
-        }
-        return null;
-    }
 }

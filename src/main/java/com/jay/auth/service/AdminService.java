@@ -21,6 +21,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.jay.auth.util.DateTimeUtil;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -40,7 +42,7 @@ public class AdminService {
     private final EncryptionService encryptionService;
     private final AuditLogService auditLogService;
 
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeUtil.DEFAULT_FORMATTER;
 
     @Transactional(readOnly = true)
     public AdminDashboardResponse getDashboard() {

@@ -3,11 +3,14 @@ package com.jay.auth.service;
 import com.jay.auth.domain.enums.ChannelCode;
 import com.jay.auth.dto.response.ActiveSessionResponse;
 import com.jay.auth.dto.response.TokenResponse;
+import com.jay.auth.exception.InvalidTokenException;
 import com.jay.auth.security.JwtTokenProvider;
 import com.jay.auth.security.TokenStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import com.jay.auth.util.DateTimeUtil;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,7 +28,7 @@ public class TokenService {
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenStore tokenStore;
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeUtil.ISO_FORMATTER;
 
     /**
      * 토큰 발급 (로그인 시)
@@ -85,12 +88,12 @@ public class TokenService {
     public TokenResponse refreshTokens(String refreshToken) {
         // 1. Refresh Token 검증
         if (!jwtTokenProvider.validateToken(refreshToken)) {
-            throw new IllegalArgumentException("Invalid refresh token");
+            throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다");
         }
 
         // 2. 토큰 타입 확인
         if (jwtTokenProvider.getTokenType(refreshToken) != JwtTokenProvider.TokenType.REFRESH) {
-            throw new IllegalArgumentException("Not a refresh token");
+            throw new InvalidTokenException("리프레시 토큰이 아닙니다");
         }
 
         // 3. Redis에서 Refresh Token 존재 확인
@@ -98,7 +101,7 @@ public class TokenService {
         String tokenId = jwtTokenProvider.getTokenId(refreshToken);
 
         if (!tokenStore.existsRefreshToken(userId, tokenId)) {
-            throw new IllegalArgumentException("Refresh token not found or already revoked");
+            throw new InvalidTokenException("리프레시 토큰이 존재하지 않거나 이미 만료되었습니다");
         }
 
         // 4. 기존 Refresh Token 삭제

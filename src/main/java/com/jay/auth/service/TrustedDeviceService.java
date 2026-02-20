@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import com.jay.auth.util.DateTimeUtil;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -23,7 +25,7 @@ public class TrustedDeviceService {
 
     private static final String TRUSTED_DEVICE_PREFIX = "trusted:";
     private static final long TRUSTED_DEVICE_TTL_DAYS = 30;
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeUtil.ISO_FORMATTER;
 
     public String generateDeviceId(TokenStore.SessionInfo sessionInfo) {
         String raw = (sessionInfo.browser() != null ? sessionInfo.browser() : "") + "|"

@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 
@@ -27,31 +26,6 @@ public class OAuth2LinkController {
     private static final int COOKIE_MAX_AGE = 300; // 5 minutes
 
     private final OAuth2LinkStateService oAuth2LinkStateService;
-
-    @Operation(summary = "OAuth2 연동 시작", description = "소셜 계정 연동을 위한 OAuth2 인증을 시작합니다")
-    @GetMapping("/start/{provider}")
-    public void startLink(
-            @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @PathVariable String provider,
-            HttpServletResponse response) throws IOException {
-
-        // Generate a unique state for this link request
-        String state = UUID.randomUUID().toString();
-
-        // Save the link state with user ID
-        oAuth2LinkStateService.saveLinkState(state, userPrincipal.getUserId());
-
-        // Set cookie with link state
-        addLinkStateCookie(response, state);
-
-        // Redirect to OAuth2 authorization endpoint with link state
-        String redirectUrl = String.format("/oauth2/authorization/%s?link_state=%s", provider, state);
-
-        log.info("Starting OAuth2 link: userId={}, provider={}, state={}",
-                userPrincipal.getUserId(), provider, state);
-
-        response.sendRedirect(redirectUrl);
-    }
 
     @Operation(summary = "OAuth2 연동 상태 확인", description = "연동을 위한 state 값을 생성합니다 (API 호출용)")
     @PostMapping("/prepare/{provider}")

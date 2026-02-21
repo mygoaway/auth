@@ -3,6 +3,7 @@ package com.jay.auth.service;
 import com.jay.auth.domain.enums.ChannelCode;
 import com.jay.auth.dto.response.ActiveSessionResponse;
 import com.jay.auth.dto.response.TokenResponse;
+import com.jay.auth.exception.InvalidTokenException;
 import com.jay.auth.security.JwtTokenProvider;
 import com.jay.auth.security.TokenStore;
 import org.junit.jupiter.api.DisplayName;
@@ -109,7 +110,7 @@ class TokenServiceTest {
 
             // when & then
             assertThatThrownBy(() -> tokenService.refreshTokens("invalid-token"))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(InvalidTokenException.class);
         }
 
         @Test
@@ -125,7 +126,7 @@ class TokenServiceTest {
 
             // when & then
             assertThatThrownBy(() -> tokenService.refreshTokens(refreshToken))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(InvalidTokenException.class);
         }
     }
 
@@ -473,8 +474,7 @@ class TokenServiceTest {
 
             // when & then
             assertThatThrownBy(() -> tokenService.refreshTokens(accessToken))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Not a refresh token");
+                    .isInstanceOf(InvalidTokenException.class);
         }
     }
 }

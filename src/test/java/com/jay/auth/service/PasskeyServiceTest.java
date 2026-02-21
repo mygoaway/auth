@@ -305,7 +305,7 @@ class PasskeyServiceTest {
                 .nicknameEnc(nicknameEnc)
                 .build();
         setField(user, "id", userId);
-        setField(user, "userUuid", "uuid-" + userId);
+        setField(user, "userUuid", "uuid-0000-" + userId);
         return user;
     }
 

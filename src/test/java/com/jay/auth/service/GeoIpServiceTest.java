@@ -29,7 +29,7 @@ class GeoIpServiceTest {
     @Mock
     private RestTemplate restTemplate;
 
-    private static final String IP_API_URL = "http://ip-api.com/json/{ip}?fields=status,country,regionName,city,query&lang=ko";
+    private static final String IP_API_URL = "https://ip-api.com/json/{ip}?fields=status,country,regionName,city,query&lang=ko";
 
     @Nested
     @DisplayName("정상 IP 위치 조회")

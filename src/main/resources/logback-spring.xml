@@ -5,7 +5,7 @@
     <!-- Console appender with masking -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] [%X{requestId:-}] %cyan(%logger{36}) - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -20,7 +20,7 @@
                 <totalSizeCap>1GB</totalSizeCap>
             </rollingPolicy>
             <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-}] %logger{36} - %msg%n</pattern>
             </encoder>
         </appender>
 
@@ -34,7 +34,7 @@
                 <totalSizeCap>1GB</totalSizeCap>
             </rollingPolicy>
             <encoder>
-                <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSS}","level":"%level","logger":"%logger{36}","thread":"%thread","message":"%msg"}%n</pattern>
+                <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSS}","level":"%level","logger":"%logger{36}","thread":"%thread","requestId":"%X{requestId:-}","message":"%msg"}%n</pattern>
             </encoder>
         </appender>
 

@@ -7,15 +7,15 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
         changeOrigin: true,
       },
       '/oauth2/authorization': {
-        target: 'http://localhost:8080',
+        target: process.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
         changeOrigin: true,
       },
       '/login/oauth2': {
-        target: 'http://localhost:8080',
+        target: process.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
         changeOrigin: true,
       },
     },

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { twoFactorApi, userApi } from '../api/auth';
 
-const OAUTH2_BASE_URL = 'http://localhost:8080';
+const OAUTH2_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
 export default function LoginPage() {
   const [showEmailLogin, setShowEmailLogin] = useState(false);

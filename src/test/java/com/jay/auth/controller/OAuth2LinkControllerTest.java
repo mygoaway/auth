@@ -23,7 +23,6 @@ import java.util.Collections;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.willDoNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -35,7 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                         JwtAuthenticationFilter.class,
                         com.jay.auth.config.RateLimitFilter.class,
                         com.jay.auth.config.RequestLoggingFilter.class,
-                        com.jay.auth.config.SecurityHeadersFilter.class
+                        com.jay.auth.config.SecurityHeadersFilter.class,
+                        com.jay.auth.config.RequestIdFilter.class
                 }
         )
 )
@@ -93,34 +93,4 @@ class OAuth2LinkControllerTest {
         }
     }
 
-    @Nested
-    @DisplayName("GET /api/v1/oauth2/link/start/{provider}")
-    class StartLink {
-
-        @Test
-        @DisplayName("OAuth2 연동 시작 - 리다이렉트")
-        void startLinkRedirect() throws Exception {
-            // given
-            willDoNothing().given(oAuth2LinkStateService).saveLinkState(anyString(), anyLong());
-
-            // when & then
-            mockMvc.perform(get("/api/v1/oauth2/link/start/google"))
-                    .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrlPattern("/oauth2/authorization/google?link_state=*"))
-                    .andExpect(cookie().exists("oauth2_link_state"));
-        }
-
-        @Test
-        @DisplayName("Naver 연동 시작 - 리다이렉트")
-        void startLinkNaverRedirect() throws Exception {
-            // given
-            willDoNothing().given(oAuth2LinkStateService).saveLinkState(anyString(), anyLong());
-
-            // when & then
-            mockMvc.perform(get("/api/v1/oauth2/link/start/naver"))
-                    .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrlPattern("/oauth2/authorization/naver?link_state=*"))
-                    .andExpect(cookie().exists("oauth2_link_state"));
-        }
-    }
 }

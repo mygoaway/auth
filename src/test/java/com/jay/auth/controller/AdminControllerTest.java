@@ -8,6 +8,7 @@ import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.security.JwtAuthenticationFilter;
 import com.jay.auth.security.UserPrincipal;
 import com.jay.auth.service.AdminService;
+import com.jay.auth.service.AuditLogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -43,7 +44,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                         JwtAuthenticationFilter.class,
                         com.jay.auth.config.RateLimitFilter.class,
                         com.jay.auth.config.RequestLoggingFilter.class,
-                        com.jay.auth.config.SecurityHeadersFilter.class
+                        com.jay.auth.config.SecurityHeadersFilter.class,
+                        com.jay.auth.config.RequestIdFilter.class
                 }
         )
 )
@@ -58,6 +60,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private AdminService adminService;
+
+    @MockitoBean
+    private AuditLogService auditLogService;
 
     @BeforeEach
     void setUp() {

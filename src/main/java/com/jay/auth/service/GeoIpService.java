@@ -1,10 +1,12 @@
 package com.jay.auth.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -12,9 +14,16 @@ import java.util.regex.Pattern;
 @Service
 public class GeoIpService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
-    private static final String IP_API_URL = "http://ip-api.com/json/{ip}?fields=status,country,regionName,city,query&lang=ko";
+    private static final String IP_API_URL = "https://ip-api.com/json/{ip}?fields=status,country,regionName,city,query&lang=ko";
+
+    public GeoIpService() {
+        this.restTemplate = new RestTemplateBuilder()
+                .connectTimeout(Duration.ofSeconds(3))
+                .readTimeout(Duration.ofSeconds(5))
+                .build();
+    }
     private static final Pattern PRIVATE_172_PATTERN = Pattern.compile("^172\\.(1[6-9]|2[0-9]|3[0-1])\\.");
 
     /**

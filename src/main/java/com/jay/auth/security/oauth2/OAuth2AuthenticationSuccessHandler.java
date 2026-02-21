@@ -38,6 +38,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     @Value("${app.oauth2.link-success-uri:http://localhost:3000/oauth2/link/success}")
     private String linkSuccessUri;
 
+    @Value("${app.cookie.secure:false}")
+    private boolean secureCookie;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
@@ -140,7 +143,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         Cookie cookie = new Cookie(OAuth2LinkController.LINK_STATE_COOKIE_NAME, "");
         cookie.setPath("/");
         cookie.setHttpOnly(true);
-        cookie.setMaxAge(0); // Delete cookie
+        cookie.setSecure(secureCookie);
+        cookie.setMaxAge(0);
         response.addCookie(cookie);
     }
 }

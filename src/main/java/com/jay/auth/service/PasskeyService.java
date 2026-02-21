@@ -61,6 +61,8 @@ public class PasskeyService {
     private static final long CHALLENGE_TIMEOUT_SECONDS = 300;
     private static final int MAX_PASSKEYS_PER_USER = 10;
     private static final String CHALLENGE_KEY_PREFIX = "passkey:challenge:";
+    private static final int COSE_ALG_ES256 = -7;
+    private static final int COSE_ALG_RS256 = -257;
 
     /**
      * 패스키 등록 옵션 생성 (Authenticated)
@@ -86,7 +88,7 @@ public class PasskeyService {
         // Get user display name
         String displayName = user.getNicknameEnc() != null
                 ? encryptionService.decryptNickname(user.getNicknameEnc())
-                : "User";
+                : "user-" + user.getUserUuid().substring(0, 8);
 
         // Build exclude credentials (already registered passkeys)
         List<UserPasskey> existingPasskeys = userPasskeyRepository.findByUserId(userId);
@@ -112,11 +114,11 @@ public class PasskeyService {
                 .pubKeyCredParams(List.of(
                         PasskeyRegistrationOptionsResponse.PubKeyCredParam.builder()
                                 .type("public-key")
-                                .alg(-7)  // ES256
+                                .alg(COSE_ALG_ES256)
                                 .build(),
                         PasskeyRegistrationOptionsResponse.PubKeyCredParam.builder()
                                 .type("public-key")
-                                .alg(-257)  // RS256
+                                .alg(COSE_ALG_RS256)
                                 .build()
                 ))
                 .timeout(CHALLENGE_TIMEOUT_SECONDS * 1000)

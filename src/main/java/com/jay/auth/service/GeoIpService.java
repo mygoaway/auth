@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -14,6 +15,7 @@ public class GeoIpService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     private static final String IP_API_URL = "http://ip-api.com/json/{ip}?fields=status,country,regionName,city,query&lang=ko";
+    private static final Pattern PRIVATE_172_PATTERN = Pattern.compile("^172\\.(1[6-9]|2[0-9]|3[0-1])\\.");
 
     /**
      * IP 주소로 위치 정보 조회
@@ -51,13 +53,8 @@ public class GeoIpService {
     private boolean isPrivateIp(String ip) {
         if (ip == null) return true;
         return ip.startsWith("10.")
-                || ip.startsWith("172.16.") || ip.startsWith("172.17.") || ip.startsWith("172.18.")
-                || ip.startsWith("172.19.") || ip.startsWith("172.20.") || ip.startsWith("172.21.")
-                || ip.startsWith("172.22.") || ip.startsWith("172.23.") || ip.startsWith("172.24.")
-                || ip.startsWith("172.25.") || ip.startsWith("172.26.") || ip.startsWith("172.27.")
-                || ip.startsWith("172.28.") || ip.startsWith("172.29.") || ip.startsWith("172.30.")
-                || ip.startsWith("172.31.")
                 || ip.startsWith("192.168.")
+                || PRIVATE_172_PATTERN.matcher(ip).find()
                 || ip.equals("127.0.0.1")
                 || ip.equals("0:0:0:0:0:0:0:1")
                 || ip.equals("::1");

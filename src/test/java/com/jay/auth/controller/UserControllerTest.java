@@ -81,6 +81,9 @@ class UserControllerTest {
     @MockitoBean
     private com.jay.auth.service.SecuritySettingsService securitySettingsService;
 
+    @MockitoBean
+    private com.jay.auth.service.LoginAnalyticsService loginAnalyticsService;
+
     @BeforeEach
     void setUp() {
         UserPrincipal userPrincipal = new UserPrincipal(1L, "uuid-1234", "USER");

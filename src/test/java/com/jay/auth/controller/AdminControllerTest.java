@@ -64,6 +64,9 @@ class AdminControllerTest {
     @MockitoBean
     private AuditLogService auditLogService;
 
+    @MockitoBean
+    private com.jay.auth.service.LoginAnalyticsService loginAnalyticsService;
+
     @BeforeEach
     void setUp() {
         UserPrincipal adminPrincipal = new UserPrincipal(1L, "admin-uuid", "ADMIN");

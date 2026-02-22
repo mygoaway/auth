@@ -19,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 
 import java.util.Optional;
 
@@ -46,6 +48,10 @@ class PasswordServiceTest {
     private SecurityNotificationService securityNotificationService;
     @Mock
     private PasswordPolicyService passwordPolicyService;
+    @Mock
+    private CacheManager cacheManager;
+    @Mock
+    private Cache cache;
 
     @Nested
     @DisplayName("비밀번호 변경")
@@ -150,6 +156,7 @@ class PasswordServiceTest {
             given(passwordPolicyService.isSameAsCurrentPassword("NewPass@1234", "hashed_old")).willReturn(false);
             given(passwordPolicyService.isPasswordReused(1L, "NewPass@1234")).willReturn(false);
             given(passwordUtil.encode("NewPass@1234")).willReturn("hashed_new");
+            given(cacheManager.getCache("securityDashboard")).willReturn(cache);
 
             ResetPasswordRequest request = createResetPasswordRequest("token-123", "recovery@email.com", "login@email.com", "NewPass@1234");
 

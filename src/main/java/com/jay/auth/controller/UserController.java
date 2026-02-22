@@ -11,11 +11,13 @@ import com.jay.auth.dto.response.SecurityDashboardResponse;
 import com.jay.auth.dto.response.SecuritySettingsResponse;
 import com.jay.auth.dto.response.SuspiciousActivityResponse;
 import com.jay.auth.dto.response.TrustedDeviceResponse;
+import com.jay.auth.dto.response.UserLoginMapResponse;
 import com.jay.auth.dto.response.UserProfileResponse;
 import com.jay.auth.dto.response.WeeklyActivityResponse;
 import com.jay.auth.security.UserPrincipal;
 import com.jay.auth.service.AccountLinkingService;
 import com.jay.auth.service.ActivityReportService;
+import com.jay.auth.service.LoginAnalyticsService;
 import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.SecurityDashboardService;
 import com.jay.auth.service.TokenService;
@@ -51,6 +53,7 @@ public class UserController {
     private final TrustedDeviceService trustedDeviceService;
     private final SuspiciousActivityService suspiciousActivityService;
     private final SecuritySettingsService securitySettingsService;
+    private final LoginAnalyticsService loginAnalyticsService;
 
     @Operation(summary = "프로필 조회", description = "현재 사용자의 프로필을 조회합니다")
     @GetMapping("/profile")
@@ -308,6 +311,18 @@ public class UserController {
         securitySettingsService.unlockAccount(userPrincipal.getUserId());
 
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "내 로그인 위치 지도", description = "최근 로그인 위치별 통계를 조회합니다")
+    @GetMapping("/login-map")
+    public ResponseEntity<UserLoginMapResponse> getLoginMap(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam(defaultValue = "30") int days) {
+
+        UserLoginMapResponse response = loginAnalyticsService.getUserLoginMap(
+                userPrincipal.getUserId(), Math.min(days, 90));
+
+        return ResponseEntity.ok(response);
     }
 
 }

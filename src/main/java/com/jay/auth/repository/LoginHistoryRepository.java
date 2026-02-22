@@ -49,4 +49,33 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long
 
     @Query("SELECT COUNT(DISTINCT h.userId) FROM LoginHistory h WHERE h.isSuccess = true AND h.createdAt >= :since")
     long countDistinctActiveUsersSince(@Param("since") LocalDateTime since);
+
+    // 국가/도시별 로그인 집계 (heatmap)
+    @Query("SELECT h.location, COUNT(h), SUM(CASE WHEN h.isSuccess = false THEN 1 ELSE 0 END) " +
+            "FROM LoginHistory h WHERE h.createdAt >= :since AND h.location IS NOT NULL " +
+            "GROUP BY h.location ORDER BY COUNT(h) DESC")
+    List<Object[]> countLoginsByLocation(@Param("since") LocalDateTime since);
+
+    // IP별 실패 시도 집계 (hotspot)
+    @Query("SELECT h.ipAddress, h.location, COUNT(h), MAX(h.createdAt) " +
+            "FROM LoginHistory h WHERE h.isSuccess = false AND h.createdAt >= :since AND h.ipAddress IS NOT NULL " +
+            "GROUP BY h.ipAddress, h.location ORDER BY COUNT(h) DESC")
+    List<Object[]> countFailuresByIp(@Param("since") LocalDateTime since, Pageable pageable);
+
+    // 시간대별 로그인 집계 (timeline)
+    @Query("SELECT FUNCTION('HOUR', h.createdAt), " +
+            "SUM(CASE WHEN h.isSuccess = true THEN 1 ELSE 0 END), " +
+            "SUM(CASE WHEN h.isSuccess = false THEN 1 ELSE 0 END) " +
+            "FROM LoginHistory h WHERE h.createdAt >= :since " +
+            "GROUP BY FUNCTION('HOUR', h.createdAt) ORDER BY FUNCTION('HOUR', h.createdAt) ASC")
+    List<Object[]> countLoginsByHour(@Param("since") LocalDateTime since);
+
+    // 사용자 개인 위치별 로그인 집계
+    @Query("SELECT h.location, " +
+            "SUM(CASE WHEN h.isSuccess = true THEN 1 ELSE 0 END), " +
+            "SUM(CASE WHEN h.isSuccess = false THEN 1 ELSE 0 END), " +
+            "MAX(h.createdAt) " +
+            "FROM LoginHistory h WHERE h.userId = :userId AND h.createdAt >= :since AND h.location IS NOT NULL " +
+            "GROUP BY h.location ORDER BY MAX(h.createdAt) DESC")
+    List<Object[]> countLoginsByLocationForUser(@Param("userId") Long userId, @Param("since") LocalDateTime since);
 }

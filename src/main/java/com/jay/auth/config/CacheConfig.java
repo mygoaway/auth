@@ -54,6 +54,15 @@ public class CacheConfig {
         // GeoIP: 24시간 TTL
         cacheConfigurations.put("geoip", defaultConfig.entryTtl(Duration.ofHours(24)));
 
+        // 로그인 히트맵: 1시간 TTL
+        cacheConfigurations.put("loginHeatmap", defaultConfig.entryTtl(Duration.ofHours(1)));
+
+        // 실패 핫스팟: 1시간 TTL
+        cacheConfigurations.put("loginHotspot", defaultConfig.entryTtl(Duration.ofHours(1)));
+
+        // 시간대별 타임라인: 1시간 TTL
+        cacheConfigurations.put("loginTimeline", defaultConfig.entryTtl(Duration.ofHours(1)));
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigurations)

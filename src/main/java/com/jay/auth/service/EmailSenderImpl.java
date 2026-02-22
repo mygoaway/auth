@@ -62,4 +62,43 @@ public class EmailSenderImpl implements EmailSender {
         log.info("해제 시간: {}", unlinkedTime);
         log.info("========================================");
     }
+
+    @Override
+    public void sendPasskeyRegisteredAlert(String to, String deviceName, String registeredTime) {
+        log.info("========================================");
+        log.info("[보안 알림] 패스키 등록됨");
+        log.info("수신자: {}", to);
+        log.info("기기 이름: {}", deviceName);
+        log.info("등록 시간: {}", registeredTime);
+        log.info("========================================");
+    }
+
+    @Override
+    public void sendPasskeyRemovedAlert(String to, String deviceName, String removedTime) {
+        log.info("========================================");
+        log.info("[보안 알림] 패스키 삭제됨");
+        log.info("수신자: {}", to);
+        log.info("기기 이름: {}", deviceName);
+        log.info("삭제 시간: {}", removedTime);
+        log.info("========================================");
+    }
+
+    @Override
+    public void sendPasswordExpiringSoonAlert(String to, int daysLeft, String expireDate) {
+        log.info("========================================");
+        log.info("[보안 알림] 비밀번호 만료 임박");
+        log.info("수신자: {}", to);
+        log.info("남은 일수: {}일", daysLeft);
+        log.info("만료 예정일: {}", expireDate);
+        log.info("========================================");
+    }
+
+    @Override
+    public void sendPasswordExpiredAlert(String to, String expireDate) {
+        log.info("========================================");
+        log.info("[보안 알림] 비밀번호 만료됨");
+        log.info("수신자: {}", to);
+        log.info("만료일: {}", expireDate);
+        log.info("========================================");
+    }
 }

@@ -32,4 +32,29 @@ public interface EmailSender {
      * 계정 연동 해제 알림 발송
      */
     void sendAccountUnlinkedAlert(String to, String channelName, String unlinkedTime);
+
+    /**
+     * 패스키 등록 알림 발송
+     */
+    void sendPasskeyRegisteredAlert(String to, String deviceName, String registeredTime);
+
+    /**
+     * 패스키 삭제 알림 발송
+     */
+    void sendPasskeyRemovedAlert(String to, String deviceName, String removedTime);
+
+    /**
+     * 비밀번호 만료 임박 알림 발송
+     * @param to 수신자 이메일
+     * @param daysLeft 만료까지 남은 일수
+     * @param expireDate 만료 예정일 (yyyy-MM-dd HH:mm 형식)
+     */
+    void sendPasswordExpiringSoonAlert(String to, int daysLeft, String expireDate);
+
+    /**
+     * 비밀번호 만료 알림 발송
+     * @param to 수신자 이메일
+     * @param expireDate 만료일
+     */
+    void sendPasswordExpiredAlert(String to, String expireDate);
 }

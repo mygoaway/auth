@@ -132,6 +132,57 @@ public class SecurityNotificationService {
     }
 
     /**
+     * 비밀번호 만료 임박 알림
+     * @param userId 사용자 ID
+     * @param daysLeft 만료까지 남은 일수
+     * @param expireDate 만료 예정일
+     */
+    @Async
+    @Transactional(readOnly = true)
+    public void notifyPasswordExpiringSoon(Long userId, int daysLeft, LocalDateTime expireDate) {
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null || user.getEmailEnc() == null) {
+                return;
+            }
+
+            String email = encryptionService.decryptEmail(user.getEmailEnc());
+            String expireDateStr = expireDate.format(DATE_FORMATTER);
+
+            emailSender.sendPasswordExpiringSoonAlert(email, daysLeft, expireDateStr);
+
+            log.info("비밀번호 만료 임박 알림 발송 완료 - userId: {}, daysLeft: {}", userId, daysLeft);
+        } catch (Exception e) {
+            log.error("비밀번호 만료 임박 알림 발송 실패 - userId: {}", userId, e);
+        }
+    }
+
+    /**
+     * 비밀번호 만료 알림
+     * @param userId 사용자 ID
+     * @param expireDate 만료일
+     */
+    @Async
+    @Transactional(readOnly = true)
+    public void notifyPasswordExpired(Long userId, LocalDateTime expireDate) {
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null || user.getEmailEnc() == null) {
+                return;
+            }
+
+            String email = encryptionService.decryptEmail(user.getEmailEnc());
+            String expireDateStr = expireDate.format(DATE_FORMATTER);
+
+            emailSender.sendPasswordExpiredAlert(email, expireDateStr);
+
+            log.info("비밀번호 만료 알림 발송 완료 - userId: {}", userId);
+        } catch (Exception e) {
+            log.error("비밀번호 만료 알림 발송 실패 - userId: {}", userId, e);
+        }
+    }
+
+    /**
      * 패스키 등록 알림
      */
     @Async
@@ -144,9 +195,13 @@ public class SecurityNotificationService {
             }
 
             String email = encryptionService.decryptEmail(user.getEmailEnc());
-            log.info("Passkey registered notification for user: {}, device: {}, email: {}", userId, deviceName, email);
+            String registeredTime = LocalDateTime.now().format(DATE_FORMATTER);
+
+            emailSender.sendPasskeyRegisteredAlert(email, deviceName, registeredTime);
+
+            log.info("패스키 등록 알림 발송 완료 - userId: {}, deviceName: {}", userId, deviceName);
         } catch (Exception e) {
-            log.error("Failed to send passkey registered notification", e);
+            log.error("패스키 등록 알림 발송 실패 - userId: {}", userId, e);
         }
     }
 
@@ -163,9 +218,13 @@ public class SecurityNotificationService {
             }
 
             String email = encryptionService.decryptEmail(user.getEmailEnc());
-            log.info("Passkey removed notification for user: {}, device: {}, email: {}", userId, deviceName, email);
+            String removedTime = LocalDateTime.now().format(DATE_FORMATTER);
+
+            emailSender.sendPasskeyRemovedAlert(email, deviceName, removedTime);
+
+            log.info("패스키 삭제 알림 발송 완료 - userId: {}, deviceName: {}", userId, deviceName);
         } catch (Exception e) {
-            log.error("Failed to send passkey removed notification", e);
+            log.error("패스키 삭제 알림 발송 실패 - userId: {}", userId, e);
         }
     }
 

@@ -1,10 +1,12 @@
 package com.jay.auth.service;
 
 import com.jay.auth.domain.entity.User;
+import com.jay.auth.domain.entity.UserSignInInfo;
 import com.jay.auth.domain.enums.UserStatus;
 import com.jay.auth.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +23,18 @@ public class AccountCleanupScheduler {
     private static final int DORMANT_THRESHOLD_DAYS = 90;
     private static final int LOGIN_HISTORY_RETENTION_DAYS = 180;
 
+    /** 비밀번호 만료 임박 알림 기준 일수 */
+    private static final int[] PASSWORD_EXPIRY_ALERT_DAYS = {7, 3, 1};
+
     private final UserRepository userRepository;
     private final UserTwoFactorRepository userTwoFactorRepository;
     private final PasswordHistoryRepository passwordHistoryRepository;
     private final LoginHistoryRepository loginHistoryRepository;
+    private final UserSignInInfoRepository userSignInInfoRepository;
+    private final SecurityNotificationService securityNotificationService;
+
+    @Value("${app.security.password.expiration-days:90}")
+    private int passwordExpirationDays;
 
     /**
      * 매일 새벽 3시에 실행
@@ -40,9 +50,10 @@ public class AccountCleanupScheduler {
         int permanentlyDeleted = processExpiredDeletions();
         int dormantConverted = processDormantAccounts();
         int historyDeleted = cleanupOldLoginHistory();
+        int notified = sendPasswordExpiryNotifications();
 
-        log.info("Account cleanup batch completed - deleted: {}, dormant: {}, history cleaned: {}",
-                permanentlyDeleted, dormantConverted, historyDeleted);
+        log.info("Account cleanup batch completed - deleted: {}, dormant: {}, history cleaned: {}, password expiry notified: {}",
+                permanentlyDeleted, dormantConverted, historyDeleted, notified);
     }
 
     private int processExpiredDeletions() {
@@ -103,5 +114,66 @@ public class AccountCleanupScheduler {
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(LOGIN_HISTORY_RETENTION_DAYS);
         loginHistoryRepository.deleteOldHistory(cutoffDate);
         return 0; // deleteOldHistory는 void 반환
+    }
+
+    /**
+     * 비밀번호 만료 임박/만료 사용자에게 이메일 알림 발송
+     * - 만료 7일/3일/1일 전 사용자: 임박 알림
+     * - 오늘 만료된 사용자 (만료 후 1일 이내): 만료 알림
+     */
+    private int sendPasswordExpiryNotifications() {
+        int notifiedCount = 0;
+        LocalDateTime now = LocalDateTime.now();
+
+        // 만료 임박 알림 (7일, 3일, 1일 전)
+        for (int daysLeft : PASSWORD_EXPIRY_ALERT_DAYS) {
+            // passwordUpdatedAt이 (90 - daysLeft)일 전인 사용자 = 만료까지 daysLeft일 남은 사용자
+            LocalDateTime windowEnd = now.minusDays((long) passwordExpirationDays - daysLeft);
+            LocalDateTime windowStart = windowEnd.minusDays(1);
+
+            List<UserSignInInfo> targets = userSignInInfoRepository
+                    .findUsersWithPasswordUpdatedBetween(windowStart, windowEnd);
+
+            for (UserSignInInfo signInInfo : targets) {
+                try {
+                    Long userId = signInInfo.getUser().getId();
+                    LocalDateTime expireDate = signInInfo.getPasswordUpdatedAt()
+                            .plusDays(passwordExpirationDays);
+                    securityNotificationService.notifyPasswordExpiringSoon(userId, daysLeft, expireDate);
+                    notifiedCount++;
+                } catch (Exception e) {
+                    log.error("비밀번호 만료 임박 알림 실패 - userId: {}", signInInfo.getUser().getId(), e);
+                }
+            }
+
+            if (!targets.isEmpty()) {
+                log.info("비밀번호 만료 {}일 전 알림 발송: {}명", daysLeft, targets.size());
+            }
+        }
+
+        // 만료 알림 (오늘 만료된 사용자: 만료 후 24시간 이내)
+        LocalDateTime expiredWindowEnd = now.minusDays(passwordExpirationDays);
+        LocalDateTime expiredWindowStart = expiredWindowEnd.minusDays(1);
+
+        List<UserSignInInfo> expiredTargets = userSignInInfoRepository
+                .findUsersWithPasswordUpdatedBetween(expiredWindowStart, expiredWindowEnd);
+
+        for (UserSignInInfo signInInfo : expiredTargets) {
+            try {
+                Long userId = signInInfo.getUser().getId();
+                LocalDateTime expireDate = signInInfo.getPasswordUpdatedAt()
+                        .plusDays(passwordExpirationDays);
+                securityNotificationService.notifyPasswordExpired(userId, expireDate);
+                notifiedCount++;
+            } catch (Exception e) {
+                log.error("비밀번호 만료 알림 실패 - userId: {}", signInInfo.getUser().getId(), e);
+            }
+        }
+
+        if (!expiredTargets.isEmpty()) {
+            log.info("비밀번호 만료 알림 발송: {}명", expiredTargets.size());
+        }
+
+        return notifiedCount;
     }
 }

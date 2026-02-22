@@ -45,6 +45,8 @@ public class PasskeyService {
     private final TokenService tokenService;
     private final EncryptionService encryptionService;
     private final StringRedisTemplate stringRedisTemplate;
+    private final AuditLogService auditLogService;
+    private final SecurityNotificationService securityNotificationService;
 
     private final WebAuthnManager webAuthnManager = WebAuthnManager.createNonStrictWebAuthnManager();
     private final ObjectConverter objectConverter = new ObjectConverter();
@@ -189,6 +191,11 @@ public class PasskeyService {
             userPasskeyRepository.save(passkey);
 
             log.info("Passkey registered for user: {}, credentialId: {}", userId, credentialId);
+
+            String savedDeviceName = passkey.getDeviceName();
+            auditLogService.log(userId, "PASSKEY_REGISTERED", credentialId,
+                    "패스키 등록: " + savedDeviceName, true);
+            securityNotificationService.notifyPasskeyRegistered(userId, savedDeviceName);
         } catch (VerificationException e) {
             log.warn("Passkey registration validation failed for user: {}", userId, e);
             throw PasskeyException.registrationFailed();
@@ -321,8 +328,13 @@ public class PasskeyService {
         UserPasskey passkey = userPasskeyRepository.findByIdAndUserId(passkeyId, userId)
                 .orElseThrow(PasskeyException::notFound);
 
+        String deviceName = passkey.getDeviceName();
         userPasskeyRepository.delete(passkey);
         log.info("Passkey deleted for user: {}, passkeyId: {}", userId, passkeyId);
+
+        auditLogService.log(userId, "PASSKEY_REMOVED", String.valueOf(passkeyId),
+                "패스키 삭제: " + deviceName, true);
+        securityNotificationService.notifyPasskeyRemoved(userId, deviceName);
     }
 
     /**

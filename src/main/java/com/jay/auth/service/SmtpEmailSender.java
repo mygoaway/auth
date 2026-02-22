@@ -103,6 +103,69 @@ public class SmtpEmailSender implements EmailSender {
         sendHtmlEmail(to, "[Authly] 계정 연동 해제 알림", html);
     }
 
+    @Override
+    public void sendPasskeyRegisteredAlert(String to, String deviceName, String registeredTime) {
+        List<Map<String, String>> details = List.of(
+                Map.of("key", "기기 이름", "value", deviceName),
+                Map.of("key", "등록 시간", "value", registeredTime)
+        );
+
+        Context context = new Context();
+        context.setVariable("alertTitle", "패스키 등록 완료");
+        context.setVariable("alertMessage", "새로운 패스키가 회원님의 계정에 등록되었습니다.");
+        context.setVariable("details", details);
+
+        String html = templateEngine.process("email/security-alert", context);
+        sendHtmlEmail(to, "[Authly] 패스키 등록 알림", html);
+    }
+
+    @Override
+    public void sendPasskeyRemovedAlert(String to, String deviceName, String removedTime) {
+        List<Map<String, String>> details = List.of(
+                Map.of("key", "기기 이름", "value", deviceName),
+                Map.of("key", "삭제 시간", "value", removedTime)
+        );
+
+        Context context = new Context();
+        context.setVariable("alertTitle", "패스키 삭제됨");
+        context.setVariable("alertMessage", deviceName + " 패스키가 삭제되었습니다.");
+        context.setVariable("details", details);
+
+        String html = templateEngine.process("email/security-alert", context);
+        sendHtmlEmail(to, "[Authly] 패스키 삭제 알림", html);
+    }
+
+    @Override
+    public void sendPasswordExpiringSoonAlert(String to, int daysLeft, String expireDate) {
+        List<Map<String, String>> details = List.of(
+                Map.of("key", "만료 예정일", "value", expireDate),
+                Map.of("key", "남은 일수", "value", daysLeft + "일")
+        );
+
+        Context context = new Context();
+        context.setVariable("alertTitle", "비밀번호 만료 예정");
+        context.setVariable("alertMessage", daysLeft + "일 후 비밀번호가 만료됩니다. 지금 변경해주세요.");
+        context.setVariable("details", details);
+
+        String html = templateEngine.process("email/security-alert", context);
+        sendHtmlEmail(to, "[Authly] 비밀번호 만료 " + daysLeft + "일 전 안내", html);
+    }
+
+    @Override
+    public void sendPasswordExpiredAlert(String to, String expireDate) {
+        List<Map<String, String>> details = List.of(
+                Map.of("key", "만료일", "value", expireDate)
+        );
+
+        Context context = new Context();
+        context.setVariable("alertTitle", "비밀번호 만료됨");
+        context.setVariable("alertMessage", "비밀번호가 만료되었습니다. 로그인 후 즉시 변경해주세요.");
+        context.setVariable("details", details);
+
+        String html = templateEngine.process("email/security-alert", context);
+        sendHtmlEmail(to, "[Authly] 비밀번호 만료 안내", html);
+    }
+
     private void sendHtmlEmail(String to, String subject, String htmlContent) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

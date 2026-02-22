@@ -48,6 +48,10 @@ class PasskeyServiceTest {
     private StringRedisTemplate stringRedisTemplate;
     @Mock
     private ValueOperations<String, String> valueOperations;
+    @Mock
+    private AuditLogService auditLogService;
+    @Mock
+    private SecurityNotificationService securityNotificationService;
 
     @Nested
     @DisplayName("패스키 등록 옵션 생성 (generateRegistrationOptions)")

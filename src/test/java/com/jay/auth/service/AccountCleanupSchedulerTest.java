@@ -45,6 +45,12 @@ class AccountCleanupSchedulerTest {
     @Mock
     private LoginHistoryRepository loginHistoryRepository;
 
+    @Mock
+    private com.jay.auth.repository.UserSignInInfoRepository userSignInInfoRepository;
+
+    @Mock
+    private SecurityNotificationService securityNotificationService;
+
     @Nested
     @DisplayName("만료된 탈퇴 예정 계정 정리")
     class CleanupExpiredDeletions {

@@ -14,6 +14,8 @@ import com.jay.auth.repository.UserSignInInfoRepository;
 import com.jay.auth.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +33,9 @@ public class PasswordService {
     private final PasswordUtil passwordUtil;
     private final SecurityNotificationService securityNotificationService;
     private final PasswordPolicyService passwordPolicyService;
+    private final CacheManager cacheManager;
 
+    @CacheEvict(value = "securityDashboard", key = "#userId")
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
         UserSignInInfo signInInfo = userSignInInfoRepository.findByUserId(userId)
@@ -166,6 +170,12 @@ public class PasswordService {
 
         // 비밀번호 변경 알림
         securityNotificationService.notifyPasswordChanged(userId);
+
+        // 비밀번호 변경으로 보안 점수(PASSWORD_HEALTH) 갱신을 위해 캐시 무효화
+        var cache = cacheManager.getCache("securityDashboard");
+        if (cache != null) {
+            cache.evict(userId);
+        }
 
         log.info("User {} reset password via recovery email", userId);
     }

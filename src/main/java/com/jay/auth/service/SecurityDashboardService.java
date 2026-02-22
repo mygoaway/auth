@@ -70,71 +70,96 @@ public class SecurityDashboardService {
     private List<SecurityFactor> calculateSecurityFactors(Long userId, User user) {
         List<SecurityFactor> factors = new ArrayList<>();
 
-        // 1. 2FA 설정 (30점)
+        factors.add(calculateTwoFactorScore(userId));
+
+        UserSignInInfo signInInfo = userSignInInfoRepository.findByUserId(userId).orElse(null);
+        SecurityFactor passwordFactor = calculatePasswordHealthScore(signInInfo);
+        if (passwordFactor != null) {
+            factors.add(passwordFactor);
+        }
+
+        factors.add(calculateRecoveryEmailScore(user));
+        factors.add(calculateSocialLinkedScore(userId));
+        factors.add(calculatePasskeyScore(userId));
+        factors.add(calculateLoginMonitoringScore(userId));
+
+        return factors;
+    }
+
+    // 1. 2FA 설정 (30점)
+    private SecurityFactor calculateTwoFactorScore(Long userId) {
         TwoFactorStatusResponse twoFactorStatus = totpService.getTwoFactorStatus(userId);
-        factors.add(SecurityFactor.builder()
+        return SecurityFactor.builder()
                 .name("2FA_ENABLED")
                 .description("2단계 인증")
                 .score(twoFactorStatus.isEnabled() ? 30 : 0)
                 .maxScore(30)
                 .enabled(twoFactorStatus.isEnabled())
-                .build());
+                .build();
+    }
 
-        // 2. 비밀번호 강도/최신성 (25점) - 이메일 로그인 사용자만 해당
-        UserSignInInfo signInInfo = userSignInInfoRepository.findByUserId(userId).orElse(null);
-        if (signInInfo != null) {
-            int passwordScore = calculatePasswordScore(signInInfo);
-            factors.add(SecurityFactor.builder()
-                    .name("PASSWORD_HEALTH")
-                    .description("비밀번호 건강도")
-                    .score(passwordScore)
-                    .maxScore(25)
-                    .enabled(passwordScore >= 15)
-                    .build());
+    // 2. 비밀번호 강도/최신성 (25점) - 이메일 로그인 사용자만 해당, 소셜 전용 사용자는 null 반환
+    private SecurityFactor calculatePasswordHealthScore(UserSignInInfo signInInfo) {
+        if (signInInfo == null) {
+            return null;
         }
+        int passwordScore = calculatePasswordScore(signInInfo);
+        return SecurityFactor.builder()
+                .name("PASSWORD_HEALTH")
+                .description("비밀번호 건강도")
+                .score(passwordScore)
+                .maxScore(25)
+                .enabled(passwordScore >= 15)
+                .build();
+    }
 
-        // 3. 복구 이메일 설정 (15점) - User 엔티티에서 직접 확인
+    // 3. 복구 이메일 설정 (15점)
+    private SecurityFactor calculateRecoveryEmailScore(User user) {
         boolean hasRecoveryEmail = user.getRecoveryEmailEnc() != null;
-        factors.add(SecurityFactor.builder()
+        return SecurityFactor.builder()
                 .name("RECOVERY_EMAIL")
                 .description("복구 이메일 설정")
                 .score(hasRecoveryEmail ? 15 : 0)
                 .maxScore(15)
                 .enabled(hasRecoveryEmail)
-                .build());
+                .build();
+    }
 
-        // 4. 소셜 계정 연결 (15점) - EMAIL 채널 제외, 순수 소셜 채널만 카운팅
+    // 4. 소셜 계정 연결 (15점) - EMAIL 채널 제외, 순수 소셜 채널만 카운팅
+    private SecurityFactor calculateSocialLinkedScore(Long userId) {
         long linkedSocialChannels = userChannelRepository.countByUserIdAndChannelCodeNot(userId, ChannelCode.EMAIL);
         int socialScore = linkedSocialChannels >= 2 ? 15 : (linkedSocialChannels == 1 ? 10 : 0);
-        factors.add(SecurityFactor.builder()
+        return SecurityFactor.builder()
                 .name("SOCIAL_LINKED")
                 .description("소셜 계정 연결")
                 .score(socialScore)
                 .maxScore(15)
                 .enabled(linkedSocialChannels > 0)
-                .build());
+                .build();
+    }
 
-        // 5. 패스키 등록 (15점)
+    // 5. 패스키 등록 (15점)
+    private SecurityFactor calculatePasskeyScore(Long userId) {
         boolean hasPasskeys = userPasskeyRepository.existsByUserId(userId);
-        factors.add(SecurityFactor.builder()
+        return SecurityFactor.builder()
                 .name("PASSKEY_REGISTERED")
                 .description("패스키 등록")
                 .score(hasPasskeys ? 15 : 0)
                 .maxScore(15)
                 .enabled(hasPasskeys)
-                .build());
+                .build();
+    }
 
-        // 6. 최근 활동 확인 (15점)
+    // 6. 로그인 활동 모니터링 (15점)
+    private SecurityFactor calculateLoginMonitoringScore(Long userId) {
         boolean recentLoginChecked = checkRecentLoginPattern(userId);
-        factors.add(SecurityFactor.builder()
+        return SecurityFactor.builder()
                 .name("LOGIN_MONITORING")
                 .description("로그인 활동 모니터링")
                 .score(recentLoginChecked ? 15 : 10)
                 .maxScore(15)
                 .enabled(recentLoginChecked)
-                .build());
-
-        return factors;
+                .build();
     }
 
     private int calculatePasswordScore(UserSignInInfo signInInfo) {

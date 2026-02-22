@@ -134,22 +134,12 @@ public class AdminService {
 
         List<Object[]> dailyLoginData = loginHistoryRepository.countDailyLogins(sevenDaysAgo);
         List<Map<String, Object>> dailyLogins = dailyLoginData.stream()
-                .map(row -> {
-                    Map<String, Object> map = new LinkedHashMap<>();
-                    map.put("date", row[0].toString());
-                    map.put("count", row[1]);
-                    return map;
-                })
+                .map(this::toDateCountMap)
                 .toList();
 
         List<Object[]> dailySignupData = userRepository.countDailySignups(sevenDaysAgo);
         List<Map<String, Object>> dailySignups = dailySignupData.stream()
-                .map(row -> {
-                    Map<String, Object> map = new LinkedHashMap<>();
-                    map.put("date", row[0].toString());
-                    map.put("count", row[1]);
-                    return map;
-                })
+                .map(this::toDateCountMap)
                 .toList();
 
         return AdminLoginStatsResponse.builder()
@@ -254,5 +244,12 @@ public class AdminService {
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().format(DATE_FORMAT) : null)
                 .lastLoginAt(lastLoginAt)
                 .build();
+    }
+
+    private Map<String, Object> toDateCountMap(Object[] row) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("date", row[0].toString());
+        map.put("count", row[1]);
+        return map;
     }
 }

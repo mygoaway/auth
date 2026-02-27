@@ -23,6 +23,7 @@ import dev.samstevens.totp.qr.QrGenerator;
 import dev.samstevens.totp.qr.ZxingPngQrGenerator;
 import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
+import com.jay.auth.service.metrics.AuthTimed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -156,6 +157,7 @@ public class TotpService {
     /**
      * TOTP 코드 검증
      */
+    @AuthTimed(operation = "totp_verify")
     @Transactional
     public boolean verifyCode(Long userId, String code) {
         UserTwoFactor twoFactor = userTwoFactorRepository.findByUserId(userId)

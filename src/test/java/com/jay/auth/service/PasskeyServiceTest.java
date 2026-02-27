@@ -9,6 +9,7 @@ import com.jay.auth.exception.PasskeyException;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserPasskeyRepository;
 import com.jay.auth.repository.UserRepository;
+import com.jay.auth.service.metrics.AuthGaugeMetrics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,8 @@ class PasskeyServiceTest {
     private AuditLogService auditLogService;
     @Mock
     private SecurityNotificationService securityNotificationService;
+    @Mock
+    private AuthGaugeMetrics authGaugeMetrics;
 
     @Nested
     @DisplayName("패스키 등록 옵션 생성 (generateRegistrationOptions)")

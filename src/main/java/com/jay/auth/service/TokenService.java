@@ -6,6 +6,7 @@ import com.jay.auth.dto.response.TokenResponse;
 import com.jay.auth.exception.InvalidTokenException;
 import com.jay.auth.security.JwtTokenProvider;
 import com.jay.auth.security.TokenStore;
+import com.jay.auth.service.metrics.AuthGaugeMetrics;
 import com.jay.auth.service.metrics.AuthMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ public class TokenService {
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenStore tokenStore;
     private final AuthMetrics authMetrics;
+    private final AuthGaugeMetrics authGaugeMetrics;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeUtil.ISO_FORMATTER;
 
@@ -47,6 +49,7 @@ public class TokenService {
         log.info("Issued tokens for user: {}, channelCode: {}", userId, channelCode);
         authMetrics.recordTokenIssued("ACCESS", channelCode.name());
         authMetrics.recordTokenIssued("REFRESH", channelCode.name());
+        authGaugeMetrics.incrementActiveSessions();
 
         return TokenResponse.of(
                 accessToken,
@@ -79,6 +82,7 @@ public class TokenService {
         log.info("Issued tokens with session for user: {}, channelCode: {}", userId, channelCode);
         authMetrics.recordTokenIssued("ACCESS", channelCode.name());
         authMetrics.recordTokenIssued("REFRESH", channelCode.name());
+        authGaugeMetrics.incrementActiveSessions();
 
         return TokenResponse.of(
                 accessToken,
@@ -147,6 +151,7 @@ public class TokenService {
 
         log.info("User logged out");
         authMetrics.recordLogout("single");
+        authGaugeMetrics.decrementActiveSessions();
     }
 
     /**
@@ -165,6 +170,8 @@ public class TokenService {
 
         log.info("User {} logged out from all sessions", userId);
         authMetrics.recordLogout("all");
+        // 전체 로그아웃은 몇 개 세션이 삭제됐는지 모르므로 주기적 sync에서 보정됨
+        authGaugeMetrics.decrementActiveSessions();
     }
 
     /**

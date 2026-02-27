@@ -23,6 +23,8 @@ import com.webauthn4j.data.client.challenge.Challenge;
 import com.webauthn4j.data.client.challenge.DefaultChallenge;
 import com.webauthn4j.server.ServerProperty;
 import com.webauthn4j.verifier.exception.VerificationException;
+import com.jay.auth.service.metrics.AuthGaugeMetrics;
+import com.jay.auth.service.metrics.AuthTimed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +49,7 @@ public class PasskeyService {
     private final StringRedisTemplate stringRedisTemplate;
     private final AuditLogService auditLogService;
     private final SecurityNotificationService securityNotificationService;
+    private final AuthGaugeMetrics authGaugeMetrics;
 
     private final WebAuthnManager webAuthnManager = WebAuthnManager.createNonStrictWebAuthnManager();
     private final ObjectConverter objectConverter = new ObjectConverter();
@@ -132,6 +135,7 @@ public class PasskeyService {
     /**
      * 패스키 등록 검증 & credential 저장 (Authenticated)
      */
+    @AuthTimed(operation = "passkey_register")
     @CacheEvict(value = "securityDashboard", key = "#userId")
     @Transactional
     public void verifyRegistration(Long userId, PasskeyRegisterRequest request) {
@@ -191,6 +195,7 @@ public class PasskeyService {
             userPasskeyRepository.save(passkey);
 
             log.info("Passkey registered for user: {}, credentialId: {}", userId, credentialId);
+            authGaugeMetrics.incrementRegisteredPasskeys();
 
             String savedDeviceName = passkey.getDeviceName();
             auditLogService.log(userId, "PASSKEY_REGISTERED", credentialId,
@@ -232,6 +237,7 @@ public class PasskeyService {
     /**
      * 패스키 인증 검증 & JWT 발급 (Public)
      */
+    @AuthTimed(operation = "passkey_authenticate")
     @Transactional
     public LoginResponse verifyAuthentication(PasskeyAuthenticateRequest request) {
         // Find passkey by credential ID
@@ -331,6 +337,7 @@ public class PasskeyService {
         String deviceName = passkey.getDeviceName();
         userPasskeyRepository.delete(passkey);
         log.info("Passkey deleted for user: {}, passkeyId: {}", userId, passkeyId);
+        authGaugeMetrics.decrementRegisteredPasskeys();
 
         auditLogService.log(userId, "PASSKEY_REMOVED", String.valueOf(passkeyId),
                 "패스키 삭제: " + deviceName, true);

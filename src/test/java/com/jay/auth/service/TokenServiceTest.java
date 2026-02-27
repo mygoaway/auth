@@ -6,6 +6,7 @@ import com.jay.auth.dto.response.TokenResponse;
 import com.jay.auth.exception.InvalidTokenException;
 import com.jay.auth.security.JwtTokenProvider;
 import com.jay.auth.security.TokenStore;
+import com.jay.auth.service.metrics.AuthGaugeMetrics;
 import com.jay.auth.service.metrics.AuthMetrics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -40,6 +41,8 @@ class TokenServiceTest {
     private TokenStore tokenStore;
     @Mock
     private AuthMetrics authMetrics;
+    @Mock
+    private AuthGaugeMetrics authGaugeMetrics;
 
     @Nested
     @DisplayName("토큰 발급")

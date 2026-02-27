@@ -20,6 +20,7 @@ import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.repository.UserSignInInfoRepository;
 import com.jay.auth.service.metrics.AuthMetrics;
+import com.jay.auth.service.metrics.AuthTimed;
 import com.jay.auth.util.NicknameGenerator;
 import com.jay.auth.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ public class AuthService {
     /**
      * 이메일 회원가입
      */
+    @AuthTimed(operation = "email_signup")
     @Transactional
     public SignUpResponse signUpWithEmail(EmailSignUpRequest request) {
         String tokenId = request.getTokenId();
@@ -192,6 +194,7 @@ public class AuthService {
     /**
      * 이메일 인증 (토큰 발급 없이)
      */
+    @AuthTimed(operation = "email_authenticate")
     @Transactional
     public LoginResult authenticateWithEmail(EmailLoginRequest request) {
         String email = request.getEmail();

@@ -11,6 +11,7 @@ import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.exception.PasswordPolicyException;
 import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserSignInInfoRepository;
+import com.jay.auth.service.metrics.AuthTimed;
 import com.jay.auth.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,7 @@ public class PasswordService {
     private final PasswordPolicyService passwordPolicyService;
     private final CacheManager cacheManager;
 
+    @AuthTimed(operation = "password_change")
     @CacheEvict(value = "securityDashboard", key = "#userId")
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
@@ -75,6 +77,7 @@ public class PasswordService {
         log.info("User {} changed password and logged out from all sessions", userId);
     }
 
+    @AuthTimed(operation = "recovery_accounts_lookup")
     @Transactional(readOnly = true)
     public RecoveryAccountsResponse getAccountsByRecoveryEmail(String tokenId, String recoveryEmail) {
         // 복구 이메일 인증 확인
@@ -115,6 +118,7 @@ public class PasswordService {
         return local.charAt(0) + "***" + domain;
     }
 
+    @AuthTimed(operation = "password_reset")
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         // 복구 이메일 인증 확인

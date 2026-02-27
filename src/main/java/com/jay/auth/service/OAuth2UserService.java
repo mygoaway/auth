@@ -9,6 +9,7 @@ import com.jay.auth.exception.UserNotFoundException;
 import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.security.oauth2.OAuth2UserInfo;
+import com.jay.auth.service.metrics.AuthTimed;
 import com.jay.auth.util.NicknameGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class OAuth2UserService {
     private final NicknameGenerator nicknameGenerator;
     private final CacheManager cacheManager;
 
+    @AuthTimed(operation = "oauth2_login", channelParam = "channelCode")
     @Transactional
     public User processOAuth2User(ChannelCode channelCode, OAuth2UserInfo oAuth2UserInfo) {
         String channelKey = oAuth2UserInfo.getId();
@@ -63,6 +65,7 @@ public class OAuth2UserService {
      * Process OAuth2 user for account linking mode.
      * Links the social account to an existing user instead of creating a new one.
      */
+    @AuthTimed(operation = "oauth2_link", channelParam = "channelCode")
     @Transactional
     public User processOAuth2UserForLinking(Long userId, ChannelCode channelCode, OAuth2UserInfo oAuth2UserInfo) {
         String channelKey = oAuth2UserInfo.getId();

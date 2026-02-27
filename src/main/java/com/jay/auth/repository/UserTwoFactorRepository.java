@@ -17,4 +17,6 @@ public interface UserTwoFactorRepository extends JpaRepository<UserTwoFactor, Lo
     boolean existsByUserIdAndEnabled(Long userId, boolean enabled);
 
     void deleteByUserId(Long userId);
+
+    long countByEnabled(boolean enabled);
 }

@@ -47,6 +47,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
 
+        io.micrometer.core.instrument.Timer.Sample sample =
+                authMetrics.startSample();
+        boolean loginSuccess = false;
+        ChannelCode resolvedChannel = null;
         try {
             Long userId;
             String userUuid;
@@ -80,6 +84,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 return;
             }
 
+            resolvedChannel = channelCode;
+
             // Clean up link state if exists
             String state = request.getParameter("state");
             oAuth2LinkStateService.removeLinkState(state);
@@ -112,6 +118,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 // Send new device login notification
                 securityNotificationService.notifyNewDeviceLogin(userId, sessionInfo);
 
+                loginSuccess = true;
                 log.info("OAuth2 authentication success: userId={}, channelCode={}, pendingDeletion={}",
                         userId, channelCode, pendingDeletion);
 
@@ -134,6 +141,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         } catch (Exception e) {
             log.error("OAuth2 authentication success handler failed", e);
             redirectWithError(request, response, e.getMessage());
+        } finally {
+            String channel = resolvedChannel != null ? resolvedChannel.name() : "UNKNOWN";
+            authMetrics.stopSample(sample, "oauth2_handler", channel, loginSuccess);
         }
     }
 

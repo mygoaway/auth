@@ -40,4 +40,7 @@ public interface UserSignInInfoRepository extends JpaRepository<UserSignInInfo, 
     List<UserSignInInfo> findUsersWithPasswordUpdatedBetween(
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
+
+    @Query("SELECT COUNT(s) FROM UserSignInInfo s WHERE s.lockedUntil IS NOT NULL AND s.lockedUntil > :now")
+    long countLockedAccounts(@Param("now") LocalDateTime now);
 }

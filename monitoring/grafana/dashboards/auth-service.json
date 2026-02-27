@@ -18,7 +18,7 @@
       "title": "Heap Used",
       "id": 1,
       "gridPos": { "x": 0, "y": 1, "w": 6, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "jvm_memory_used_bytes{area=\"heap\", application=\"auth-service\"}",
@@ -44,7 +44,7 @@
       "title": "Heap Max",
       "id": 2,
       "gridPos": { "x": 6, "y": 1, "w": 6, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "jvm_memory_max_bytes{area=\"heap\", application=\"auth-service\"}",
@@ -60,7 +60,7 @@
       "title": "Non-Heap Used",
       "id": 3,
       "gridPos": { "x": 12, "y": 1, "w": 6, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "jvm_memory_used_bytes{area=\"nonheap\", application=\"auth-service\"}",
@@ -76,7 +76,7 @@
       "title": "Thread Count",
       "id": 4,
       "gridPos": { "x": 18, "y": 1, "w": 6, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "jvm_threads_live_threads{application=\"auth-service\"}",
@@ -97,7 +97,7 @@
       "title": "GC Pause Time",
       "id": 5,
       "gridPos": { "x": 0, "y": 7, "w": 24, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "rate(jvm_gc_pause_seconds_sum{application=\"auth-service\"}[1m])",
@@ -120,7 +120,7 @@
       "title": "Requests Per Second",
       "id": 6,
       "gridPos": { "x": 0, "y": 14, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "sum(rate(http_server_requests_seconds_count{application=\"auth-service\"}[1m]))",
@@ -136,7 +136,7 @@
       "title": "Response Time Percentiles",
       "id": 7,
       "gridPos": { "x": 12, "y": 14, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{application=\"auth-service\"}[1m])) by (le))",
@@ -160,7 +160,7 @@
       "title": "4xx / 5xx Error Rate",
       "id": 8,
       "gridPos": { "x": 0, "y": 20, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "sum(rate(http_server_requests_seconds_count{application=\"auth-service\", status=~\"4..\"}[1m]))",
@@ -180,7 +180,7 @@
       "title": "Top 10 Slowest Endpoints (P99)",
       "id": 9,
       "gridPos": { "x": 12, "y": 20, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "topk(10, histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{application=\"auth-service\"}[5m])) by (le, uri, method)))",
@@ -204,7 +204,7 @@
       "title": "Login Attempts (by channel & result)",
       "id": 10,
       "gridPos": { "x": 0, "y": 27, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "sum(rate(auth_login_attempts_total{application=\"auth-service\"}[1m])) by (channel, result)",
@@ -220,7 +220,7 @@
       "title": "JWT Tokens Issued",
       "id": 11,
       "gridPos": { "x": 12, "y": 27, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "sum(rate(auth_token_issued_total{application=\"auth-service\"}[1m])) by (type, channel)",
@@ -236,7 +236,7 @@
       "title": "Rate Limit Exceeded (total)",
       "id": 12,
       "gridPos": { "x": 0, "y": 33, "w": 8, "h": 4 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "sum(increase(rate_limit_exceeded_total{application=\"auth-service\"}[1h])) by (type)",
@@ -249,7 +249,7 @@
       "title": "Token Refresh (success / fail)",
       "id": 13,
       "gridPos": { "x": 8, "y": 33, "w": 8, "h": 4 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "sum(increase(auth_token_refresh_total{application=\"auth-service\"}[1h])) by (result)",
@@ -262,7 +262,7 @@
       "title": "Logouts (single / all)",
       "id": 14,
       "gridPos": { "x": 16, "y": 33, "w": 8, "h": 4 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "sum(increase(auth_logout_total{application=\"auth-service\"}[1h])) by (type)",
@@ -282,7 +282,7 @@
       "title": "Cache Hits vs Misses",
       "id": 15,
       "gridPos": { "x": 0, "y": 38, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "sum(rate(cache_gets_total{application=\"auth-service\", result=\"hit\"}[1m])) by (name)",
@@ -299,7 +299,7 @@
       "title": "Cache Hit Rate (%)",
       "id": 16,
       "gridPos": { "x": 12, "y": 38, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
       "targets": [
         {
           "expr": "100 * sum(rate(cache_gets_total{application=\"auth-service\", result=\"hit\"}[5m])) / (sum(rate(cache_gets_total{application=\"auth-service\", result=\"hit\"}[5m])) + sum(rate(cache_gets_total{application=\"auth-service\", result=\"miss\"}[5m])))",
@@ -309,6 +309,177 @@
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "green", "value": 90 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "row",
+      "title": "IDP (Login Channel)",
+      "gridPos": { "x": 0, "y": 44, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 104
+    },
+    {
+      "type": "piechart",
+      "title": "Login Success by IDP",
+      "id": 17,
+      "gridPos": { "x": 0, "y": 45, "w": 8, "h": 8 },
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "options": {
+        "pieType": "pie",
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(auth_login_attempts_total{application=\"auth-service\", result=\"success\"}[$__range])) by (channel)",
+          "legendFormat": "{{channel}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "piechart",
+      "title": "Login Failure by IDP",
+      "id": 18,
+      "gridPos": { "x": 8, "y": 45, "w": 8, "h": 8 },
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "options": {
+        "pieType": "pie",
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(auth_login_attempts_total{application=\"auth-service\", result=\"fail\"}[$__range])) by (channel)",
+          "legendFormat": "{{channel}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Login Rate by IDP (per minute)",
+      "id": 19,
+      "gridPos": { "x": 16, "y": 45, "w": 8, "h": 8 },
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "targets": [
+        {
+          "expr": "sum(rate(auth_login_attempts_total{application=\"auth-service\", result=\"success\"}[1m])) by (channel)",
+          "legendFormat": "{{channel}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    },
+    {
+      "type": "row",
+      "title": "Email / Phone Verification",
+      "gridPos": { "x": 0, "y": 53, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 105
+    },
+    {
+      "type": "stat",
+      "title": "이메일 인증 발송 수 (타입별)",
+      "id": 20,
+      "gridPos": { "x": 0, "y": 54, "w": 12, "h": 6 },
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "targets": [
+        {
+          "expr": "sum(auth_email_verification_total{application=\"auth-service\", action=\"sent\"}) by (type)",
+          "legendFormat": "{{type}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "background"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "이메일 인증 성공/실패 (타입별)",
+      "id": 21,
+      "gridPos": { "x": 12, "y": 54, "w": 12, "h": 6 },
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "targets": [
+        {
+          "expr": "sum(auth_email_verification_total{application=\"auth-service\", action=~\"success|failure\"}) by (action, type)",
+          "legendFormat": "{{type}} - {{action}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "background"
+      }
+    },
+    {
+      "type": "piechart",
+      "title": "이메일 인증 실패 원인 분포",
+      "id": 22,
+      "gridPos": { "x": 0, "y": 60, "w": 8, "h": 8 },
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "options": {
+        "pieType": "pie",
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }
+      },
+      "targets": [
+        {
+          "expr": "sum(auth_email_verification_failure_total{application=\"auth-service\"}) by (reason)",
+          "legendFormat": "{{reason}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "이메일 인증 성공률 (%)",
+      "id": 24,
+      "gridPos": { "x": 8, "y": 60, "w": 16, "h": 8 },
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "targets": [
+        {
+          "expr": "100 * sum(auth_email_verification_total{application=\"auth-service\", action=\"success\"}) / (sum(auth_email_verification_total{application=\"auth-service\", action=\"success\"}) + sum(auth_email_verification_total{application=\"auth-service\", action=\"failure\"}))",
+          "legendFormat": "성공률"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
           "min": 0,
           "max": 100,
           "thresholds": {

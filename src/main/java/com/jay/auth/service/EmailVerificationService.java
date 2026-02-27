@@ -4,6 +4,7 @@ import com.jay.auth.domain.entity.EmailVerification;
 import com.jay.auth.domain.enums.VerificationType;
 import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.repository.EmailVerificationRepository;
+import com.jay.auth.service.metrics.AuthMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class EmailVerificationService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final EmailSender emailSender;
     private final EncryptionService encryptionService;
+    private final AuthMetrics authMetrics;
 
     private static final int CODE_LENGTH = 6;
     private static final int EXPIRATION_MINUTES = 10;
@@ -51,6 +53,7 @@ public class EmailVerificationService {
         // 이메일 발송
         emailSender.sendVerificationCode(email, code);
 
+        authMetrics.recordEmailVerificationSent(type.name());
         log.info("Verification code sent to: {}, type: {}", email, type);
 
         return verification.getTokenId();
@@ -66,18 +69,24 @@ public class EmailVerificationService {
 
         EmailVerification verification = emailVerificationRepository
                 .findByEmailLowerEncAndVerificationTypeAndIsVerifiedFalse(emailLowerEnc, type)
-                .orElseThrow(InvalidVerificationException::codeNotFound);
+                .orElseThrow(() -> {
+                    authMetrics.recordEmailVerificationFailure(type.name(), "not_found");
+                    return InvalidVerificationException.codeNotFound();
+                });
 
         if (verification.isExpired()) {
+            authMetrics.recordEmailVerificationFailure(type.name(), "expired");
             throw InvalidVerificationException.codeExpired();
         }
 
         if (!verification.verify(code)) {
+            authMetrics.recordEmailVerificationFailure(type.name(), "mismatch");
             throw InvalidVerificationException.codeMismatch();
         }
 
         emailVerificationRepository.save(verification);
 
+        authMetrics.recordEmailVerificationSuccess(type.name());
         log.info("Email verified: {}, type: {}", email, type);
 
         return verification.getTokenId();

@@ -4,6 +4,7 @@ import com.jay.auth.domain.entity.EmailVerification;
 import com.jay.auth.domain.enums.VerificationType;
 import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.repository.EmailVerificationRepository;
+import com.jay.auth.service.metrics.AuthMetrics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,9 @@ class EmailVerificationServiceTest {
     @Mock
     private EncryptionService encryptionService;
 
+    @Mock
+    private AuthMetrics authMetrics;
+
     @Nested
     @DisplayName("인증 코드 발송")
     class SendVerificationCode {
@@ -63,6 +67,7 @@ class EmailVerificationServiceTest {
             assertThat(tokenId).isEqualTo("token-123");
             verify(emailVerificationRepository).deleteByEmailAndType("enc_email_lower", type);
             verify(emailSender).sendVerificationCode(anyString(), anyString());
+            verify(authMetrics).recordEmailVerificationSent("SIGNUP");
         }
     }
 
@@ -91,6 +96,7 @@ class EmailVerificationServiceTest {
             // then
             assertThat(tokenId).isEqualTo("token-123");
             assertThat(verification.getIsVerified()).isTrue();
+            verify(authMetrics).recordEmailVerificationSuccess("SIGNUP");
         }
 
         @Test
@@ -107,6 +113,7 @@ class EmailVerificationServiceTest {
             // when & then
             assertThatThrownBy(() -> emailVerificationService.verifyCode(email, "123456", type))
                     .isInstanceOf(InvalidVerificationException.class);
+            verify(authMetrics).recordEmailVerificationFailure("SIGNUP", "not_found");
         }
 
         @Test
@@ -125,6 +132,7 @@ class EmailVerificationServiceTest {
             // when & then
             assertThatThrownBy(() -> emailVerificationService.verifyCode(email, "123456", type))
                     .isInstanceOf(InvalidVerificationException.class);
+            verify(authMetrics).recordEmailVerificationFailure("SIGNUP", "expired");
         }
 
         @Test
@@ -143,6 +151,7 @@ class EmailVerificationServiceTest {
             // when & then
             assertThatThrownBy(() -> emailVerificationService.verifyCode(email, "654321", type))
                     .isInstanceOf(InvalidVerificationException.class);
+            verify(authMetrics).recordEmailVerificationFailure("SIGNUP", "mismatch");
         }
     }
 

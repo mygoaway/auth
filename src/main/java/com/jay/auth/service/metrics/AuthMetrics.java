@@ -74,4 +74,34 @@ public class AuthMetrics {
                 .register(registry)
                 .increment();
     }
+
+    public void recordEmailVerificationSent(String type) {
+        Counter.builder("auth_email_verification_total")
+                .tag("type", type)
+                .tag("action", "sent")
+                .register(registry)
+                .increment();
+    }
+
+    public void recordEmailVerificationSuccess(String type) {
+        Counter.builder("auth_email_verification_total")
+                .tag("type", type)
+                .tag("action", "success")
+                .register(registry)
+                .increment();
+    }
+
+    public void recordEmailVerificationFailure(String type, String reason) {
+        Counter.builder("auth_email_verification_total")
+                .tag("type", type)
+                .tag("action", "failure")
+                .register(registry)
+                .increment();
+        Counter.builder("auth_email_verification_failure_total")
+                .tag("type", type)
+                .tag("reason", reason)
+                .register(registry)
+                .increment();
+    }
+
 }

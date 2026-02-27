@@ -21,6 +21,7 @@ Spring Boot 백엔드와 React 프론트엔드로 구성되며, JWT 기반 인�
 ### 인프라
 - Docker & Docker Compose
 - Nginx (프론트엔드 프로덕션)
+- Prometheus + Grafana (모니터링)
 
 ## 주요 기능
 
@@ -44,9 +45,15 @@ Spring Boot 백엔드와 React 프론트엔드로 구성되며, JWT 기반 인�
 - **AI 자동 답변** — Claude API 기반 자동 응답 생성
 - **상태 관리** — OPEN → IN_PROGRESS → RESOLVED → CLOSED
 
+### 모니터링
+- **Prometheus** — `/actuator/prometheus` 엔드포인트로 메트릭 수집 (포트 9090)
+- **Grafana** — 인증 비즈니스 메트릭 대시보드 (포트 3001, admin/admin)
+- **커스텀 메트릭** — 로그인 시도, 회원가입, JWT 발급, Rate Limit, 이메일 인증 등
+
 ### 관리자
 - **대시보드** — 사용자 통계, 시스템 현황
 - **사용자 관리** — 계정 상태 변경, 역할 관리
+- **로그인 지도** — 국가별 로그인 시도 분포 시각화
 
 ## 시작하기
 
@@ -96,8 +103,11 @@ npm run dev
 ### Docker Compose
 
 ```bash
-docker-compose up -d
 # MySQL, Redis, 백엔드, 프론트엔드 일괄 실행
+docker compose up -d
+
+# 모니터링 스택(Prometheus + Grafana) 포함 실행
+docker compose --profile monitoring up -d
 ```
 
 ## 프로젝트 구조
@@ -113,6 +123,7 @@ auth/
 │   ├── repository/      # JPA 리포지토리
 │   ├── security/        # JWT, OAuth2 처리
 │   ├── service/         # 비즈니스 로직
+│   │   └── metrics/     # Micrometer 커스텀 메트릭 (AuthMetrics)
 │   └── util/            # 유틸리티
 ├── src/main/resources/
 │   ├── application.yml  # 기본 설정
@@ -124,6 +135,11 @@ auth/
 │       ├── contexts/    # React Context (인증 상태)
 │       ├── pages/       # 페이지 컴포넌트
 │       └── styles/      # CSS
+├── monitoring/
+│   ├── prometheus.yml                    # Prometheus 설정
+│   └── grafana/
+│       ├── provisioning/                 # 데이터소스 자동 프로비저닝
+│       └── dashboards/auth-service.json  # Grafana 대시보드
 ├── docker-compose.yml
 └── Dockerfile
 ```

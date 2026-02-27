@@ -27,7 +27,7 @@ npm run lint         # ESLint 실행
 
 이메일 및 소셜 로그인(Google, Kakao, Naver)을 지원하는 Spring Boot 3.5.10 인증 서비스와 React 19 프론트엔드.
 
-**기술 스택**: Java 17, Spring Security 6.x, MySQL (JPA/Hibernate), Redis, JWT (jjwt 0.12.6), BCrypt, AES-256, TOTP 2FA (dev.samstevens.totp), WebAuthn/Passkey (webauthn4j-core 0.28.4), Thymeleaf (이메일 템플릿), Vite, React Router, Axios.
+**기술 스택**: Java 17, Spring Security 6.x, MySQL (JPA/Hibernate), Redis, JWT (jjwt 0.12.6), BCrypt, AES-256, TOTP 2FA (dev.samstevens.totp), WebAuthn/Passkey (webauthn4j-core 0.28.4), Micrometer + Prometheus + Grafana (모니터링), Thymeleaf (이메일 템플릿), Vite, React Router, Axios.
 
 ### 보안 필터 체인 순서
 1. `SecurityHeadersFilter` — XSS/클릭재킹 방지 응답 헤더
@@ -117,6 +117,13 @@ Spring `@Cacheable` 캐시: `userProfile` (5분), `securityDashboard` (3분), `g
 - `AccountCleanupScheduler` (매일 새벽 3시): `PENDING_DELETE` 30일 초과 사용자 개인정보 삭제, 90일 미로그인 시 휴면 전환, 180일 초과 로그인 이력 정리
 - `VerificationCleanupScheduler` (매시간): 만료된 이메일/휴대폰 인증 행 삭제
 
+### 모니터링
+- **커스텀 메트릭**: `AuthMetrics` (`service/metrics/AuthMetrics.java`) — 로그인, 회원가입, JWT 발급, 토큰 갱신, 로그아웃, 이메일 인증 카운터 중앙화
+- **RateLimitFilter**: `MeterRegistry` 직접 주입 → `rate_limit_exceeded_total{type}` 기록
+- **RequestLoggingFilter**: `MeterRegistry` 직접 주입 → `http_server_requests_custom{method,uri,status}` 타이머 기록
+- **노출 엔드포인트**: `/actuator/prometheus` (Prometheus 스크래핑 대상)
+- **Docker**: `monitoring` 프로필로 Prometheus(9090) + Grafana(3001) 실행. 설정: `monitoring/prometheus.yml`, `monitoring/grafana/`
+
 ### 외부 서비스
 - **SMS**: `CoolSmsSender` (실제) / `LogSmsSender` (개발용 스텁) — `${SMS_PROVIDER:log}`로 전환
 - **이메일**: `SmtpEmailSender` (실제) / `EmailSenderImpl` (개발용 스텁) — `${EMAIL_PROVIDER:log}`로 전환. 템플릿: `verification-code.html`, `security-alert.html` (Thymeleaf)
@@ -173,3 +180,8 @@ CLAUDE_MAX_TOKENS                  # 기본값: 1024
 | 로그 레벨 | DEBUG | INFO | WARN |
 | 메일 | localhost:1025 (MailHog) | SMTP+STARTTLS | SMTP+STARTTLS |
 | 로깅 출력 | 콘솔 | 콘솔 | 롤링 파일 (텍스트 + JSON, 50MB/30일/1GB 제한) |
+
+## 모니터링 관련 참고
+
+메트릭 전체 목록, AuthMetrics API, Grafana 대시보드 구성, 새 메트릭 추가 방법은 `docs/metrics.md` 참고.
+Docker 프로필 및 설정 파일 위치는 `docs/infrastructure.md` 참고.

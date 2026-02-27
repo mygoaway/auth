@@ -77,6 +77,24 @@
 └─────────────────────────────────────────────┘
 
 
+┌──────────────────────────────────────────┐
+│       tb_user_passkey (UserPasskey)      │
+├──────────────────────────────────────────┤
+│ PK  id              BIGINT AI            │
+│ FK  user_id         BIGINT NN            │ ← 1:N (최대 10개)
+│     credential_id   VARCHAR(512) UQ      │ ← Base64URL
+│     public_key      BLOB NN              │ ← 직렬화된 AttestedCredentialData
+│     sign_count      BIGINT NN            │ ← 복제 감지용
+│     transports      VARCHAR(255)         │ ← internal, usb, ble, nfc
+│     device_name     VARCHAR(100)         │ ← 사용자 지정 이름
+│     last_used_at    DATETIME             │
+│     created_at      DATETIME NN          │
+│     updated_at      DATETIME NN          │
+├──────────────────────────────────────────┤
+│ tb_user.user_id ──1:N── user_id          │
+└──────────────────────────────────────────┘
+
+
 ┌───────────────────────────────────────┐     ┌──────────────────────────────────────┐
 │ tb_password_history (PasswordHistory) │     │    tb_login_history (LoginHistory)    │
 ├───────────────────────────────────────┤     ├──────────────────────────────────────┤
@@ -140,6 +158,7 @@
 | `tb_user` → `tb_password_history` | **1:N** | 비밀번호 재사용 방지용 이력 |
 | `tb_user` → `tb_login_history` | **1:N** | 로그인 시도 이력 (FK 없이 user_id 컬럼으로 참조) |
 | `tb_user` → `tb_audit_log` | **1:N** | 감사 로그 (FK 없이 user_id 컬럼으로 참조, nullable) |
+| `tb_user` → `tb_user_passkey` | **1:N** | WebAuthn 패스키 (사용자당 최대 10개) |
 | `tb_email_verification` | **독립** | User와 직접 FK 없음, 이메일 암호화 값으로 논리적 연결 |
 | `tb_phone_verification` | **독립** | User와 직접 FK 없음, 전화번호 암호화 값으로 논리적 연결 |
 
@@ -152,3 +171,4 @@
 - **이메일 로그인**: `tb_user` + `tb_user_sign_in_info` + `tb_user_channel` 모두 사용
 - **계정 연동**: 한 사용자가 여러 소셜 계정을 연결 가능 (채널별 unique key)
 - **감사/이력**: `tb_login_history`, `tb_audit_log`는 FK 없이 느슨한 참조로 성능 최적화
+- **패스키**: `tb_user_passkey`는 credential_id에 UNIQUE INDEX 적용. `public_key`는 webauthn4j `AttestedCredentialData` 직렬화 형태로 BLOB 저장

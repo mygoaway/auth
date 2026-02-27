@@ -42,10 +42,10 @@ class SuspiciousActivityServiceTest {
         void analyzeRecentActivitySafe() {
             // given
             Long userId = 1L;
-            // 2일 전 로그인 (NEW_DEVICE 감지 기준 1일 밖)
+            // 3일 전 낮 12시 로그인 (NEW_DEVICE 감지 기준 1일 밖, 비정상 시간대 아님)
             List<LoginHistory> histories = List.of(
                     createLoginHistory(userId, true, "192.168.1.1", "Seoul", "Chrome", "macOS", "Desktop",
-                            LocalDateTime.now().minusDays(3))
+                            LocalDateTime.now().minusDays(3).withHour(12).withMinute(0).withSecond(0))
             );
 
             given(loginHistoryRepository.findByUserIdAndPeriod(eq(userId), any(LocalDateTime.class), any(LocalDateTime.class)))

@@ -8,6 +8,7 @@ import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.OAuth2LinkStateService;
 import com.jay.auth.service.SecurityNotificationService;
 import com.jay.auth.service.TokenService;
+import com.jay.auth.service.metrics.AuthMetrics;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,6 +52,9 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
     @Mock
     private SecurityNotificationService securityNotificationService;
+
+    @Mock
+    private AuthMetrics authMetrics;
 
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;

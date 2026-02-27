@@ -77,6 +77,8 @@ public class TokenService {
         tokenStore.saveRefreshTokenWithSession(userId, tokenId, refreshToken, refreshExpiration, sessionInfo);
 
         log.info("Issued tokens with session for user: {}, channelCode: {}", userId, channelCode);
+        authMetrics.recordTokenIssued("ACCESS", channelCode.name());
+        authMetrics.recordTokenIssued("REFRESH", channelCode.name());
 
         return TokenResponse.of(
                 accessToken,

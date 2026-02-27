@@ -8,10 +8,10 @@ COPY src ./src
 RUN gradle build -x test --no-daemon
 
 # Stage 2: Run
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
 COPY --from=build /app/build/libs/*.jar app.jar
 

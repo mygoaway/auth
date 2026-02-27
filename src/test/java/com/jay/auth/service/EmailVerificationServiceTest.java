@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -196,6 +197,183 @@ class EmailVerificationServiceTest {
 
             // then
             assertThat(result).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("tokenId로 인증 완료 여부 확인")
+    class IsVerifiedByTokenId {
+
+        @Test
+        @DisplayName("정상적으로 검증된 tokenId는 true를 반환해야 한다")
+        void isVerifiedByTokenIdReturnsTrue() {
+            // given
+            String email = "test@example.com";
+            VerificationType type = VerificationType.SIGNUP;
+            EmailVerification verification = createVerification("token-123", "123456", type, true);
+
+            given(encryptionService.encryptForSearch(email)).willReturn("enc_email_lower");
+            given(emailVerificationRepository.findByTokenId("token-123"))
+                    .willReturn(Optional.of(verification));
+
+            // when
+            boolean result = emailVerificationService.isVerifiedByTokenId("token-123", email, type);
+
+            // then
+            assertThat(result).isTrue();
+        }
+
+        @Test
+        @DisplayName("tokenId가 없으면 false를 반환해야 한다")
+        void isVerifiedByTokenIdReturnsFalseWhenTokenNotFound() {
+            // given
+            given(encryptionService.encryptForSearch("test@example.com")).willReturn("enc_email_lower");
+            given(emailVerificationRepository.findByTokenId("unknown-token"))
+                    .willReturn(Optional.empty());
+
+            // when
+            boolean result = emailVerificationService.isVerifiedByTokenId(
+                    "unknown-token", "test@example.com", VerificationType.SIGNUP);
+
+            // then
+            assertThat(result).isFalse();
+        }
+
+        @Test
+        @DisplayName("이메일이 다르면 false를 반환해야 한다")
+        void isVerifiedByTokenIdReturnsFalseWhenEmailMismatch() {
+            // given
+            VerificationType type = VerificationType.SIGNUP;
+            EmailVerification verification = createVerification("token-123", "123456", type, true);
+            // verification의 emailLowerEnc = "enc_email_lower"
+
+            given(encryptionService.encryptForSearch("other@example.com")).willReturn("enc_other_lower");
+            given(emailVerificationRepository.findByTokenId("token-123"))
+                    .willReturn(Optional.of(verification));
+
+            // when - emailLowerEnc("enc_email_lower") != encryptForSearch("other") = "enc_other_lower"
+            boolean result = emailVerificationService.isVerifiedByTokenId(
+                    "token-123", "other@example.com", type);
+
+            // then
+            assertThat(result).isFalse();
+        }
+
+        @Test
+        @DisplayName("인증 타입이 다르면 false를 반환해야 한다")
+        void isVerifiedByTokenIdReturnsFalseWhenTypeMismatch() {
+            // given
+            EmailVerification verification = createVerification("token-123", "123456", VerificationType.SIGNUP, true);
+
+            given(encryptionService.encryptForSearch("test@example.com")).willReturn("enc_email_lower");
+            given(emailVerificationRepository.findByTokenId("token-123"))
+                    .willReturn(Optional.of(verification));
+
+            // when - verification type is SIGNUP, but requesting PASSWORD_RESET
+            boolean result = emailVerificationService.isVerifiedByTokenId(
+                    "token-123", "test@example.com", VerificationType.PASSWORD_RESET);
+
+            // then
+            assertThat(result).isFalse();
+        }
+
+        @Test
+        @DisplayName("인증 미완료 상태이면 false를 반환해야 한다")
+        void isVerifiedByTokenIdReturnsFalseWhenNotVerified() {
+            // given
+            VerificationType type = VerificationType.SIGNUP;
+            EmailVerification verification = createVerification("token-123", "123456", type, false);
+
+            given(encryptionService.encryptForSearch("test@example.com")).willReturn("enc_email_lower");
+            given(emailVerificationRepository.findByTokenId("token-123"))
+                    .willReturn(Optional.of(verification));
+
+            // when
+            boolean result = emailVerificationService.isVerifiedByTokenId(
+                    "token-123", "test@example.com", type);
+
+            // then
+            assertThat(result).isFalse();
+        }
+
+        @Test
+        @DisplayName("만료된 경우 false를 반환해야 한다")
+        void isVerifiedByTokenIdReturnsFalseWhenExpired() {
+            // given
+            VerificationType type = VerificationType.SIGNUP;
+            EmailVerification verification = createExpiredVerification("token-123", "123456", type);
+            setField(verification, "isVerified", true);
+
+            given(encryptionService.encryptForSearch("test@example.com")).willReturn("enc_email_lower");
+            given(emailVerificationRepository.findByTokenId("token-123"))
+                    .willReturn(Optional.of(verification));
+
+            // when
+            boolean result = emailVerificationService.isVerifiedByTokenId(
+                    "token-123", "test@example.com", type);
+
+            // then
+            assertThat(result).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("인증 레코드 삭제")
+    class DeleteVerification {
+
+        @Test
+        @DisplayName("이메일과 타입으로 인증 레코드가 삭제되어야 한다")
+        void deleteVerificationByEmailAndType() {
+            // given
+            String email = "test@example.com";
+            VerificationType type = VerificationType.SIGNUP;
+            given(encryptionService.encryptForSearch(email)).willReturn("enc_email_lower");
+
+            // when
+            emailVerificationService.deleteVerification(email, type);
+
+            // then
+            verify(emailVerificationRepository).deleteByEmailAndType("enc_email_lower", type);
+        }
+
+        @Test
+        @DisplayName("tokenId로 인증 레코드가 삭제되어야 한다 (존재하는 경우)")
+        void deleteVerificationByTokenIdWhenExists() {
+            // given
+            EmailVerification verification = createVerification("token-123", "123456", VerificationType.SIGNUP, true);
+            given(emailVerificationRepository.findByTokenId("token-123"))
+                    .willReturn(Optional.of(verification));
+
+            // when
+            emailVerificationService.deleteVerificationByTokenId("token-123");
+
+            // then
+            verify(emailVerificationRepository).delete(verification);
+        }
+
+        @Test
+        @DisplayName("tokenId에 해당하는 레코드가 없으면 삭제를 호출하지 않아야 한다")
+        void deleteVerificationByTokenIdWhenNotExists() {
+            // given
+            given(emailVerificationRepository.findByTokenId("unknown-token"))
+                    .willReturn(Optional.empty());
+
+            // when
+            emailVerificationService.deleteVerificationByTokenId("unknown-token");
+
+            // then
+            verify(emailVerificationRepository, never()).delete(any(EmailVerification.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("만료 시간 조회")
+    class GetExpirationMinutes {
+
+        @Test
+        @DisplayName("만료 시간이 10분이어야 한다")
+        void expirationMinutesIs10() {
+            assertThat(emailVerificationService.getExpirationMinutes()).isEqualTo(10);
         }
     }
 

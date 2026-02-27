@@ -19,6 +19,7 @@ import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.repository.UserSignInInfoRepository;
+import com.jay.auth.security.TokenStore;
 import com.jay.auth.service.metrics.AuthMetrics;
 import com.jay.auth.util.NicknameGenerator;
 import com.jay.auth.util.PasswordUtil;
@@ -262,6 +263,325 @@ class AuthServiceTest {
             // when & then
             assertThatThrownBy(() -> authService.loginWithEmail(request))
                     .isInstanceOf(AuthenticationException.class);
+        }
+
+        @Test
+        @DisplayName("잠금된 계정으로 로그인 시 실패해야 한다")
+        void loginFailsWithLockedAccount() {
+            // given
+            EmailLoginRequest request = createLoginRequest("test@email.com", "Test@1234");
+
+            User user = createUser(1L, "uuid-1234", "enc_email", "enc_email_lower", "enc_nickname");
+            UserSignInInfo signInInfo = UserSignInInfo.builder()
+                    .user(user)
+                    .loginEmailEnc("enc_email")
+                    .loginEmailLowerEnc("enc_email_lower")
+                    .passwordHash("hashed_password")
+                    .build();
+            // trigger lock: 5 consecutive failures
+            for (int i = 0; i < 5; i++) {
+                signInInfo.recordLoginFailure();
+            }
+
+            given(encryptionService.encryptForSearch("test@email.com")).willReturn("enc_email_lower");
+            given(userSignInInfoRepository.findByLoginEmailLowerEncWithUser("enc_email_lower"))
+                    .willReturn(Optional.of(signInInfo));
+
+            // when & then
+            assertThatThrownBy(() -> authService.loginWithEmail(request))
+                    .isInstanceOf(AuthenticationException.class);
+        }
+
+        @Test
+        @DisplayName("PENDING_DELETE 계정 로그인이 허용되어야 한다")
+        void loginSucceedsWithPendingDeleteAccount() {
+            // given
+            EmailLoginRequest request = createLoginRequest("test@email.com", "Test@1234");
+
+            User user = createUser(1L, "uuid-1234", "enc_email", "enc_email_lower", "enc_nickname");
+            user.updateStatus(UserStatus.PENDING_DELETE);
+            UserSignInInfo signInInfo = UserSignInInfo.builder()
+                    .user(user)
+                    .loginEmailEnc("enc_email")
+                    .loginEmailLowerEnc("enc_email_lower")
+                    .passwordHash("hashed_password")
+                    .build();
+
+            given(encryptionService.encryptForSearch("test@email.com")).willReturn("enc_email_lower");
+            given(userSignInInfoRepository.findByLoginEmailLowerEncWithUser("enc_email_lower"))
+                    .willReturn(Optional.of(signInInfo));
+            given(passwordUtil.matches("Test@1234", "hashed_password")).willReturn(true);
+            given(encryptionService.decryptNickname("enc_nickname")).willReturn("테스트");
+
+            TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800);
+            given(tokenService.issueTokens(1L, "uuid-1234", ChannelCode.EMAIL, "USER")).willReturn(tokenResponse);
+
+            // when
+            LoginResponse response = authService.loginWithEmail(request);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.getUserUuid()).isEqualTo("uuid-1234");
+        }
+    }
+
+    @Nested
+    @DisplayName("이메일 로그인 (세션 포함)")
+    class LoginWithEmailWithSession {
+
+        @Test
+        @DisplayName("세션 포함 로그인이 성공해야 한다")
+        void loginWithSessionSuccess() {
+            // given
+            EmailLoginRequest request = createLoginRequest("test@email.com", "Test@1234");
+            TokenStore.SessionInfo sessionInfo = new TokenStore.SessionInfo("WEB", "Chrome", "macOS", "127.0.0.1", "Seoul");
+
+            User user = createUser(1L, "uuid-1234", "enc_email", "enc_email_lower", "enc_nickname");
+            UserSignInInfo signInInfo = UserSignInInfo.builder()
+                    .user(user)
+                    .loginEmailEnc("enc_email")
+                    .loginEmailLowerEnc("enc_email_lower")
+                    .passwordHash("hashed_password")
+                    .build();
+
+            given(encryptionService.encryptForSearch("test@email.com")).willReturn("enc_email_lower");
+            given(userSignInInfoRepository.findByLoginEmailLowerEncWithUser("enc_email_lower"))
+                    .willReturn(Optional.of(signInInfo));
+            given(passwordUtil.matches("Test@1234", "hashed_password")).willReturn(true);
+            given(encryptionService.decryptNickname("enc_nickname")).willReturn("테스트");
+
+            TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800);
+            given(tokenService.issueTokensWithSession(eq(1L), eq("uuid-1234"), eq(ChannelCode.EMAIL), eq("USER"), eq(sessionInfo)))
+                    .willReturn(tokenResponse);
+            given(userSignInInfoRepository.findByUserId(1L)).willReturn(Optional.of(signInInfo));
+            given(passwordPolicyService.isPasswordExpired(signInInfo)).willReturn(false);
+            given(passwordPolicyService.getDaysUntilExpiration(signInInfo)).willReturn(90);
+            given(totpService.isTwoFactorRequired(1L)).willReturn(false);
+
+            // when
+            LoginResponse response = authService.loginWithEmail(request, sessionInfo);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.getUserUuid()).isEqualTo("uuid-1234");
+            verify(tokenService).issueTokensWithSession(eq(1L), eq("uuid-1234"), eq(ChannelCode.EMAIL), eq("USER"), eq(sessionInfo));
+        }
+
+        @Test
+        @DisplayName("비밀번호 만료 상태가 응답에 포함되어야 한다")
+        void loginWithSessionIncludesPasswordExpired() {
+            // given
+            EmailLoginRequest request = createLoginRequest("test@email.com", "Test@1234");
+            TokenStore.SessionInfo sessionInfo = new TokenStore.SessionInfo("WEB", "Chrome", "macOS", "127.0.0.1", "Seoul");
+
+            User user = createUser(1L, "uuid-1234", "enc_email", "enc_email_lower", "enc_nickname");
+            UserSignInInfo signInInfo = UserSignInInfo.builder()
+                    .user(user)
+                    .loginEmailEnc("enc_email")
+                    .loginEmailLowerEnc("enc_email_lower")
+                    .passwordHash("hashed_password")
+                    .build();
+
+            given(encryptionService.encryptForSearch("test@email.com")).willReturn("enc_email_lower");
+            given(userSignInInfoRepository.findByLoginEmailLowerEncWithUser("enc_email_lower"))
+                    .willReturn(Optional.of(signInInfo));
+            given(passwordUtil.matches("Test@1234", "hashed_password")).willReturn(true);
+            given(encryptionService.decryptNickname("enc_nickname")).willReturn("테스트");
+
+            TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800);
+            given(tokenService.issueTokensWithSession(any(), any(), any(), any(), any())).willReturn(tokenResponse);
+            given(userSignInInfoRepository.findByUserId(1L)).willReturn(Optional.of(signInInfo));
+            given(passwordPolicyService.isPasswordExpired(signInInfo)).willReturn(true);
+            given(passwordPolicyService.getDaysUntilExpiration(signInInfo)).willReturn(0);
+            given(totpService.isTwoFactorRequired(1L)).willReturn(false);
+
+            // when
+            LoginResponse response = authService.loginWithEmail(request, sessionInfo);
+
+            // then
+            assertThat(response.isPasswordExpired()).isTrue();
+        }
+
+        @Test
+        @DisplayName("2FA 필요 상태가 응답에 포함되어야 한다")
+        void loginWithSessionIncludesTwoFactorRequired() {
+            // given
+            EmailLoginRequest request = createLoginRequest("test@email.com", "Test@1234");
+            TokenStore.SessionInfo sessionInfo = new TokenStore.SessionInfo("WEB", "Chrome", "macOS", "127.0.0.1", "Seoul");
+
+            User user = createUser(1L, "uuid-1234", "enc_email", "enc_email_lower", "enc_nickname");
+            UserSignInInfo signInInfo = UserSignInInfo.builder()
+                    .user(user)
+                    .loginEmailEnc("enc_email")
+                    .loginEmailLowerEnc("enc_email_lower")
+                    .passwordHash("hashed_password")
+                    .build();
+
+            given(encryptionService.encryptForSearch("test@email.com")).willReturn("enc_email_lower");
+            given(userSignInInfoRepository.findByLoginEmailLowerEncWithUser("enc_email_lower"))
+                    .willReturn(Optional.of(signInInfo));
+            given(passwordUtil.matches("Test@1234", "hashed_password")).willReturn(true);
+            given(encryptionService.decryptNickname("enc_nickname")).willReturn("테스트");
+
+            TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800);
+            given(tokenService.issueTokensWithSession(any(), any(), any(), any(), any())).willReturn(tokenResponse);
+            given(userSignInInfoRepository.findByUserId(1L)).willReturn(Optional.of(signInInfo));
+            given(passwordPolicyService.isPasswordExpired(signInInfo)).willReturn(false);
+            given(passwordPolicyService.getDaysUntilExpiration(signInInfo)).willReturn(90);
+            given(totpService.isTwoFactorRequired(1L)).willReturn(true);
+
+            // when
+            LoginResponse response = authService.loginWithEmail(request, sessionInfo);
+
+            // then
+            assertThat(response.isTwoFactorRequired()).isTrue();
+        }
+
+        @Test
+        @DisplayName("PENDING_DELETE 계정 로그인 시 pendingDeletion 플래그가 설정되어야 한다")
+        void loginWithSessionIncludesPendingDeletion() {
+            // given
+            EmailLoginRequest request = createLoginRequest("test@email.com", "Test@1234");
+            TokenStore.SessionInfo sessionInfo = new TokenStore.SessionInfo("WEB", "Chrome", "macOS", "127.0.0.1", "Seoul");
+
+            User user = createUser(1L, "uuid-1234", "enc_email", "enc_email_lower", "enc_nickname");
+            user.updateStatus(UserStatus.PENDING_DELETE);
+            UserSignInInfo signInInfo = UserSignInInfo.builder()
+                    .user(user)
+                    .loginEmailEnc("enc_email")
+                    .loginEmailLowerEnc("enc_email_lower")
+                    .passwordHash("hashed_password")
+                    .build();
+
+            given(encryptionService.encryptForSearch("test@email.com")).willReturn("enc_email_lower");
+            given(userSignInInfoRepository.findByLoginEmailLowerEncWithUser("enc_email_lower"))
+                    .willReturn(Optional.of(signInInfo));
+            given(passwordUtil.matches("Test@1234", "hashed_password")).willReturn(true);
+            given(encryptionService.decryptNickname("enc_nickname")).willReturn("테스트");
+
+            TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800);
+            given(tokenService.issueTokensWithSession(any(), any(), any(), any(), any())).willReturn(tokenResponse);
+            given(userSignInInfoRepository.findByUserId(1L)).willReturn(Optional.of(signInInfo));
+            given(passwordPolicyService.isPasswordExpired(signInInfo)).willReturn(false);
+            given(passwordPolicyService.getDaysUntilExpiration(signInInfo)).willReturn(90);
+            given(totpService.isTwoFactorRequired(1L)).willReturn(false);
+
+            // when
+            LoginResponse response = authService.loginWithEmail(request, sessionInfo);
+
+            // then
+            assertThat(response.isPendingDeletion()).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("이메일 존재 여부 확인")
+    class IsEmailExists {
+
+        @Test
+        @DisplayName("이메일이 존재하면 true를 반환해야 한다")
+        void emailExistsReturnsTrue() {
+            // given
+            given(encryptionService.encryptForSearch("test@email.com")).willReturn("enc_email_lower");
+            given(userSignInInfoRepository.existsByLoginEmailLowerEnc("enc_email_lower")).willReturn(true);
+
+            // when
+            boolean result = authService.isEmailExists("test@email.com");
+
+            // then
+            assertThat(result).isTrue();
+        }
+
+        @Test
+        @DisplayName("이메일이 없으면 false를 반환해야 한다")
+        void emailExistsReturnsFalse() {
+            // given
+            given(encryptionService.encryptForSearch("unknown@email.com")).willReturn("enc_unknown");
+            given(userSignInInfoRepository.existsByLoginEmailLowerEnc("enc_unknown")).willReturn(false);
+
+            // when
+            boolean result = authService.isEmailExists("unknown@email.com");
+
+            // then
+            assertThat(result).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("사용자 ID 조회")
+    class FindUserIdByEmail {
+
+        @Test
+        @DisplayName("이메일로 사용자 ID를 조회할 수 있어야 한다")
+        void findUserIdByEmailSuccess() {
+            // given
+            User user = createUser(1L, "uuid-1234", "enc_email", "enc_email_lower", "enc_nickname");
+            UserSignInInfo signInInfo = UserSignInInfo.builder()
+                    .user(user)
+                    .loginEmailEnc("enc_email")
+                    .loginEmailLowerEnc("enc_email_lower")
+                    .passwordHash("hashed_password")
+                    .build();
+
+            given(encryptionService.encryptForSearch("test@email.com")).willReturn("enc_email_lower");
+            given(userSignInInfoRepository.findByLoginEmailLowerEncWithUser("enc_email_lower"))
+                    .willReturn(Optional.of(signInInfo));
+
+            // when
+            Long userId = authService.findUserIdByEmail("test@email.com");
+
+            // then
+            assertThat(userId).isEqualTo(1L);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 이메일이면 null을 반환해야 한다")
+        void findUserIdByEmailReturnsNull() {
+            // given
+            given(encryptionService.encryptForSearch("unknown@email.com")).willReturn("enc_unknown");
+            given(userSignInInfoRepository.findByLoginEmailLowerEncWithUser("enc_unknown"))
+                    .willReturn(Optional.empty());
+
+            // when
+            Long userId = authService.findUserIdByEmail("unknown@email.com");
+
+            // then
+            assertThat(userId).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("소셜 채널 이메일 확인")
+    class IsSocialChannelEmail {
+
+        @Test
+        @DisplayName("소셜 채널 이메일이면 true를 반환해야 한다")
+        void socialChannelEmailReturnsTrue() {
+            // given
+            given(encryptionService.encryptForSearch("social@gmail.com")).willReturn("enc_social_lower");
+            given(userChannelRepository.existsByChannelEmailLowerEncAndChannelCodeNot("enc_social_lower", ChannelCode.EMAIL))
+                    .willReturn(true);
+
+            // when
+            boolean result = authService.isSocialChannelEmail("social@gmail.com");
+
+            // then
+            assertThat(result).isTrue();
+        }
+
+        @Test
+        @DisplayName("소셜 채널 이메일이 아니면 false를 반환해야 한다")
+        void socialChannelEmailReturnsFalse() {
+            // given
+            given(encryptionService.encryptForSearch("test@email.com")).willReturn("enc_email_lower");
+            given(userChannelRepository.existsByChannelEmailLowerEncAndChannelCodeNot("enc_email_lower", ChannelCode.EMAIL))
+                    .willReturn(false);
+
+            // when
+            boolean result = authService.isSocialChannelEmail("test@email.com");
+
+            // then
+            assertThat(result).isFalse();
         }
     }
 

@@ -17,6 +17,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,6 +51,10 @@ class AccountLinkingServiceTest {
     private PasswordUtil passwordUtil;
     @Mock
     private SecurityNotificationService securityNotificationService;
+    @Mock
+    private CacheManager cacheManager;
+    @Mock
+    private Cache cache;
 
     @Nested
     @DisplayName("소셜 계정 연동")
@@ -71,6 +77,8 @@ class AccountLinkingServiceTest {
                     .willReturn(Collections.emptyList());
             given(encryptionService.encryptEmail(email))
                     .willReturn(new EncryptionService.EncryptedEmail("enc", "enc_lower"));
+            given(cacheManager.getCache("userProfile")).willReturn(cache);
+            given(cacheManager.getCache("securityDashboard")).willReturn(cache);
 
             // when
             accountLinkingService.linkSocialAccount(userId, channelCode, channelKey, email);
@@ -317,6 +325,8 @@ class AccountLinkingServiceTest {
             setField(user, "channels", channels);
 
             given(userRepository.findByIdWithChannels(userId)).willReturn(Optional.of(user));
+            given(cacheManager.getCache("userProfile")).willReturn(cache);
+            given(cacheManager.getCache("securityDashboard")).willReturn(cache);
 
             // when
             accountLinkingService.unlinkChannel(userId, ChannelCode.GOOGLE);
@@ -436,6 +446,8 @@ class AccountLinkingServiceTest {
                     .willReturn(Optional.empty());
             given(userChannelRepository.findByUserIdAndChannelCode(userId, channelCode))
                     .willReturn(Collections.emptyList());
+            given(cacheManager.getCache("userProfile")).willReturn(cache);
+            given(cacheManager.getCache("securityDashboard")).willReturn(cache);
 
             // when
             accountLinkingService.linkSocialAccount(userId, channelCode, channelKey, null);
@@ -444,6 +456,101 @@ class AccountLinkingServiceTest {
             verify(userChannelRepository).save(any(UserChannel.class));
             verify(encryptionService, never()).encryptEmail(any());
             verify(securityNotificationService).notifyAccountLinked(userId, channelCode);
+        }
+    }
+
+    @Nested
+    @DisplayName("채널 상태 조회 - 다채널 케이스")
+    class GetChannelsStatusAdditional {
+
+        @Test
+        @DisplayName("여러 채널이 연동된 경우 모두 포함되어야 한다")
+        void getChannelsStatusWithMultipleChannels() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId);
+            UserChannel emailChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(ChannelCode.EMAIL)
+                    .channelKey("test@example.com")
+                    .channelEmailEnc("enc_email")
+                    .channelEmailLowerEnc("enc_email_lower")
+                    .build();
+            UserChannel googleChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(ChannelCode.GOOGLE)
+                    .channelKey("google-123")
+                    .channelEmailEnc("enc_google_email")
+                    .channelEmailLowerEnc("enc_google_email_lower")
+                    .build();
+            List<UserChannel> channels = new ArrayList<>();
+            channels.add(emailChannel);
+            channels.add(googleChannel);
+            setField(user, "channels", channels);
+
+            given(userRepository.findByIdWithChannels(userId)).willReturn(Optional.of(user));
+            given(encryptionService.decryptEmail("enc_email")).willReturn("test@example.com");
+            given(encryptionService.decryptEmail("enc_google_email")).willReturn("test@gmail.com");
+
+            // when
+            ChannelStatusResponse response = accountLinkingService.getChannelsStatus(userId);
+
+            // then
+            ChannelStatusResponse.ChannelStatus emailStatus = response.getChannels().stream()
+                    .filter(ch -> "EMAIL".equals(ch.getChannelCode()))
+                    .findFirst().orElse(null);
+            ChannelStatusResponse.ChannelStatus googleStatus = response.getChannels().stream()
+                    .filter(ch -> "GOOGLE".equals(ch.getChannelCode()))
+                    .findFirst().orElse(null);
+            ChannelStatusResponse.ChannelStatus kakaoStatus = response.getChannels().stream()
+                    .filter(ch -> "KAKAO".equals(ch.getChannelCode()))
+                    .findFirst().orElse(null);
+
+            assertThat(emailStatus).isNotNull();
+            assertThat(emailStatus.isLinked()).isTrue();
+            assertThat(googleStatus).isNotNull();
+            assertThat(googleStatus.isLinked()).isTrue();
+            assertThat(kakaoStatus).isNotNull();
+            assertThat(kakaoStatus.isLinked()).isFalse();
+        }
+
+        @Test
+        @DisplayName("이메일 없는 소셜 채널의 channelEmail은 null이어야 한다")
+        void getChannelsStatusSocialChannelWithoutEmailHasNullChannelEmail() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId);
+            UserChannel emailChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(ChannelCode.EMAIL)
+                    .channelKey("test@example.com")
+                    .channelEmailEnc("enc_email")
+                    .channelEmailLowerEnc("enc_email_lower")
+                    .build();
+            // KAKAO without channelEmailEnc
+            UserChannel kakaoChannel = UserChannel.builder()
+                    .user(user)
+                    .channelCode(ChannelCode.KAKAO)
+                    .channelKey("kakao-123")
+                    .build();
+            List<UserChannel> channels = new ArrayList<>();
+            channels.add(emailChannel);
+            channels.add(kakaoChannel);
+            setField(user, "channels", channels);
+
+            given(userRepository.findByIdWithChannels(userId)).willReturn(Optional.of(user));
+            given(encryptionService.decryptEmail("enc_email")).willReturn("test@example.com");
+
+            // when
+            ChannelStatusResponse response = accountLinkingService.getChannelsStatus(userId);
+
+            // then
+            ChannelStatusResponse.ChannelStatus kakaoStatus = response.getChannels().stream()
+                    .filter(ch -> "KAKAO".equals(ch.getChannelCode()))
+                    .findFirst().orElse(null);
+            assertThat(kakaoStatus).isNotNull();
+            assertThat(kakaoStatus.isLinked()).isTrue();
+            assertThat(kakaoStatus.getChannelEmail()).isNull();
         }
     }
 

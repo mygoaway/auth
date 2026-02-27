@@ -7,6 +7,7 @@ import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.OAuth2LinkStateService;
 import com.jay.auth.service.SecurityNotificationService;
 import com.jay.auth.service.TokenService;
+import com.jay.auth.service.metrics.AuthMetrics;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,6 +32,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final OAuth2LinkStateService oAuth2LinkStateService;
     private final LoginHistoryService loginHistoryService;
     private final SecurityNotificationService securityNotificationService;
+    private final AuthMetrics authMetrics;
 
     @Value("${app.oauth2.redirect-uri:http://localhost:3000/oauth2/callback}")
     private String redirectUri;
@@ -103,6 +105,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
                 // Record login history
                 loginHistoryService.recordLoginSuccess(userId, channelCode, request);
+
+                // Record login metric
+                authMetrics.recordLoginSuccess(channelCode.name());
 
                 // Send new device login notification
                 securityNotificationService.notifyNewDeviceLogin(userId, sessionInfo);

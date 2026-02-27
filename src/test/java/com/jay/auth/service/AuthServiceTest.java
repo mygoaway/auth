@@ -19,6 +19,7 @@ import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.repository.UserSignInInfoRepository;
+import com.jay.auth.service.metrics.AuthMetrics;
 import com.jay.auth.util.NicknameGenerator;
 import com.jay.auth.util.PasswordUtil;
 import org.junit.jupiter.api.DisplayName;
@@ -64,6 +65,8 @@ class AuthServiceTest {
     private TotpService totpService;
     @Mock
     private NicknameGenerator nicknameGenerator;
+    @Mock
+    private AuthMetrics authMetrics;
 
     @Nested
     @DisplayName("이메일 회원가입")

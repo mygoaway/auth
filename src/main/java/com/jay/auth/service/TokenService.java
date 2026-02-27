@@ -6,6 +6,7 @@ import com.jay.auth.dto.response.TokenResponse;
 import com.jay.auth.exception.InvalidTokenException;
 import com.jay.auth.security.JwtTokenProvider;
 import com.jay.auth.security.TokenStore;
+import com.jay.auth.service.metrics.AuthMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class TokenService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenStore tokenStore;
+    private final AuthMetrics authMetrics;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeUtil.ISO_FORMATTER;
 
@@ -43,6 +45,8 @@ public class TokenService {
         tokenStore.saveRefreshToken(userId, tokenId, refreshToken, refreshExpiration);
 
         log.info("Issued tokens for user: {}, channelCode: {}", userId, channelCode);
+        authMetrics.recordTokenIssued("ACCESS", channelCode.name());
+        authMetrics.recordTokenIssued("REFRESH", channelCode.name());
 
         return TokenResponse.of(
                 accessToken,
@@ -88,11 +92,13 @@ public class TokenService {
     public TokenResponse refreshTokens(String refreshToken) {
         // 1. Refresh Token 검증
         if (!jwtTokenProvider.validateToken(refreshToken)) {
+            authMetrics.recordTokenRefreshFailure();
             throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다");
         }
 
         // 2. 토큰 타입 확인
         if (jwtTokenProvider.getTokenType(refreshToken) != JwtTokenProvider.TokenType.REFRESH) {
+            authMetrics.recordTokenRefreshFailure();
             throw new InvalidTokenException("리프레시 토큰이 아닙니다");
         }
 
@@ -101,6 +107,7 @@ public class TokenService {
         String tokenId = jwtTokenProvider.getTokenId(refreshToken);
 
         if (!tokenStore.existsRefreshToken(userId, tokenId)) {
+            authMetrics.recordTokenRefreshFailure();
             throw new InvalidTokenException("리프레시 토큰이 존재하지 않거나 이미 만료되었습니다");
         }
 
@@ -113,6 +120,7 @@ public class TokenService {
         String role = jwtTokenProvider.getRole(refreshToken);
 
         log.info("Refreshed tokens for user: {}", userId);
+        authMetrics.recordTokenRefreshSuccess();
 
         return issueTokens(userId, userUuid, channelCode, role);
     }
@@ -136,6 +144,7 @@ public class TokenService {
         }
 
         log.info("User logged out");
+        authMetrics.recordLogout("single");
     }
 
     /**
@@ -153,6 +162,7 @@ public class TokenService {
         tokenStore.deleteAllRefreshTokens(userId);
 
         log.info("User {} logged out from all sessions", userId);
+        authMetrics.recordLogout("all");
     }
 
     /**

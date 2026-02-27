@@ -1,14 +1,18 @@
 package com.jay.auth.config;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * API 요청/응답 로깅 필터
@@ -17,7 +21,10 @@ import java.io.IOException;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class RequestLoggingFilter extends OncePerRequestFilter {
+
+    private final MeterRegistry meterRegistry;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -29,6 +36,14 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         } finally {
             long duration = System.currentTimeMillis() - startTime;
             String clientIp = getClientIp(request);
+            String uriPattern = normalizeUri(request.getRequestURI());
+
+            Timer.builder("http_server_requests_custom")
+                    .tag("method", request.getMethod())
+                    .tag("uri", uriPattern)
+                    .tag("status", String.valueOf(response.getStatus()))
+                    .register(meterRegistry)
+                    .record(duration, TimeUnit.MILLISECONDS);
 
             log.info("HTTP {} {} - {} ({}ms) [IP: {}]",
                     request.getMethod(),
@@ -37,6 +52,11 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                     duration,
                     clientIp);
         }
+    }
+
+    private String normalizeUri(String uri) {
+        // Replace numeric path segments with {id} to reduce cardinality
+        return uri.replaceAll("/\\d+", "/{id}");
     }
 
     @Override

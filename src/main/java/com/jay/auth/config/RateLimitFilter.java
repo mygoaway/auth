@@ -1,5 +1,7 @@
 package com.jay.auth.config;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +26,7 @@ import java.time.Duration;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final MeterRegistry meterRegistry;
 
     private static final String RATE_LIMIT_PREFIX = "rate:api:";
     private static final int MAX_REQUESTS_PER_MINUTE = 60;
@@ -74,6 +77,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (currentCount > maxRequests) {
             Long ttl = redisTemplate.getExpire(key);
             long retryAfter = ttl != null && ttl > 0 ? ttl : 60;
+
+            String endpointType = isAuthEndpoint ? "auth" : isUserEndpoint ? "user" : "api";
+            Counter.builder("rate_limit_exceeded_total")
+                    .tag("type", endpointType)
+                    .register(meterRegistry)
+                    .increment();
 
             response.setHeader("Retry-After", String.valueOf(retryAfter));
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());

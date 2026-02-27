@@ -1,5 +1,7 @@
 package com.jay.auth.config;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -39,9 +41,11 @@ class RateLimitFilterTest {
     private MockHttpServletResponse response;
     private MockFilterChain filterChain;
 
+    private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     @BeforeEach
     void setUp() {
-        rateLimitFilter = new RateLimitFilter(redisTemplate);
+        rateLimitFilter = new RateLimitFilter(redisTemplate, meterRegistry);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
         filterChain = new MockFilterChain();

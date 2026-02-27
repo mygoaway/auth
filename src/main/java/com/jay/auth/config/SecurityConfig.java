@@ -40,7 +40,7 @@ public class SecurityConfig {
             "/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/actuator/health",
+            "/actuator/**",
             "/oauth2/**",
             "/login/oauth2/**"
     };

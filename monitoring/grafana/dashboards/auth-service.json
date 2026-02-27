@@ -1,0 +1,326 @@
+{
+  "title": "Auth Service Dashboard",
+  "uid": "auth-service",
+  "version": 1,
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "type": "row",
+      "title": "JVM",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 100
+    },
+    {
+      "type": "gauge",
+      "title": "Heap Used",
+      "id": 1,
+      "gridPos": { "x": 0, "y": 1, "w": 6, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{area=\"heap\", application=\"auth-service\"}",
+          "legendFormat": "Heap Used"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 268435456 },
+              { "color": "red", "value": 536870912 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Heap Max",
+      "id": 2,
+      "gridPos": { "x": 6, "y": 1, "w": 6, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "jvm_memory_max_bytes{area=\"heap\", application=\"auth-service\"}",
+          "legendFormat": "Heap Max"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" }
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Non-Heap Used",
+      "id": 3,
+      "gridPos": { "x": 12, "y": 1, "w": 6, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{area=\"nonheap\", application=\"auth-service\"}",
+          "legendFormat": "Non-Heap Used"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Thread Count",
+      "id": 4,
+      "gridPos": { "x": 18, "y": 1, "w": 6, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "jvm_threads_live_threads{application=\"auth-service\"}",
+          "legendFormat": "Live"
+        },
+        {
+          "expr": "jvm_threads_daemon_threads{application=\"auth-service\"}",
+          "legendFormat": "Daemon"
+        },
+        {
+          "expr": "jvm_threads_peak_threads{application=\"auth-service\"}",
+          "legendFormat": "Peak"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "GC Pause Time",
+      "id": 5,
+      "gridPos": { "x": 0, "y": 7, "w": 24, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(jvm_gc_pause_seconds_sum{application=\"auth-service\"}[1m])",
+          "legendFormat": "{{cause}} - {{action}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      }
+    },
+    {
+      "type": "row",
+      "title": "HTTP",
+      "gridPos": { "x": 0, "y": 13, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 101
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests Per Second",
+      "id": 6,
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"auth-service\"}[1m]))",
+          "legendFormat": "RPS"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Response Time Percentiles",
+      "id": 7,
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{application=\"auth-service\"}[1m])) by (le))",
+          "legendFormat": "P50"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(http_server_requests_seconds_bucket{application=\"auth-service\"}[1m])) by (le))",
+          "legendFormat": "P90"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{application=\"auth-service\"}[1m])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "4xx / 5xx Error Rate",
+      "id": 8,
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"auth-service\", status=~\"4..\"}[1m]))",
+          "legendFormat": "4xx"
+        },
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"auth-service\", status=~\"5..\"}[1m]))",
+          "legendFormat": "5xx"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    },
+    {
+      "type": "table",
+      "title": "Top 10 Slowest Endpoints (P99)",
+      "id": 9,
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "topk(10, histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{application=\"auth-service\"}[5m])) by (le, uri, method)))",
+          "legendFormat": "{{method}} {{uri}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      }
+    },
+    {
+      "type": "row",
+      "title": "Business Metrics",
+      "gridPos": { "x": 0, "y": 26, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 102
+    },
+    {
+      "type": "timeseries",
+      "title": "Login Attempts (by channel & result)",
+      "id": 10,
+      "gridPos": { "x": 0, "y": 27, "w": 12, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(auth_login_attempts_total{application=\"auth-service\"}[1m])) by (channel, result)",
+          "legendFormat": "{{channel}} - {{result}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "JWT Tokens Issued",
+      "id": 11,
+      "gridPos": { "x": 12, "y": 27, "w": 12, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(auth_token_issued_total{application=\"auth-service\"}[1m])) by (type, channel)",
+          "legendFormat": "{{type}} - {{channel}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Rate Limit Exceeded (total)",
+      "id": 12,
+      "gridPos": { "x": 0, "y": 33, "w": 8, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(rate_limit_exceeded_total{application=\"auth-service\"}[1h])) by (type)",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Token Refresh (success / fail)",
+      "id": 13,
+      "gridPos": { "x": 8, "y": 33, "w": 8, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(auth_token_refresh_total{application=\"auth-service\"}[1h])) by (result)",
+          "legendFormat": "{{result}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Logouts (single / all)",
+      "id": 14,
+      "gridPos": { "x": 16, "y": 33, "w": 8, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(auth_logout_total{application=\"auth-service\"}[1h])) by (type)",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Cache",
+      "gridPos": { "x": 0, "y": 37, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 103
+    },
+    {
+      "type": "timeseries",
+      "title": "Cache Hits vs Misses",
+      "id": 15,
+      "gridPos": { "x": 0, "y": 38, "w": 12, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(cache_gets_total{application=\"auth-service\", result=\"hit\"}[1m])) by (name)",
+          "legendFormat": "hit - {{name}}"
+        },
+        {
+          "expr": "sum(rate(cache_gets_total{application=\"auth-service\", result=\"miss\"}[1m])) by (name)",
+          "legendFormat": "miss - {{name}}"
+        }
+      ]
+    },
+    {
+      "type": "gauge",
+      "title": "Cache Hit Rate (%)",
+      "id": 16,
+      "gridPos": { "x": 12, "y": 38, "w": 12, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "100 * sum(rate(cache_gets_total{application=\"auth-service\", result=\"hit\"}[5m])) / (sum(rate(cache_gets_total{application=\"auth-service\", result=\"hit\"}[5m])) + sum(rate(cache_gets_total{application=\"auth-service\", result=\"miss\"}[5m])))",
+          "legendFormat": "Hit Rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "green", "value": 90 }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -19,6 +19,7 @@ import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.repository.UserChannelRepository;
 import com.jay.auth.repository.UserRepository;
 import com.jay.auth.repository.UserSignInInfoRepository;
+import com.jay.auth.service.metrics.AuthMetrics;
 import com.jay.auth.util.NicknameGenerator;
 import com.jay.auth.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ public class AuthService {
     private final PasswordPolicyService passwordPolicyService;
     private final TotpService totpService;
     private final NicknameGenerator nicknameGenerator;
+    private final AuthMetrics authMetrics;
 
     /**
      * 이메일 회원가입
@@ -113,6 +115,7 @@ public class AuthService {
         );
 
         log.info("User signed up with email: {}, userId: {}", email, user.getId());
+        authMetrics.recordSignUp("EMAIL");
 
         return SignUpResponse.of(
                 user.getUserUuid(),
@@ -215,11 +218,13 @@ public class AuthService {
         // 4. 비밀번호 검증
         if (!passwordUtil.matches(password, signInInfo.getPasswordHash())) {
             signInInfo.recordLoginFailure();
+            authMetrics.recordLoginFailure("EMAIL");
             throw AuthenticationException.invalidCredentials();
         }
 
         // 5. 로그인 성공 처리
         signInInfo.recordLoginSuccess();
+        authMetrics.recordLoginSuccess("EMAIL");
 
         // 6. 닉네임 복호화
         String nickname = encryptionService.decryptNickname(user.getNicknameEnc());

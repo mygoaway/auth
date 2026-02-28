@@ -12,7 +12,9 @@
 [Backend - Spring Boot :8080]
     ├── MySQL :3306
     ├── Redis :6379
-    └── /actuator/prometheus → Prometheus :9090 → Grafana :3001
+    ├── /actuator/prometheus → Prometheus :9090 → Grafana :3001
+    └── Pinpoint Agent → Pinpoint Collector :9991-9994
+                              └── HBase :2181 → Pinpoint Web :8888
 ```
 
 ## Docker
@@ -25,6 +27,7 @@
 - **Stage 2 (run)**: `eclipse-temurin:17-jre-jammy` — 빌드된 JAR만 복사해 실행 (alpine → jammy로 변경, 호환성 개선)
 - 보안을 위해 `appuser` (non-root) 계정으로 실행
 - 포트: `8080`
+- **Pinpoint Agent 지원**: `PINPOINT_ACTIVE=true` 환경변수 설정 시 `/pinpoint-agent/pinpoint-bootstrap.jar` 자동 주입. Agent JAR는 `pinpoint-agent-volume` 볼륨에서 마운트됩니다.
 
 #### 프론트엔드 (`frontend/Dockerfile`)
 멀티스테이지 빌드 사용:
@@ -57,6 +60,10 @@ docker build -t auth-frontend ./frontend
 | `mailhog` | mailhog/mailhog | 1025 (SMTP), 8025 (UI) | 이메일 테스트 | dev |
 | `prometheus` | prom/prometheus | 9090 | 메트릭 수집 | monitoring |
 | `grafana` | grafana/grafana | 3001 | 메트릭 시각화 (admin/admin) | monitoring |
+| `pinpoint-hbase` | pinpointdocker/pinpoint-hbase | 2181 | Pinpoint 데이터 저장소 (HBase + ZooKeeper) | pinpoint |
+| `pinpoint-collector` | pinpointdocker/pinpoint-collector | 9991-9994 | 에이전트 데이터 수집 (gRPC) | pinpoint |
+| `pinpoint-web` | pinpointdocker/pinpoint-web | 8888 | Pinpoint APM UI | pinpoint |
+| `pinpoint-agent` | pinpointdocker/pinpoint-agent | — | Agent JAR 볼륨 제공 (init 컨테이너) | pinpoint |
 
 ### 실행
 
@@ -69,6 +76,9 @@ docker compose --profile dev up -d
 
 # 모니터링 스택(Prometheus + Grafana) 포함 실행
 docker compose --profile monitoring up -d
+
+# Pinpoint APM 포함 실행
+docker compose -f docker-compose.yml -f docker-compose.pinpoint.yml --profile pinpoint up -d
 
 # dev + monitoring 동시 실행
 docker compose --profile dev --profile monitoring up -d
@@ -109,9 +119,16 @@ MAIL_PASSWORD=
 ### 서비스 의존 관계
 
 ```
+# 기본 스택
 mysql (healthy) ──┐
                   ├──→ backend ──→ frontend
 redis (healthy) ──┘
+
+# Pinpoint 스택 (docker-compose.pinpoint.yml overlay)
+pinpoint-hbase (healthy) ──→ pinpoint-collector (started)
+pinpoint-hbase (healthy) ──→ pinpoint-web
+pinpoint-agent (completed) ──→ backend (+ Pinpoint Agent JVM 옵션)
+pinpoint-collector (started) ──→ backend
 ```
 
 ## Nginx 설정 (`frontend/nginx.conf`)
@@ -178,3 +195,81 @@ curl -s -u admin:admin \
 ```
 
 자세한 메트릭 목록과 추가 방법은 [metrics.md](./metrics.md)를 참고하세요.
+
+---
+
+## Pinpoint APM
+
+분산 추적(APM) 스택. HTTP 요청의 전체 실행 경로(SQL, Redis, 외부 API 호출 등)를 트랜잭션 단위로 추적합니다. Prometheus/Grafana와 독립적으로 동작합니다.
+
+### 아키텍처
+
+```
+[Backend JVM]
+  └── Pinpoint Agent (JVM 에이전트, -javaagent)
+        │  gRPC (포트 9991-9994)
+        ▼
+[Pinpoint Collector :9991-9994]
+        │
+        ▼
+[HBase + ZooKeeper :2181]  ←→  [Pinpoint Web UI :8888]
+```
+
+### 구성 파일
+
+| 파일 | 역할 |
+|---|---|
+| `docker-compose.pinpoint.yml` | Pinpoint 프로필 overlay — backend에 Agent 볼륨/환경변수 추가 |
+| `pinpoint/agent-config/pinpoint.config` | Pinpoint Agent 설정 (Collector 주소, 샘플링, SQL 추적 등) |
+| `Dockerfile` | `PINPOINT_ACTIVE=true` 시 `-javaagent` 옵션 자동 적용 |
+
+### 실행
+
+```bash
+# 1. Pinpoint 전체 스택 시작 (HBase 초기화에 약 90초 소요)
+docker compose -f docker-compose.yml -f docker-compose.pinpoint.yml --profile pinpoint up -d
+
+# 2. HBase 준비 확인
+docker logs pinpoint-hbase 2>&1 | grep "HMaster.*online"
+
+# 3. Pinpoint Web UI 접근
+open http://localhost:8888
+
+# 4. 중지
+docker compose -f docker-compose.yml -f docker-compose.pinpoint.yml --profile pinpoint down
+```
+
+### 접근
+
+| 서비스 | URL | 설명 |
+|---|---|---|
+| Pinpoint Web UI | `http://localhost:8888` | 분산 추적 대시보드 |
+| HBase ZooKeeper | `localhost:2181` | Collector / Web 내부 연결용 |
+
+### 주요 설정 (`pinpoint/agent-config/pinpoint.config`)
+
+| 설정 | 기본값 | 설명 |
+|---|---|---|
+| `profiler.sampling.counting.sampling-rate` | `10` | 100요청 중 10개 샘플링 (10%) |
+| `profiler.jdbc.tracesqlbindvalue` | `true` | SQL 바인딩 파라미터 수집 (운영 시 `false` 권장) |
+| `profiler.redis` | `true` | Redis (Lettuce) 호출 추적 |
+| `profiler.spring.beans` | `true` | Spring Bean 메서드 추적 |
+| `profiler.applicationName` | `auth-service` | Pinpoint UI에 표시될 앱 이름 |
+
+### Pinpoint vs Prometheus/Grafana 비교
+
+| 항목 | Prometheus + Grafana | Pinpoint |
+|---|---|---|
+| 목적 | 집계 메트릭 (카운터, 게이지, 히스토그램) | 개별 트랜잭션 추적 (APM) |
+| 데이터 단위 | 집계값 (초당 요청 수, 평균 응답시간 등) | 개별 요청 단위 (어느 SQL이 느렸는지) |
+| 적합한 질문 | "평균 응답시간이 얼마인가?" | "이 요청이 왜 느렸는가?" |
+| 저장소 | Prometheus TSDB | HBase |
+| 코드 변경 | 필요 (`@AuthTimed`, `AuthMetrics`) | 불필요 (JVM 에이전트 방식) |
+
+### 환경변수 (docker-compose.pinpoint.yml)
+
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| `PINPOINT_ACTIVE` | `true` | 에이전트 활성화 여부 |
+| `PINPOINT_AGENT_ID` | `auth-backend-1` | 인스턴스 식별자 (스케일 아웃 시 각 인스턴스마다 고유값) |
+| `PINPOINT_APP_NAME` | `auth-service` | Pinpoint UI 애플리케이션 그룹 이름 |

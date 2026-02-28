@@ -324,7 +324,7 @@
       },
       "targets": [
         {
-          "expr": "sum(auth_email_verification_total{application=\"auth-service\", action=\"sent\"}) by (type)",
+          "expr": "sum(increase(auth_email_verification_total{application=\"auth-service\", action=\"sent\"}[$__rate_interval])) by (type)",
           "legendFormat": "{{type}}",
           "instant": true
         }
@@ -362,7 +362,7 @@
       },
       "targets": [
         {
-          "expr": "sum(auth_email_verification_total{application=\"auth-service\", action=~\"success|failure\"}) by (action, type)",
+          "expr": "sum(increase(auth_email_verification_total{application=\"auth-service\", action=~\"success|failure\"}[$__rate_interval])) by (action, type)",
           "legendFormat": "{{type}} - {{action}}",
           "instant": true
         }

@@ -19,6 +19,8 @@ public class LoginResponse {
     private boolean twoFactorRequired;
     private boolean pendingDeletion;
     private LocalDateTime deletionRequestedAt;
+    private boolean postLoginVerificationRequired;
+    private String postLoginVerificationTokenId;
 
     public static LoginResponse of(Long userId, String userUuid, String email, String nickname, TokenResponse tokenResponse) {
         return LoginResponse.builder()

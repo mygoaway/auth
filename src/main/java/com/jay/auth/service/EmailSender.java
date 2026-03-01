@@ -57,4 +57,14 @@ public interface EmailSender {
      * @param expireDate 만료일
      */
     void sendPasswordExpiredAlert(String to, String expireDate);
+
+    /**
+     * 계정 잠금 알림 발송
+     */
+    void sendAccountLockedAlert(String to, String reason);
+
+    /**
+     * 로그인 후 이메일 재인증 코드 발송
+     */
+    void sendPostLoginVerificationCode(String to, String code);
 }

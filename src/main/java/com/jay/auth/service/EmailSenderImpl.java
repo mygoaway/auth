@@ -101,4 +101,22 @@ public class EmailSenderImpl implements EmailSender {
         log.info("만료일: {}", expireDate);
         log.info("========================================");
     }
+
+    @Override
+    public void sendAccountLockedAlert(String to, String reason) {
+        log.info("========================================");
+        log.info("[보안 알림] 계정 잠금됨");
+        log.info("수신자: {}", to);
+        log.info("잠금 사유: {}", reason);
+        log.info("========================================");
+    }
+
+    @Override
+    public void sendPostLoginVerificationCode(String to, String code) {
+        log.info("========================================");
+        log.info("[보안 알림] 로그인 후 이메일 재인증 코드");
+        log.info("수신자: {}", to);
+        log.info("인증 코드: {}", code);
+        log.info("========================================");
+    }
 }

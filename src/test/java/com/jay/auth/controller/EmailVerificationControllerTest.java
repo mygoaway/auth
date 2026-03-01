@@ -44,7 +44,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                         com.jay.auth.config.RateLimitFilter.class,
                         com.jay.auth.config.RequestLoggingFilter.class,
                         com.jay.auth.config.SecurityHeadersFilter.class,
-                        com.jay.auth.config.RequestIdFilter.class
+                        com.jay.auth.config.RequestIdFilter.class,
+                        com.jay.auth.config.IpAccessFilter.class
                 }
         )
 )
@@ -65,6 +66,9 @@ class EmailVerificationControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private com.jay.auth.service.PostLoginVerificationService postLoginVerificationService;
 
     @BeforeEach
     void setUp() {

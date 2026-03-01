@@ -32,8 +32,9 @@ npm run lint         # ESLint 실행
 ### 보안 필터 체인 순서
 1. `SecurityHeadersFilter` — XSS/클릭재킹 방지 응답 헤더
 2. `RateLimitFilter` — Redis 기반 IP별 요청 제한
-3. `RequestLoggingFilter` — `METHOD URI - STATUS (Xms) [IP: ...]` 형식 로깅
-4. `JwtAuthenticationFilter` — Bearer 토큰 검증, Redis 블랙리스트 확인
+3. `IpAccessFilter` — IP 허용/차단 목록 검사 (DB + Redis 5분 캐시). `/health`, `/swagger`, `/api-docs`, `/actuator` 제외
+4. `RequestLoggingFilter` — `METHOD URI - STATUS (Xms) [IP: ...]` 형식 로깅
+5. `JwtAuthenticationFilter` — Bearer 토큰 검증, Redis 블랙리스트 확인
 
 CSRF 비활성화. 무상태 세션. 공개 엔드포인트: `/api/v1/auth/**`, `/api/v1/phone/**`, `/api/v1/health`, Swagger 경로, OAuth2 경로. 관리자 엔드포인트(`/api/v1/admin/**`)는 `ROLE_ADMIN` 필요.
 
@@ -58,6 +59,9 @@ Google/Kakao는 OIDC(`CustomOidcUserService`), Naver는 OAuth2(`CustomOAuth2User
 | `rate:api:{ip}` | 1분 | 일반 API 제한 (60회/분) |
 | `passkey:challenge:register:{userId}` | 5분 | 패스키 등록 챌린지 |
 | `passkey:challenge:login:{sessionId}` | 5분 | 패스키 인증 챌린지 |
+| `ipblock:{ip}` / `ipallow:{ip}` | 5분 | IP 접근 규칙 캐시 |
+| `lock:attempts:{userId}` | 1시간 | 로그인 실패 횟수 (AccountLockService) |
+| `lock:reason:{userId}` | - | 계정 잠금 사유 |
 
 Spring `@Cacheable` 캐시: `userProfile` (5분), `securityDashboard` (3분), `geoip` (24시간).
 
@@ -111,9 +115,37 @@ Spring `@Cacheable` 캐시: `userProfile` (5분), `securityDashboard` (3분), `g
 | `SupportController` | `/api/v1/support` | 인증 필요 |
 | `PasskeyController` | `/api/v1/passkey` (관리), `/api/v1/auth/passkey` (로그인) | 혼합 |
 | `AdminController` | `/api/v1/admin` | ROLE_ADMIN |
+| `IpRuleController` | `/api/v1/admin/ip-rules` | ROLE_ADMIN |
+
+### IP 접근 제어
+- **`IpAccessRule`** (tb_ip_access_rule): IP별 ALLOW/BLOCK 규칙 (활성화 여부, 만료일, 이유 포함)
+- **`IpAccessService`**: `isBlocked(ip)` / `isAllowed(ip)` — Redis 캐시(`ipblock:{ip}`, `ipallow:{ip}`, TTL 5분) → DB 순으로 조회
+- **관리 API**: `GET/POST/DELETE /api/v1/admin/ip-rules` (ROLE_ADMIN)
+- **자동 차단**: `autoBlock(ip, reason)` — 시스템이 의심 IP 자동 차단
+- **메트릭**: `ip_blocked_total{reason}`, `ip_rule_created_total{type}`
+
+### 계정 잠금 시스템 (AccountLockService)
+- Redis 기반 실패 횟수 추적: `lock:attempts:{userId}` (1시간 창)
+- 10회 실패 시 `UserStatus.LOCKED` 전환 + 이메일 알림 (`sendAccountLockedAlert`)
+- 관리 API: `POST /api/v1/admin/users/{userId}/lock`, `POST /api/v1/admin/users/{userId}/unlock`
+- `UserSignInInfo`의 기존 단기 잠금(`isLocked`, 5회/30분)과 별개로 동작하는 영구 잠금
+- 메트릭: `account_locked_total{reason=auto|manual}`, `account_unlocked_total{by=admin}`
+
+### 리프레시 토큰 순환 강화 (TokenService)
+- **재사용 감지**: 이미 삭제된 `tokenId`로 갱신 요청 시 → 해당 사용자의 모든 세션 즉시 삭제 (토큰 탈취 대응)
+- **이중 방어**: 갱신 성공 시 구 토큰을 블랙리스트에 즉시 추가 (TTL 내 재사용 방지)
+- 메트릭: `token_reuse_detected_total`, `token_rotation_total`
+
+### 로그인 후 이메일 재인증 (PostLoginVerificationService)
+- 새 기기 로그인 감지 (2FA 미설정 계정) 시 이메일로 6자리 코드 발송
+- `isVerificationRequired(userId, deviceId)`: 2FA 활성화 또는 신뢰 기기이면 false
+- `VerificationType.POST_LOGIN_VERIFICATION`으로 기존 `EmailVerification` 엔티티 재사용
+- 로그인 응답에 `postLoginVerificationRequired: true`, `postLoginVerificationTokenId` 포함
+- 재인증 엔드포인트: `POST /api/v1/auth/email/verify-login`
+- 메트릭: `post_login_verification_sent_total`, `post_login_verification_success_total`
 
 ### 비동기 및 스케줄링
-- `@Async("asyncExecutor")`: `AuditLogService`, `LoginHistoryService`, `SecurityNotificationService`, `SupportAiReplyService`
+- `@Async("asyncExecutor")`: `AuditLogService`, `LoginHistoryService`, `SecurityNotificationService`, `SupportAiReplyService`, `AccountLockService` (잠금 알림 이메일)
 - `AccountCleanupScheduler` (매일 새벽 3시): `PENDING_DELETE` 30일 초과 사용자 개인정보 삭제, 90일 미로그인 시 휴면 전환, 180일 초과 로그인 이력 정리
 - `VerificationCleanupScheduler` (매시간): 만료된 이메일/휴대폰 인증 행 삭제
 

@@ -4,6 +4,7 @@ import com.jay.auth.domain.enums.UserRole;
 import com.jay.auth.domain.enums.UserStatus;
 import com.jay.auth.dto.response.*;
 import com.jay.auth.security.UserPrincipal;
+import com.jay.auth.service.AccountLockService;
 import com.jay.auth.service.AdminService;
 import com.jay.auth.service.AuditLogService;
 import com.jay.auth.service.LoginAnalyticsService;
@@ -23,6 +24,7 @@ public class AdminController {
     private final AdminService adminService;
     private final AuditLogService auditLogService;
     private final LoginAnalyticsService loginAnalyticsService;
+    private final AccountLockService accountLockService;
 
     @Operation(summary = "관리자 대시보드 조회", description = "사용자 통계 및 최근 가입 사용자 목록을 조회합니다")
     @GetMapping("/dashboard")
@@ -122,5 +124,28 @@ public class AdminController {
         auditLogService.log(adminPrincipal.getUserId(), "ADMIN_LOGIN_TIMELINE_VIEW", "ADMIN");
         LoginTimelineResponse response = loginAnalyticsService.getTimeline(days);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "계정 수동 잠금", description = "특정 사용자 계정을 수동으로 잠급니다")
+    @PostMapping("/users/{userId}/lock")
+    public ResponseEntity<Void> lockAccount(
+            @AuthenticationPrincipal UserPrincipal adminPrincipal,
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "관리자에 의해 수동 잠금되었습니다.") String reason) {
+        accountLockService.lockAccount(userId, reason, false);
+        auditLogService.log(adminPrincipal.getUserId(), "ADMIN_ACCOUNT_LOCK", "USER",
+                "targetUserId=" + userId + ", reason=" + reason, true);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "계정 잠금 해제", description = "잠금된 사용자 계정을 해제합니다")
+    @PostMapping("/users/{userId}/unlock")
+    public ResponseEntity<Void> unlockAccount(
+            @AuthenticationPrincipal UserPrincipal adminPrincipal,
+            @PathVariable Long userId) {
+        accountLockService.unlockAccount(userId);
+        auditLogService.log(adminPrincipal.getUserId(), "ADMIN_ACCOUNT_UNLOCK", "USER",
+                "targetUserId=" + userId, true);
+        return ResponseEntity.ok().build();
     }
 }

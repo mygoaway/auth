@@ -150,4 +150,24 @@ public class AuthMetrics {
                 .register(registry));
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // IP 접근 제어 메트릭
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public void recordIpBlocked(String reason) {
+        Counter.builder("ip_blocked_total")
+                .description("IP 차단 횟수")
+                .tag("reason", reason)
+                .register(registry)
+                .increment();
+    }
+
+    public void recordIpRuleCreated(String ruleType) {
+        Counter.builder("ip_rule_created_total")
+                .description("IP 규칙 생성 횟수")
+                .tag("type", ruleType)
+                .register(registry)
+                .increment();
+    }
+
 }

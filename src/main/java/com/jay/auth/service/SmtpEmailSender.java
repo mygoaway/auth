@@ -166,6 +166,33 @@ public class SmtpEmailSender implements EmailSender {
         sendHtmlEmail(to, "[Authly] 비밀번호 만료 안내", html);
     }
 
+    @Override
+    public void sendAccountLockedAlert(String to, String reason) {
+        List<Map<String, String>> details = List.of(
+                Map.of("key", "잠금 사유", "value", reason)
+        );
+
+        Context context = new Context();
+        context.setVariable("alertTitle", "계정 잠금됨");
+        context.setVariable("alertMessage", "보안상의 이유로 계정이 잠금되었습니다. 고객센터에 문의하세요.");
+        context.setVariable("details", details);
+
+        String html = templateEngine.process("email/security-alert", context);
+        sendHtmlEmail(to, "[Authly] 계정 잠금 알림", html);
+    }
+
+    @Override
+    public void sendPostLoginVerificationCode(String to, String code) {
+        Context context = new Context();
+        context.setVariable("title", "로그인 재인증");
+        context.setVariable("message", "새로운 환경에서의 로그인이 감지되었습니다. 아래 인증 코드를 입력해주세요.");
+        context.setVariable("code", code);
+        context.setVariable("expiresMinutes", 10);
+
+        String html = templateEngine.process("email/verification-code", context);
+        sendHtmlEmail(to, "[Authly] 로그인 재인증 코드", html);
+    }
+
     private void sendHtmlEmail(String to, String subject, String htmlContent) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

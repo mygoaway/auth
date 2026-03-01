@@ -14,9 +14,11 @@ import com.jay.auth.service.AuthService;
 import com.jay.auth.service.LoginHistoryService;
 import com.jay.auth.service.LoginRateLimitService;
 import com.jay.auth.service.PasswordService;
+import com.jay.auth.service.PostLoginVerificationService;
 import com.jay.auth.service.SecurityNotificationService;
 import com.jay.auth.service.SecuritySettingsService;
 import com.jay.auth.service.TokenService;
+import com.jay.auth.service.TrustedDeviceService;
 import com.jay.auth.util.AuthUtil;
 import com.jay.auth.util.PasswordUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,6 +46,8 @@ public class AuthController {
     private final LoginHistoryService loginHistoryService;
     private final SecurityNotificationService securityNotificationService;
     private final SecuritySettingsService securitySettingsService;
+    private final PostLoginVerificationService postLoginVerificationService;
+    private final TrustedDeviceService trustedDeviceService;
     private final PasswordUtil passwordUtil;
 
     @Operation(summary = "이메일 회원가입", description = "이메일 인증 완료 후 회원가입을 진행합니다")
@@ -86,6 +90,26 @@ public class AuthController {
 
             // Send new device login notification (async)
             securityNotificationService.notifyNewDeviceLogin(response.getUserId(), sessionInfo);
+
+            // Check if post-login verification is required (new device + no 2FA)
+            String deviceId = trustedDeviceService.generateDeviceId(sessionInfo);
+            if (postLoginVerificationService.isVerificationRequired(response.getUserId(), deviceId)) {
+                String tokenId = postLoginVerificationService.sendVerificationCode(email);
+                return ResponseEntity.ok(LoginResponse.builder()
+                        .userId(response.getUserId())
+                        .userUuid(response.getUserUuid())
+                        .email(response.getEmail())
+                        .nickname(response.getNickname())
+                        .token(response.getToken())
+                        .passwordExpired(response.isPasswordExpired())
+                        .daysUntilPasswordExpiration(response.getDaysUntilPasswordExpiration())
+                        .twoFactorRequired(response.isTwoFactorRequired())
+                        .pendingDeletion(response.isPendingDeletion())
+                        .deletionRequestedAt(response.getDeletionRequestedAt())
+                        .postLoginVerificationRequired(true)
+                        .postLoginVerificationTokenId(tokenId)
+                        .build());
+            }
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {

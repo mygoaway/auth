@@ -55,7 +55,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                         com.jay.auth.config.RateLimitFilter.class,
                         com.jay.auth.config.RequestLoggingFilter.class,
                         com.jay.auth.config.SecurityHeadersFilter.class,
-                        com.jay.auth.config.RequestIdFilter.class
+                        com.jay.auth.config.RequestIdFilter.class,
+                        com.jay.auth.config.IpAccessFilter.class
                 }
         )
 )
@@ -91,6 +92,12 @@ class AuthControllerTest {
 
     @MockitoBean
     private com.jay.auth.service.SecuritySettingsService securitySettingsService;
+
+    @MockitoBean
+    private com.jay.auth.service.PostLoginVerificationService postLoginVerificationService;
+
+    @MockitoBean
+    private com.jay.auth.service.TrustedDeviceService trustedDeviceService;
 
     @BeforeEach
     void setUp() {

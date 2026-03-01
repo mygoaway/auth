@@ -108,6 +108,11 @@ public class TrustedDeviceService {
         return devices;
     }
 
+    public boolean isTrustedDevice(Long userId, String deviceId) {
+        String key = buildKey(userId, deviceId);
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+    }
+
     public void removeTrustedDevice(Long userId, String deviceId) {
         String key = buildKey(userId, deviceId);
         redisTemplate.delete(key);

@@ -45,7 +45,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                         com.jay.auth.config.RateLimitFilter.class,
                         com.jay.auth.config.RequestLoggingFilter.class,
                         com.jay.auth.config.SecurityHeadersFilter.class,
-                        com.jay.auth.config.RequestIdFilter.class
+                        com.jay.auth.config.RequestIdFilter.class,
+                        com.jay.auth.config.IpAccessFilter.class
                 }
         )
 )
@@ -66,6 +67,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private com.jay.auth.service.LoginAnalyticsService loginAnalyticsService;
+
+    @MockitoBean
+    private com.jay.auth.service.AccountLockService accountLockService;
 
     @BeforeEach
     void setUp() {

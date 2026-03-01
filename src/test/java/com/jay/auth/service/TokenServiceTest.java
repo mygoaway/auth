@@ -8,11 +8,13 @@ import com.jay.auth.security.JwtTokenProvider;
 import com.jay.auth.security.TokenStore;
 import com.jay.auth.service.metrics.AuthGaugeMetrics;
 import com.jay.auth.service.metrics.AuthMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -32,7 +34,6 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class TokenServiceTest {
 
-    @InjectMocks
     private TokenService tokenService;
 
     @Mock
@@ -43,6 +44,13 @@ class TokenServiceTest {
     private AuthMetrics authMetrics;
     @Mock
     private AuthGaugeMetrics authGaugeMetrics;
+
+    private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
+    @BeforeEach
+    void setUp() {
+        tokenService = new TokenService(jwtTokenProvider, tokenStore, authMetrics, authGaugeMetrics, meterRegistry);
+    }
 
     @Nested
     @DisplayName("토큰 발급")

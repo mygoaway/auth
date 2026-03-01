@@ -7,8 +7,10 @@ import com.jay.auth.dto.response.VerificationResponse;
 import com.jay.auth.exception.DuplicateEmailException;
 import com.jay.auth.exception.InvalidVerificationException;
 import com.jay.auth.exception.UserNotFoundException;
+import com.jay.auth.dto.request.PostLoginVerifyRequest;
 import com.jay.auth.service.AuthService;
 import com.jay.auth.service.EmailVerificationService;
+import com.jay.auth.service.PostLoginVerificationService;
 import com.jay.auth.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +30,7 @@ public class EmailVerificationController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final PostLoginVerificationService postLoginVerificationService;
     private final UserService userService;
 
     @Operation(summary = "이메일 인증 코드 발송", description = "회원가입, 복구이메일 등록, 비밀번호 재설정을 위한 이메일 인증 코드를 발송합니다")
@@ -79,6 +82,19 @@ public class EmailVerificationController {
                 request.getEmail(),
                 request.getCode(),
                 request.getType()
+        );
+
+        return ResponseEntity.ok(VerificationResponse.verified(tokenId));
+    }
+
+    @Operation(summary = "로그인 후 이메일 재인증", description = "새 기기 로그인 감지 시 이메일 인증 코드를 확인합니다")
+    @PostMapping("/verify-login")
+    public ResponseEntity<VerificationResponse> verifyLogin(
+            @Valid @RequestBody PostLoginVerifyRequest request) {
+
+        String tokenId = postLoginVerificationService.verifyCode(
+                request.getEmail(),
+                request.getCode()
         );
 
         return ResponseEntity.ok(VerificationResponse.verified(tokenId));

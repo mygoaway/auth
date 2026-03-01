@@ -8,6 +8,8 @@ import com.jay.auth.security.JwtTokenProvider;
 import com.jay.auth.security.TokenStore;
 import com.jay.auth.service.metrics.AuthGaugeMetrics;
 import com.jay.auth.service.metrics.AuthMetrics;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ public class TokenService {
     private final TokenStore tokenStore;
     private final AuthMetrics authMetrics;
     private final AuthGaugeMetrics authGaugeMetrics;
+    private final MeterRegistry meterRegistry;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeUtil.ISO_FORMATTER;
 
@@ -113,12 +116,28 @@ public class TokenService {
         String tokenId = jwtTokenProvider.getTokenId(refreshToken);
 
         if (!tokenStore.existsRefreshToken(userId, tokenId)) {
+            // 이미 삭제된 tokenId로 재요청 → 토큰 탈취 후 재사용 시도 가능성
+            Counter.builder("token_reuse_detected_total")
+                    .description("만료/삭제된 리프레시 토큰 재사용 감지")
+                    .register(meterRegistry)
+                    .increment();
+            log.warn("Refresh token reuse detected — revoking all sessions: userId={}, tokenId={}", userId, tokenId);
+            tokenStore.deleteAllRefreshTokens(userId);
             authMetrics.recordTokenRefreshFailure();
             throw new InvalidTokenException("리프레시 토큰이 존재하지 않거나 이미 만료되었습니다");
         }
 
-        // 4. 기존 Refresh Token 삭제
+        // 4. 기존 Refresh Token 즉시 블랙리스트 등록 후 삭제 (재사용 방지)
+        long remainingMs = jwtTokenProvider.getRemainingExpiration(refreshToken);
+        if (remainingMs > 0) {
+            tokenStore.addToBlacklist(tokenId, remainingMs);
+        }
         tokenStore.deleteRefreshToken(userId, tokenId);
+
+        Counter.builder("token_rotation_total")
+                .description("리프레시 토큰 순환 횟수")
+                .register(meterRegistry)
+                .increment();
 
         // 5. 새 토큰 발급
         String userUuid = jwtTokenProvider.getUserUuid(refreshToken);

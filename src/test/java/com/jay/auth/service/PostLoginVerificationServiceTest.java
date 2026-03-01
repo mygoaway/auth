@@ -169,5 +169,154 @@ class PostLoginVerificationServiceTest {
             assertThatThrownBy(() -> service.verifyCode("user@example.com", "123456"))
                     .isInstanceOf(InvalidVerificationException.class);
         }
+
+        @Test
+        @DisplayName("만료된 코드 — InvalidVerificationException(codeExpired)")
+        void expiredCodeThrows() {
+            given(encryptionService.encryptForSearch(anyString())).willReturn("enc-email");
+
+            EmailVerification verification = EmailVerification.builder()
+                    .emailLowerEnc("enc-email")
+                    .verificationCode("123456")
+                    .verificationType(VerificationType.POST_LOGIN_VERIFICATION)
+                    .expiresAt(LocalDateTime.now().minusMinutes(1)) // 이미 만료
+                    .build();
+
+            given(emailVerificationRepository
+                    .findByEmailLowerEncAndVerificationTypeAndIsVerifiedFalse("enc-email", VerificationType.POST_LOGIN_VERIFICATION))
+                    .willReturn(Optional.of(verification));
+
+            assertThatThrownBy(() -> service.verifyCode("user@example.com", "123456"))
+                    .isInstanceOf(InvalidVerificationException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("isVerifiedByTokenId()")
+    class IsVerifiedByTokenId {
+
+        @Test
+        @DisplayName("검증 완료 레코드 — true 반환")
+        void verifiedRecordReturnsTrue() {
+            given(encryptionService.encryptForSearch(anyString())).willReturn("enc-email");
+
+            EmailVerification verification = EmailVerification.builder()
+                    .emailLowerEnc("enc-email")
+                    .verificationCode("123456")
+                    .verificationType(VerificationType.POST_LOGIN_VERIFICATION)
+                    .expiresAt(LocalDateTime.now().plusMinutes(5))
+                    .build();
+            ReflectionTestUtils.setField(verification, "tokenId", "valid-token");
+            ReflectionTestUtils.setField(verification, "isVerified", true);
+
+            given(emailVerificationRepository.findByTokenId("valid-token"))
+                    .willReturn(Optional.of(verification));
+
+            assertThat(service.isVerifiedByTokenId("valid-token", "user@example.com")).isTrue();
+        }
+
+        @Test
+        @DisplayName("레코드 없음 — false 반환")
+        void noRecordReturnsFalse() {
+            given(encryptionService.encryptForSearch(anyString())).willReturn("enc-email");
+            given(emailVerificationRepository.findByTokenId("missing-token"))
+                    .willReturn(Optional.empty());
+
+            assertThat(service.isVerifiedByTokenId("missing-token", "user@example.com")).isFalse();
+        }
+
+        @Test
+        @DisplayName("isVerified=false — false 반환")
+        void notVerifiedReturnsFalse() {
+            given(encryptionService.encryptForSearch(anyString())).willReturn("enc-email");
+
+            EmailVerification verification = EmailVerification.builder()
+                    .emailLowerEnc("enc-email")
+                    .verificationCode("123456")
+                    .verificationType(VerificationType.POST_LOGIN_VERIFICATION)
+                    .expiresAt(LocalDateTime.now().plusMinutes(5))
+                    .build();
+            ReflectionTestUtils.setField(verification, "tokenId", "token-not-verified");
+            // isVerified는 기본값 false
+
+            given(emailVerificationRepository.findByTokenId("token-not-verified"))
+                    .willReturn(Optional.of(verification));
+
+            assertThat(service.isVerifiedByTokenId("token-not-verified", "user@example.com")).isFalse();
+        }
+
+        @Test
+        @DisplayName("만료 레코드 — false 반환")
+        void expiredRecordReturnsFalse() {
+            given(encryptionService.encryptForSearch(anyString())).willReturn("enc-email");
+
+            EmailVerification verification = EmailVerification.builder()
+                    .emailLowerEnc("enc-email")
+                    .verificationCode("123456")
+                    .verificationType(VerificationType.POST_LOGIN_VERIFICATION)
+                    .expiresAt(LocalDateTime.now().minusMinutes(1)) // 만료됨
+                    .build();
+            ReflectionTestUtils.setField(verification, "tokenId", "expired-token");
+            ReflectionTestUtils.setField(verification, "isVerified", true);
+
+            given(emailVerificationRepository.findByTokenId("expired-token"))
+                    .willReturn(Optional.of(verification));
+
+            assertThat(service.isVerifiedByTokenId("expired-token", "user@example.com")).isFalse();
+        }
+
+        @Test
+        @DisplayName("email 불일치 — false 반환")
+        void emailMismatchReturnsFalse() {
+            given(encryptionService.encryptForSearch(anyString())).willReturn("enc-other-email");
+
+            EmailVerification verification = EmailVerification.builder()
+                    .emailLowerEnc("enc-email") // 다른 이메일
+                    .verificationCode("123456")
+                    .verificationType(VerificationType.POST_LOGIN_VERIFICATION)
+                    .expiresAt(LocalDateTime.now().plusMinutes(5))
+                    .build();
+            ReflectionTestUtils.setField(verification, "tokenId", "token-email-mismatch");
+            ReflectionTestUtils.setField(verification, "isVerified", true);
+
+            given(emailVerificationRepository.findByTokenId("token-email-mismatch"))
+                    .willReturn(Optional.of(verification));
+
+            assertThat(service.isVerifiedByTokenId("token-email-mismatch", "other@example.com")).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("deleteVerificationByTokenId()")
+    class DeleteVerificationByTokenId {
+
+        @Test
+        @DisplayName("레코드 있음 — emailVerificationRepository.delete() 호출")
+        void deletesWhenFound() {
+            EmailVerification verification = EmailVerification.builder()
+                    .emailLowerEnc("enc-email")
+                    .verificationCode("123456")
+                    .verificationType(VerificationType.POST_LOGIN_VERIFICATION)
+                    .expiresAt(LocalDateTime.now().plusMinutes(5))
+                    .build();
+
+            given(emailVerificationRepository.findByTokenId("token-to-delete"))
+                    .willReturn(Optional.of(verification));
+
+            service.deleteVerificationByTokenId("token-to-delete");
+
+            then(emailVerificationRepository).should().delete(verification);
+        }
+
+        @Test
+        @DisplayName("레코드 없음 — delete 미호출")
+        void noDeleteWhenNotFound() {
+            given(emailVerificationRepository.findByTokenId("missing-token"))
+                    .willReturn(Optional.empty());
+
+            service.deleteVerificationByTokenId("missing-token");
+
+            then(emailVerificationRepository).should(org.mockito.Mockito.never()).delete(any());
+        }
     }
 }

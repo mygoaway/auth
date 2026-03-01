@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -201,6 +202,210 @@ class SecurityNotificationServiceTest {
 
             // then
             verify(emailSender, never()).sendAccountUnlinkedAlert(anyString(), anyString(), anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("비밀번호 만료 임박 알림")
+    class NotifyPasswordExpiringSoon {
+
+        @Test
+        @DisplayName("정상 발송 — sendPasswordExpiringSoonAlert 호출됨")
+        void sendAlert() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId, "enc_email");
+            LocalDateTime expireDate = LocalDateTime.now().plusDays(7);
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(encryptionService.decryptEmail("enc_email")).willReturn("test@example.com");
+
+            // when
+            securityNotificationService.notifyPasswordExpiringSoon(userId, 7, expireDate);
+
+            // then
+            verify(emailSender).sendPasswordExpiringSoonAlert(eq("test@example.com"), eq(7), anyString());
+        }
+
+        @Test
+        @DisplayName("사용자 없음 — emailSender 미호출")
+        void userNotFound() {
+            // given
+            Long userId = 999L;
+            given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+            // when
+            securityNotificationService.notifyPasswordExpiringSoon(userId, 7, LocalDateTime.now().plusDays(7));
+
+            // then
+            verify(emailSender, never()).sendPasswordExpiringSoonAlert(anyString(), anyInt(), anyString());
+        }
+
+        @Test
+        @DisplayName("emailEnc null — emailSender 미호출")
+        void emailEncNull() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId, null);
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+            // when
+            securityNotificationService.notifyPasswordExpiringSoon(userId, 7, LocalDateTime.now().plusDays(7));
+
+            // then
+            verify(emailSender, never()).sendPasswordExpiringSoonAlert(anyString(), anyInt(), anyString());
+        }
+
+        @Test
+        @DisplayName("emailSender 예외 발생 시 예외 미전파")
+        void emailSenderExceptionNotPropagated() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId, "enc_email");
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(encryptionService.decryptEmail("enc_email")).willReturn("test@example.com");
+            org.mockito.Mockito.doThrow(new RuntimeException("메일 발송 실패"))
+                    .when(emailSender).sendPasswordExpiringSoonAlert(anyString(), anyInt(), anyString());
+
+            // when & then (no exception thrown)
+            securityNotificationService.notifyPasswordExpiringSoon(userId, 7, LocalDateTime.now().plusDays(7));
+        }
+    }
+
+    @Nested
+    @DisplayName("비밀번호 만료 알림")
+    class NotifyPasswordExpired {
+
+        @Test
+        @DisplayName("정상 발송 — sendPasswordExpiredAlert 호출됨")
+        void sendAlert() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId, "enc_email");
+            LocalDateTime expireDate = LocalDateTime.now();
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(encryptionService.decryptEmail("enc_email")).willReturn("test@example.com");
+
+            // when
+            securityNotificationService.notifyPasswordExpired(userId, expireDate);
+
+            // then
+            verify(emailSender).sendPasswordExpiredAlert(eq("test@example.com"), anyString());
+        }
+
+        @Test
+        @DisplayName("사용자 없음 — emailSender 미호출")
+        void userNotFound() {
+            // given
+            Long userId = 999L;
+            given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+            // when
+            securityNotificationService.notifyPasswordExpired(userId, LocalDateTime.now());
+
+            // then
+            verify(emailSender, never()).sendPasswordExpiredAlert(anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("emailEnc null — emailSender 미호출")
+        void emailEncNull() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId, null);
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+            // when
+            securityNotificationService.notifyPasswordExpired(userId, LocalDateTime.now());
+
+            // then
+            verify(emailSender, never()).sendPasswordExpiredAlert(anyString(), anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("패스키 등록 알림")
+    class NotifyPasskeyRegistered {
+
+        @Test
+        @DisplayName("정상 발송 — sendPasskeyRegisteredAlert 호출됨")
+        void sendAlert() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId, "enc_email");
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(encryptionService.decryptEmail("enc_email")).willReturn("test@example.com");
+
+            // when
+            securityNotificationService.notifyPasskeyRegistered(userId, "MacBook Pro");
+
+            // then
+            verify(emailSender).sendPasskeyRegisteredAlert(eq("test@example.com"), eq("MacBook Pro"), anyString());
+        }
+
+        @Test
+        @DisplayName("사용자 없음 — emailSender 미호출")
+        void userNotFound() {
+            // given
+            Long userId = 999L;
+            given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+            // when
+            securityNotificationService.notifyPasskeyRegistered(userId, "MacBook Pro");
+
+            // then
+            verify(emailSender, never()).sendPasskeyRegisteredAlert(anyString(), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("emailEnc null — emailSender 미호출")
+        void emailEncNull() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId, null);
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+            // when
+            securityNotificationService.notifyPasskeyRegistered(userId, "MacBook Pro");
+
+            // then
+            verify(emailSender, never()).sendPasskeyRegisteredAlert(anyString(), anyString(), anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("패스키 삭제 알림")
+    class NotifyPasskeyRemoved {
+
+        @Test
+        @DisplayName("정상 발송 — sendPasskeyRemovedAlert 호출됨")
+        void sendAlert() {
+            // given
+            Long userId = 1L;
+            User user = createUser(userId, "enc_email");
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(encryptionService.decryptEmail("enc_email")).willReturn("test@example.com");
+
+            // when
+            securityNotificationService.notifyPasskeyRemoved(userId, "iPhone 15");
+
+            // then
+            verify(emailSender).sendPasskeyRemovedAlert(eq("test@example.com"), eq("iPhone 15"), anyString());
+        }
+
+        @Test
+        @DisplayName("사용자 없음 — emailSender 미호출")
+        void userNotFound() {
+            // given
+            Long userId = 999L;
+            given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+            // when
+            securityNotificationService.notifyPasskeyRemoved(userId, "iPhone 15");
+
+            // then
+            verify(emailSender, never()).sendPasskeyRemovedAlert(anyString(), anyString(), anyString());
         }
     }
 

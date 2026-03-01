@@ -31,8 +31,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -377,6 +379,118 @@ class AdminControllerTest {
                     .andExpect(jsonPath("$.resolvedPosts").value(50))
                     .andExpect(jsonPath("$.closedPosts").value(15))
                     .andExpect(jsonPath("$.todayPosts").value(3));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/admin/analytics/login-heatmap")
+    class GetLoginHeatmap {
+
+        @Test
+        @DisplayName("로그인 히트맵 조회 성공")
+        void getLoginHeatmapSuccess() throws Exception {
+            // given
+            LoginHeatmapResponse response = LoginHeatmapResponse.builder()
+                    .heatmap(Collections.emptyList())
+                    .suspiciousRegions(Collections.emptyList())
+                    .period("30d")
+                    .build();
+
+            given(loginAnalyticsService.getHeatmap(30)).willReturn(response);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/admin/analytics/login-heatmap")
+                            .param("days", "30"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.period").value("30d"));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/admin/analytics/failure-hotspot")
+    class GetFailureHotspot {
+
+        @Test
+        @DisplayName("실패 핫스팟 조회 성공")
+        void getFailureHotspotSuccess() throws Exception {
+            // given
+            LoginFailureHotspotResponse response = LoginFailureHotspotResponse.builder()
+                    .hotspots(Collections.emptyList())
+                    .totalFailures(0L)
+                    .period("7d")
+                    .build();
+
+            given(loginAnalyticsService.getFailureHotspot(7)).willReturn(response);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/admin/analytics/failure-hotspot")
+                            .param("days", "7"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.period").value("7d"))
+                    .andExpect(jsonPath("$.totalFailures").value(0));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/admin/analytics/timeline")
+    class GetLoginTimeline {
+
+        @Test
+        @DisplayName("로그인 타임라인 조회 성공")
+        void getLoginTimelineSuccess() throws Exception {
+            // given
+            LoginTimelineResponse response = LoginTimelineResponse.builder()
+                    .timeline(Collections.emptyList())
+                    .peakHour(14)
+                    .peakCount(100L)
+                    .period("30d")
+                    .build();
+
+            given(loginAnalyticsService.getTimeline(30)).willReturn(response);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/admin/analytics/timeline")
+                            .param("days", "30"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.period").value("30d"))
+                    .andExpect(jsonPath("$.peakHour").value(14))
+                    .andExpect(jsonPath("$.peakCount").value(100));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/admin/users/{userId}/lock")
+    class LockAccount {
+
+        @Test
+        @DisplayName("계정 잠금 성공")
+        void lockAccountSuccess() throws Exception {
+            // given
+            willDoNothing().given(accountLockService).lockAccount(anyLong(), anyString(), eq(false));
+
+            // when & then
+            mockMvc.perform(post("/api/v1/admin/users/2/lock"))
+                    .andExpect(status().isOk());
+
+            verify(accountLockService).lockAccount(eq(2L), anyString(), eq(false));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/admin/users/{userId}/unlock")
+    class UnlockAccount {
+
+        @Test
+        @DisplayName("계정 잠금 해제 성공")
+        void unlockAccountSuccess() throws Exception {
+            // given
+            willDoNothing().given(accountLockService).unlockAccount(anyLong());
+
+            // when & then
+            mockMvc.perform(post("/api/v1/admin/users/2/unlock"))
+                    .andExpect(status().isOk());
+
+            verify(accountLockService).unlockAccount(2L);
         }
     }
 }
